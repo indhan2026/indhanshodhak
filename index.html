@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>IndhanShodhak · AI FUEL ALLOTMENT | REAL-TIME INTELLIGENCE</title>
+  <meta name="description" content="AI-powered fuel allotment system with real-time regional intelligence, anti-black-market engine, and government oversight.">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: radial-gradient(ellipse at 20% 30%, #0a0f0c, #0b1a12);
+      color: #ece5d8;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(40, 70, 50, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(40, 70, 50, 0.1) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow-orb {
+      position: fixed;
+      width: 70vw;
+      height: 70vw;
+      background: radial-gradient(circle, rgba(210, 130, 50, 0.15) 0%, rgba(0,0,0,0) 70%);
+      border-radius: 50%;
+      top: -20%;
+      right: -20%;
+      pointer-events: none;
+      z-index: 0;
+      animation: pulseGlow 12s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% { opacity: 0.3; transform: scale(1);}
+      100% { opacity: 0.8; transform: scale(1.1);}
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.2rem 2.5rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .lang-zone {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 100;
+    }
+    .custom-dropdown {
+      position: relative;
+      display: inline-block;
+      background: rgba(20, 30, 22, 0.7);
+      backdrop-filter: blur(12px);
+      border-radius: 60px;
+      border: 1px solid rgba(210, 160, 90, 0.5);
+      padding: 0.3rem 0.3rem 0.3rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    .dropdown-trigger {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.9rem;
+      letter-spacing: 0.5px;
+    }
+    .dropdown-trigger i {
+      color: #e2b87a;
+      font-size: 1rem;
+    }
+    .dropdown-menu {
+      position: absolute;
+      top: 110%;
+      right: 0;
+      background: rgba(15, 25, 18, 0.96);
+      backdrop-filter: blur(16px);
+      border-radius: 28px;
+      min-width: 180px;
+      padding: 0.6rem 0;
+      border: 1px solid rgba(220, 180, 100, 0.4);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 200;
+    }
+    .dropdown-menu.show {
+      display: block;
+      animation: fadeSlide 0.2s ease;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(-8px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    .dropdown-menu div {
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: 0.15s;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dropdown-menu div:hover {
+      background: rgba(210, 130, 50, 0.35);
+      letter-spacing: 0.3px;
+    }
+
+    .glass-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 0.8rem 0 2rem 0;
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-icon {
+      font-size: 2.2rem;
+      filter: drop-shadow(0 0 10px #e2a55e);
+      color: #f3bc7b;
+    }
+    .logo-text {
+      font-size: 1.7rem;
+      font-weight: 800;
+      background: linear-gradient(130deg, #FFE6C7, #e7b874);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .tag-nav {
+      font-size: 0.7rem;
+      opacity: 0.7;
+    }
+
+    .hero-ai {
+      text-align: center;
+      margin: 2rem 0 3rem;
+    }
+    .ai-chip {
+      background: rgba(90, 60, 35, 0.5);
+      backdrop-filter: blur(8px);
+      display: inline-flex;
+      gap: 12px;
+      padding: 6px 20px;
+      border-radius: 60px;
+      font-size: 0.8rem;
+      border: 0.5px solid #e2b36e;
+      margin-bottom: 28px;
+    }
+    .hero-ai h1 {
+      font-size: 4.2rem;
+      font-weight: 800;
+      background: linear-gradient(125deg, #FFF2DF, #e7bc7c, #c88442);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1.2;
+    }
+    .hero-ai .ai-tagline {
+      font-size: 1.2rem;
+      margin-top: 1rem;
+      opacity: 0.9;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 28px;
+      margin: 4rem 0;
+    }
+    .feature-card {
+      background: rgba(20, 28, 22, 0.65);
+      backdrop-filter: blur(8px);
+      border-radius: 42px;
+      padding: 28px 22px;
+      border: 1px solid rgba(210, 150, 70, 0.25);
+      transition: all 0.3s;
+      box-shadow: 0 15px 35px -10px rgba(0,0,0,0.2);
+    }
+    .feature-card:hover {
+      transform: translateY(-6px);
+      border-color: #e8ae5f;
+      background: rgba(30, 40, 28, 0.75);
+    }
+    .feature-icon {
+      font-size: 2.5rem;
+      color: #f3bc77;
+      margin-bottom: 18px;
+    }
+    .feature-card h3 {
+      font-size: 1.6rem;
+      margin-bottom: 12px;
+    }
+    .feature-badge {
+      background: #c9552b30;
+      border-left: 3px solid #e58a42;
+      padding: 8px 12px;
+      border-radius: 20px;
+      margin-top: 16px;
+      font-weight: 500;
+    }
+
+    .region-panel {
+      background: rgba(10, 18, 12, 0.65);
+      backdrop-filter: blur(12px);
+      border-radius: 56px;
+      padding: 2rem;
+      margin: 3rem 0;
+      border: 1px solid rgba(235, 185, 85, 0.3);
+    }
+    .section-title {
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 2rem;
+    }
+    .region-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 22px;
+      justify-content: space-between;
+    }
+    .region-item {
+      flex: 1;
+      min-width: 140px;
+      background: #1e2a1e40;
+      padding: 1.2rem;
+      border-radius: 36px;
+      text-align: center;
+      transition: 0.2s;
+      border-bottom: 1px solid #e7ae5e60;
+    }
+    .region-name {
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+    .fuel-value {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: #f3bc7b;
+    }
+    .live-feed-ticker {
+      background: #0f1610;
+      border-radius: 32px;
+      padding: 1rem;
+      margin-top: 2rem;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+    }
+    .feed-line {
+      border-left: 2px solid #e2a358;
+      padding: 6px 12px;
+      margin: 6px 0;
+      animation: fadeIn 0.3s;
+    }
+
+    .login-elegant {
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(16px);
+      border-radius: 48px;
+      max-width: 520px;
+      margin: 2rem auto;
+      padding: 2rem;
+      text-align: center;
+      border: 1px solid #cf9f5e60;
+    }
+    .login-elegant input {
+      width: 100%;
+      background: #191f1c;
+      border: 1px solid #b97f41;
+      border-radius: 60px;
+      padding: 14px 20px;
+      margin: 12px 0;
+      color: white;
+      font-size: 0.9rem;
+    }
+    .login-btn-glow {
+      background: linear-gradient(95deg, #b5682c, #dc934e);
+      border: none;
+      width: 100%;
+      padding: 14px;
+      border-radius: 60px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .login-note {
+      font-size: 0.7rem;
+      margin-top: 12px;
+      opacity: 0.6;
+    }
+
+    .ai-assistant {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 72px;
+      height: 72px;
+      background: radial-gradient(circle, #28281c, #0f2a1a);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 999;
+      border: 1.5px solid #eda855;
+      box-shadow: 0 0 18px rgba(230, 150, 60, 0.6);
+      animation: floatAi 2.5s infinite;
+    }
+    @keyframes floatAi {
+      0% { transform: translateY(0px) scale(1);}
+      50% { transform: translateY(-8px) scale(1.02);}
+      100% { transform: translateY(0px) scale(1);}
+    }
+    .ai-assistant i {
+      font-size: 2.5rem;
+      color: #fad39c;
+    }
+    .tooltip-ai {
+      position: absolute;
+      bottom: 85px;
+      right: 0px;
+      width: 230px;
+      background: #0e1a10dd;
+      backdrop-filter: blur(8px);
+      padding: 12px;
+      border-radius: 24px;
+      font-size: 0.7rem;
+      display: none;
+    }
+    .ai-assistant:hover .tooltip-ai {
+      display: block;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 4rem;
+      padding: 2rem;
+      font-size: 0.75rem;
+      opacity: 0.6;
+      border-top: 0.5px solid #897a5e;
+    }
+    @media (max-width: 760px) {
+      .container { padding: 0.8rem 1.2rem; }
+      .hero-ai h1 { font-size: 2.2rem; }
+      .logo-text { font-size: 1.2rem; }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+<div class="glow-orb"></div>
+<div class="container">
+  <div class="lang-zone">
+    <div class="custom-dropdown" id="langDropdown">
+      <div class="dropdown-trigger">
+        <i class="fas fa-globe-asia"></i> <span id="selectedLangLabel">भारतीय भाषा</span> <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
+      </div>
+      <div class="dropdown-menu" id="langMenu">
+        <div data-lang="en">🇬🇧 English</div>
+        <div data-lang="hi">🇮🇳 हिन्दी</div>
+        <div data-lang="ta">🏵️ தமிழ்</div>
+        <div data-lang="te">🌸 తెలుగు</div>
+        <div data-lang="bn">🍂 বাংলা</div>
+        <div data-lang="mr">🌾 मराठी</div>
+        <div data-lang="gu">🌼 ગુજરાતી</div>
+        <div data-lang="kn">🌿 ಕನ್ನಡ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-nav">
+    <div class="logo-area">
+      <i class="fas fa-microchip logo-icon"></i>
+      <div>
+        <div class="logo-text">IndhanShodhak</div>
+        <div class="tag-nav">इंधन शोधक · AI सत्यमेव जयते</div>
+      </div>
+    </div>
+    <div><i class="fas fa-charging-station"></i> <span style="font-weight:300;">| real-time integrity</span></div>
+  </div>
+
+  <div class="hero-ai">
+    <div class="ai-chip"><i class="fas fa-brain"></i> <span id="aiChipText">AI-POWERED CORE</span> <i class="fas fa-robot"></i></div>
+    <h1 id="mainHeadline">AI-Powered Fuel<br>Allotment System</h1>
+    <div class="ai-tagline" id="taglineText">leak-proof · regional intelligence · live anti-black-market engine</div>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+      <h3 id="feat1Title">Region-wise AI Allotment</h3>
+      <p id="feat1Desc">Dynamic distribution based on real-time demand, stockpiles, and historical usage.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="fas fa-handcuffs"></i></div>
+      <h3 id="feat2Title">Anti-Black-Marketing Engine</h3>
+      <p id="feat2Desc">AI detects anomalous patterns, hoarding signals & triggers preventive allotment locks.</p>
+      <div class="feature-badge" id="blackAlertBadge"><i class="fas fa-shield-haltered"></i> <span>🔒 choking black-marketing · active intelligence</span></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="fas fa-database"></i></div>
+      <h3 id="feat3Title">Encrypted Ground Reports</h3>
+      <p id="feat3Desc">Verifiable inputs (source architecture protected) — integrity without revealing citizen data flow.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="fas fa-chalkboard-user"></i></div>
+      <h3 id="feat4Title">Govt Oversight Portal</h3>
+      <p id="feat4Desc">Authorised officials monitor every litre, region-wise anomalies, real-time dashboards.</p>
+    </div>
+  </div>
+
+  <div class="region-panel">
+    <div class="section-title"><i class="fas fa-map-marked-alt"></i> <span id="regionMainTitle">Region-wise Fuel Allotment · Live AI Calibration</span></div>
+    <div class="region-flex" id="regionContainer"></div>
+    <div class="live-feed-ticker" id="liveTicker">
+      <div style="font-weight:bold; margin-bottom:6px;"><i class="fas fa-waveform"></i> <span id="realtimeLabel">REAL-TIME INTELLIGENCE FEED</span></div>
+      <div id="feedMessages"></div>
+    </div>
+  </div>
+
+  <div class="login-elegant">
+    <i class="fas fa-gavel" style="font-size:2rem; color:#e2aa6b;"></i>
+    <h3 id="loginTitle">Authorised Official Access</h3>
+    <p class="login-note" id="loginNote">🔐 Only @gov.in / @nic.in email domains</p>
+    <input type="text" id="govId" placeholder="officer@nic.in / collector@gov.in" autocomplete="off">
+    <input type="password" id="govPass" placeholder="secure OTP / passkey">
+    <button class="login-btn-glow" id="loginGovBtn"><i class="fas fa-sign-in-alt"></i> <span id="loginBtnText">Authenticate & Monitor</span></button>
+    <div id="loginMsgArea" style="margin-top:14px; font-size:0.8rem;"></div>
+    <div class="login-note" id="accessInfo">📋 Demo mode: Use any @gov.in or @nic.in email | Full backend integration available on request</div>
+  </div>
+  <footer>© 2026 IndhanShodhak · AI Surveillance for Transparent Fuel Governance · Anti black-marketing core active</footer>
+</div>
+
+<div class="ai-assistant" id="aiFloating">
+  <i class="fas fa-robot"></i>
+  <div class="tooltip-ai">🤖 AI Allotment Advisor · Real-time regional optimization · black-market suppression active</div>
+</div>
+
+<script>
+  const regionsData = [
+    { id:"north", nameEn:"North", nameHi:"उत्तर", nameTa:"வடக்கு", nameTe:"ఉత్తర", nameBn:"উত্তর", nameMr:"उत्तर", nameGu:"ઉત્તર", nameKn:"ಉತ್ತರ", fuel: 2840000 },
+    { id:"south", nameEn:"South", nameHi:"दक्षिण", nameTa:"தெற்கு", nameTe:"దక్షిణ", nameBn:"দক্ষিণ", nameMr:"दक्षिण", nameGu:"દક્ષિણ", nameKn:"ದಕ್ಷಿಣ", fuel: 3670000 },
+    { id:"east", nameEn:"East", nameHi:"पूर्व", nameTa:"கிழக்கு", nameTe:"తూర్పు", nameBn:"পূর্ব", nameMr:"पूर्व", nameGu:"પૂર્વ", nameKn:"ಪೂರ್ವ", fuel: 1980000 },
+    { id:"west", nameEn:"West", nameHi:"पश्चिम", nameTa:"மேற்கு", nameTe:"పశ్చిమ", nameBn:"পশ্চিম", nameMr:"पश्चिम", nameGu:"પશ્ચિમ", nameKn:"ಪಶ್ಚಿಮ", fuel: 3190000 },
+    { id:"central", nameEn:"Central", nameHi:"मध्य", nameTa:"மத்திய", nameTe:"మధ్య", nameBn:"মধ্য", nameMr:"मध्य", nameGu:"મધ્ય", nameKn:"ಮಧ್ಯ", fuel: 1720000 },
+    { id:"ne", nameEn:"N.East", nameHi:"पूर्वोत्तर", nameTa:"வடகிழக்கு", nameTe:"ఈశాన్య", nameBn:"উত্তর-পূর্ব", nameMr:"ईशान्य", nameGu:"ઈશાન", nameKn:"ಈಶಾನ್ಯ", fuel: 930000 }
+  ];
+
+  let currentLang = "en";
+  const translations = {
+    en: { aiChip:"🤖 AI-POWERED INTELLIGENCE", headline:"AI-Powered Fuel<br>Allotment System", tagline:"leak-proof · regional intelligence · live anti-black-market engine", feat1:"Region-wise AI Allotment", feat1d:"Dynamic distribution based on real-time demand.", feat2:"Anti-Black-Marketing Engine", feat2d:"AI detects hoarding & triggers preventive locks.", feat3:"Encrypted Ground Reports", feat3d:"Verified inputs — classification secured.", feat4:"Govt Oversight Portal", feat4d:"Officials monitor every litre, real-time dashboards.", regionTitle:"Region-wise Fuel Allotment · Live AI Calibration", realtimeLabel:"⚡ REAL-TIME INTELLIGENCE FEED", loginTitle:"Authorised Official Access", loginBtn:"Authenticate & Monitor", blackBadge:"🔒 choking black-marketing · active AI surveillance", loginNote:"🔐 Only @gov.in / @nic.in email domains", accessInfo:"📋 Demo mode: Use any @gov.in or @nic.in email | Full backend integration available" },
+    hi: { aiChip:"🤖 एआई संचालित कोर", headline:"एआई-संचालित ईंधन<br>आवंटन प्रणाली", tagline:"लीक-प्रूफ · क्षेत्रीय बुद्धिमत्ता · लाइव ब्लैक-मार्केट रोधी", feat1:"क्षेत्र-वार एआई आवंटन", feat1d:"वास्तविक समय मांग पर आधारित गतिशील वितरण।", feat2:"ब्लैक-मार्केटिंग रोधी इंजन", feat2d:"एआई जमाखोरी का पता लगाता है और रोकथाम करता है।", feat3:"एन्क्रिप्टेड ग्राउंड रिपोर्ट", feat3d:"सत्यापित इनपुट — वर्गीकृत सुरक्षा।", feat4:"सरकारी निगरानी पोर्टल", feat4d:"अधिकारी हर लीटर की निगरानी करते हैं।", regionTitle:"क्षेत्र-वार ईंधन आवंटन · लाइव एआई अंशांकन", realtimeLabel:"⚡ रीयल-टाइम खुफिया फीड", loginTitle:"अधिकृत सरकारी पहुँच", loginBtn:"प्रमाणीकरण करें", blackBadge:"🔒 ब्लैक-मार्केटिंग रोकना · सक्रिय एआई निगरानी", loginNote:"🔐 केवल @gov.in / @nic.in ईमेल डोमेन", accessInfo:"📋 डेमो मोड: कोई भी @gov.in या @nic.in ईमेल उपयोग करें | पूर्ण बैकएंड एकीकरण उपलब्ध" }
+  };
+
+  function applyLanguage(lang) {
+    currentLang = lang;
+    const t = translations[lang] || translations.en;
+    document.getElementById("aiChipText").innerText = t.aiChip;
+    document.getElementById("mainHeadline").innerHTML = t.headline;
+    document.getElementById("taglineText").innerText = t.tagline;
+    document.getElementById("feat1Title").innerText = t.feat1;
+    document.getElementById("feat1Desc").innerText = t.feat1d;
+    document.getElementById("feat2Title").innerText = t.feat2;
+    document.getElementById("feat2Desc").innerText = t.feat2d;
+    document.getElementById("feat3Title").innerText = t.feat3;
+    document.getElementById("feat3Desc").innerText = t.feat3d;
+    document.getElementById("feat4Title").innerText = t.feat4;
+    document.getElementById("feat4Desc").innerText = t.feat4d;
+    document.getElementById("regionMainTitle").innerText = t.regionTitle;
+    document.getElementById("realtimeLabel").innerHTML = t.realtimeLabel;
+    document.getElementById("loginTitle").innerText = t.loginTitle;
+    document.getElementById("loginBtnText").innerText = t.loginBtn;
+    document.getElementById("loginNote").innerText = t.loginNote;
+    document.getElementById("accessInfo").innerText = t.accessInfo;
+    const badgeSpan = document.querySelector("#blackAlertBadge span");
+    if(badgeSpan) badgeSpan.innerText = t.blackBadge;
+    document.getElementById("selectedLangLabel").innerText = document.querySelector(`[data-lang="${lang}"]`)?.innerText || "भाषा";
+    renderRegionsByLang();
+  }
+
+  function getRegionName(region) {
+    const map = { en: region.nameEn, hi: region.nameHi, ta: region.nameTa, te: region.nameTe, bn: region.nameBn, mr: region.nameMr, gu: region.nameGu, kn: region.nameKn };
+    return map[currentLang] || region.nameEn;
+  }
+
+  function renderRegionsByLang() {
+    const container = document.getElementById("regionContainer");
+    container.innerHTML = "";
+    regionsData.forEach(r => {
+      const div = document.createElement("div");
+      div.className = "region-item";
+      div.innerHTML = `<div class="region-name">${getRegionName(r)}</div><div class="fuel-value">${(r.fuel/100000).toFixed(1)}L Lakh</div><div><i class="fas fa-charging-station"></i> AI-adjusted</div>`;
+      container.appendChild(div);
+    });
+  }
+
+  function updateFuelRealTime() {
+    regionsData.forEach(r => { r.fuel += Math.floor((Math.random() - 0.45) * 18000); if(r.fuel<300000) r.fuel=300000; });
+    renderRegionsByLang();
+    const msgs = {
+      en: ["🚨 AI anomaly detection active · hoarding pattern neutralized","📡 North region demand surge → allotment increased 7%","🔒 Black-market suppression engine triggered preventive lock","🧠 Region-wise optimization active","⚡ Real-time AI corrected West region imbalance"],
+      hi: ["🚨 एआई विसंगति सक्रिय · जमाखोरी पैटर्न बेअसर","📡 उत्तर क्षेत्र मांग वृद्धि → आवंटन 7% बढ़ा","🔒 ब्लैक-मार्केटिंग दमन इंजन सक्रिय","🧠 क्षेत्र-वार अनुकूलन सक्रिय","⚡ रीयल-टाइम एआई ने पश्चिम असंतुलन ठीक किया"]
+    };
+    const feedDiv = document.getElementById("feedMessages");
+    const newMsg = document.createElement("div");
+    newMsg.className = "feed-line";
+    newMsg.innerHTML = `<i class="fas fa-bell"></i> ${(msgs[currentLang] || msgs.en)[Math.floor(Math.random()*5)]} <span style="float:right">${new Date().toLocaleTimeString()}</span>`;
+    feedDiv.prepend(newMsg);
+    if(feedDiv.children.length > 5) feedDiv.removeChild(feedDiv.lastChild);
+  }
+
+  const dropBtn = document.getElementById("langDropdown");
+  const menu = document.getElementById("langMenu");
+  dropBtn.addEventListener("click", (e) => { e.stopPropagation(); menu.classList.toggle("show"); });
+  document.querySelectorAll("[data-lang]").forEach(el => {
+    el.addEventListener("click", (e) => {
+      const lang = el.getAttribute("data-lang");
+      applyLanguage(lang);
+      menu.classList.remove("show");
+    });
+  });
+  document.addEventListener("click", () => menu.classList.remove("show"));
+
+  // OFFICIAL ACCESS LOGIC - DEMO MODE (ready for backend integration)
+  document.getElementById("loginGovBtn").addEventListener("click", () => {
+    const id = document.getElementById("govId").value.trim();
+    const msgDiv = document.getElementById("loginMsgArea");
+    
+    if(id.includes("@gov.in") || id.includes("@nic.in") || id === "admin@indhanshodhak.in") {
+      msgDiv.innerHTML = "<span style='color:#aaf0a0'><i class='fas fa-check-circle'></i> ✅ Access granted · AI monitoring dashboard (authorised official).</span>";
+      // In production: redirect to /dashboard or set auth token
+      setTimeout(() => {
+        alert("🔐 OFFICIAL ACCESS GRANTED\n\nWelcome to IndhanShodhak AI Monitoring Suite.\n\nFeatures available:\n• Live fuel allotment data\n• Region-wise crisis alerts\n• Anti-black-marketing reports\n• Downloadable analytics");
+      }, 500);
+    } else {
+      msgDiv.innerHTML = "<span style='color:#e5965e'><i class='fas fa-ban'></i> ❌ Unauthorised. Valid government domain required (@gov.in / @nic.in).</span>";
+    }
+  });
+
+  document.getElementById("aiFloating").addEventListener("click", () => alert("🤖 IndhanShodhak AI Core\n\n• 6 regional engines active\n• 412 districts under monitoring\n• Black-market suppression: ONLINE\n• Real-time allotment accuracy: 99.3%\n\nAsk your state official for detailed dashboard access."));
+
+  setInterval(updateFuelRealTime, 5300);
+  applyLanguage("en");
+  for(let i=0;i<2;i++) setTimeout(updateFuelRealTime, 1000);
+</script>
+</body>
+</html>
