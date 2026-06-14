@@ -1267,7 +1267,10 @@ footer {
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
-          <input type="password" class="form-input" id="login-password" placeholder="••••••••" autocomplete="current-password">
+          <div style="position:relative">
+          <input type="password" class="form-input" id="login-password" placeholder="••••••••" autocomplete="current-password" style="padding-right:44px">
+          <span onclick="togglePwd()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1.1rem;color:#aaa" id="eye-icon">👁️</span>
+        </div>
         </div>
         <button class="btn-login" onclick="handleLogin()">
           <i class="fas fa-arrow-right-to-bracket"></i> Login Securely
@@ -1557,6 +1560,13 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') hideForgotPassword();
 });
 
+function togglePwd() {
+  const pw = document.getElementById('login-password');
+  const eye = document.getElementById('eye-icon');
+  if(pw.type === 'password') { pw.type = 'text'; eye.textContent = '🙈'; }
+  else { pw.type = 'password'; eye.textContent = '👁️'; }
+}
+
 async function handleLogin() {
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
@@ -1569,16 +1579,16 @@ async function handleLogin() {
   showMsg('Verifying credentials…', 'info');
 
   try {
-    const res = await fetch('/api/login', {
+    const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ mobile: email, password })
     });
     const data = await res.json();
 
     if (data.success) {
       showMsg('Login successful! Redirecting…', 'info');
-      setTimeout(() => { window.location.href = data.redirect || '/app'; }, 800);
+      setTimeout(() => { window.location.href = '/app'; }, 800);
     } else {
       showMsg(data.message || 'Invalid credentials. Please try again.', 'error');
     }
