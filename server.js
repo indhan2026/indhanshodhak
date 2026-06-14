@@ -964,7 +964,7 @@ async function callAnthropicAPI(prompt, imageBase64, mimeType) {
   const url = 'https://api.anthropic.com/v1/messages';
   const content = [{ type:'text', text: prompt }];
   if(imageBase64) content.unshift({ type:'image', source:{ type:'base64', media_type: mimeType||'image/jpeg', data: imageBase64 } });
-  const body = { model:'claude-haiku-4-5-20251001', max_tokens:512, messages:[{ role:'user', content }] };
+  const body = { model:'claude-haiku-4-5', max_tokens:512, messages:[{ role:'user', content }] };
   const resp = await fetch(url, { method:'POST',
     headers:{ 'Content-Type':'application/json', 'x-api-key': apiKey, 'anthropic-version':'2023-06-01' },
     body: JSON.stringify(body) });
