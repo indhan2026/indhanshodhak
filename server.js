@@ -5,6 +5,21 @@
 // ============================================================
 
 require('dotenv').config();
+
+// ── Cloudflare Cache Purge ──────────────────────────────────
+async function purgeCloudflareCache() {
+  const token  = process.env.CF_CACHE_TOKEN;
+  const zoneId = process.env.CF_ZONE_ID;
+  if(!token || !zoneId) return;
+  try {
+    await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ purge_everything: true })
+    });
+    console.log('[CLOUDFLARE] Cache purged ✅');
+  } catch(e) { console.log('[CLOUDFLARE] Purge failed:', e.message); }
+}
 const express    = require('express');
 const initSqlJs  = require('sql.js');
 const path       = require('path');
@@ -381,7 +396,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   if(req.path.startsWith('/api/')) return next();
-  express.static(PUBLIC_PATH, { index: false })(req, res, next);
+  const ext = path.extname(req.path).toLowerCase();
+  const cacheable = ['.js','.css','.png','.jpg','.jpeg','.gif','.svg','.ico','.woff','.woff2','.ttf'];
+  if(cacheable.includes(ext)) {
+    express.static(PUBLIC_PATH, {
+      index: false,
+      setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=31536000');
+      }
+    })(req, res, next);
+  } else {
+    express.static(PUBLIC_PATH, { index: false })(req, res, next);
+  }
 });
 
 // ── Landing / Splash / Privacy routes ──
@@ -1213,6 +1239,7 @@ async function applyAIVerdict(job, verdict, score, reason) {
     const app = dbGet(`SELECT pump_id FROM pump_applications WHERE id=?`, [job.application_id]);
     if(app?.pump_id) {
       dbRun(`UPDATE petrol_pumps SET is_verified=1 WHERE id=?`, [app.pump_id]);
+      purgeCloudflareCache();
       cacheClear('gps:'); cacheClear('pin:');
     }
   }
