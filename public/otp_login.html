@@ -240,7 +240,7 @@ if(tok){
   if(role==='super_admin') window.location.replace('/admin');
   else if(role==='pump_owner') window.location.replace('/pump-owner');
   else if(role==='doc_verifier') window.location.replace('/verify');
-  else window.location.replace('/');
+  else window.location.replace('/app');
 }
 
 function showErr(id,msg){const e=document.getElementById(id);e.textContent=msg;e.style.display='block';}
@@ -284,7 +284,7 @@ async function roleLogin(r){
       else if(d.role==='govt_official') window.location.replace('/govt');
       else if(d.role==='doc_verifier') window.location.replace('/verify');
       else if(d.role==='super_admin') window.location.replace('/admin');
-      else window.location.replace('/');
+      else window.location.replace('/app');
     } else {
       errEl.textContent=d.error||'Wrong credentials';
       errEl.style.display='block';
@@ -388,7 +388,7 @@ async function verifyOTP(){
         document.getElementById('step2').classList.remove('active');
         document.getElementById('step3').classList.add('active');
       } else {
-        window.location.href='/';
+        window.location.href='/app';
       }
     } else {
       showErr('err2',d.error||'Wrong OTP');
