@@ -964,16 +964,8 @@ footer {
     </div>
     <div class="hero-stats">
       <div class="hero-stat-item">
-        <div class="hero-stat-num" id="cnt-pumps">0</div>
-        <div class="hero-stat-label">Pumps Tracked</div>
-      </div>
-      <div class="hero-stat-item">
-        <div class="hero-stat-num" id="cnt-verifiers">0</div>
-        <div class="hero-stat-label">Verified Reporters</div>
-      </div>
-      <div class="hero-stat-item">
-        <div class="hero-stat-num" id="cnt-states">0</div>
-        <div class="hero-stat-label">States Covered</div>
+        <div class="hero-stat-num" id="cnt-visitors">—</div>
+        <div class="hero-stat-label">Website Visitors</div>
       </div>
       <div class="hero-stat-item">
         <div class="hero-stat-num">12</div>
@@ -1347,10 +1339,11 @@ footer {
 <script>
 // ── LOGO inject
 document.addEventListener('DOMContentLoaded', () => {
-  // Animated counter
-  animateCounter('cnt-pumps', 12400, 2000);
-  animateCounter('cnt-verifiers', 4800, 2200);
-  animateCounter('cnt-states', 28, 1800);
+  // Real visitor count from API
+  fetch('/api/stats/visitors')
+    .then(r => r.json())
+    .then(v => { animateCounter('cnt-visitors', v.total || 0, 1800); })
+    .catch(() => { document.getElementById('cnt-visitors').textContent = '—'; });
 
   // Particles
   createParticles();

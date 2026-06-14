@@ -3550,7 +3550,9 @@ app.post('/api/verify/reregister-community/:userId', requireAuth(['doc_verifier'
 
 
 // ── Pages
-app.get('/',                  (req,res) => res.sendFile(path.join(PUBLIC_PATH,'index.html')));
+app.get('/app',               (req,res) => res.sendFile(path.join(PUBLIC_PATH,'index.html')));
+app.get('/landing',           (req,res) => res.sendFile(path.join(PUBLIC_PATH,'landing.html')));
+app.get('/home',              (req,res) => res.sendFile(path.join(PUBLIC_PATH,'landing.html')));
 app.get('/login',             (req,res) => res.sendFile(path.join(PUBLIC_PATH,'login.html')));
 app.get('/login.html',        (req,res) => res.sendFile(path.join(PUBLIC_PATH,'login.html')));
 app.get('/login.html.html',   (req,res) => res.sendFile(path.join(PUBLIC_PATH,'login.html')));
