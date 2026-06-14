@@ -384,17 +384,6 @@ app.use((req, res, next) => {
   express.static(PUBLIC_PATH)(req, res, next);
 });
 
-// ── Landing / Splash / Privacy routes ──
-app.get('/', (req, res) => {
-  res.sendFile(path.join(PUBLIC_PATH, 'landing.html'));
-});
-app.get('/splash', (req, res) => {
-  res.sendFile(path.join(PUBLIC_PATH, 'splash.html'));
-});
-app.get('/privacy', (req, res) => {
-  res.sendFile(path.join(PUBLIC_PATH, 'privacy.html'));
-});
-
 // ── Email — ZeptoMail (switch to Gmail: comment ZEPTO_PASS in .env, uncomment Gmail lines) ──
 const mailer = nodemailer.createTransport({
   host: 'smtp.zeptomail.in',

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — IndhanShodhak</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    line-height: 1.8;
+  }
+
+  header {
+    background: linear-gradient(135deg, #0a1628 0%, #0d1f3c 100%);
+    border-bottom: 1px solid rgba(255,153,51,0.2);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header img {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  header .brand {
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #FF9933, #ffffff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  header .brand span {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: rgba(255,255,255,0.4);
+    -webkit-text-fill-color: rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: -2px;
+  }
+
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 56px;
+    padding: 40px 24px;
+    background: linear-gradient(135deg, rgba(255,153,51,0.05) 0%, rgba(19,136,8,0.05) 100%);
+    border: 1px solid rgba(255,153,51,0.1);
+    border-radius: 16px;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #FF9933 0%, #ffffff 60%, #138808 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  .hero .meta {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .hero .meta strong {
+    color: rgba(255,153,51,0.7);
+  }
+
+  section {
+    margin-bottom: 44px;
+    padding: 28px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    border-left: 3px solid #FF9933;
+  }
+
+  section.green { border-left-color: #138808; }
+  section.blue  { border-left-color: #3BADFF; }
+
+  h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #FF9933;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  section.green h2 { color: #4CAF50; }
+  section.blue  h2 { color: #3BADFF; }
+
+  p {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 12px;
+  }
+
+  ul {
+    list-style: none;
+    margin: 8px 0 12px 0;
+  }
+
+  ul li {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.7);
+    padding: 6px 0 6px 20px;
+    position: relative;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  ul li:last-child { border-bottom: none; }
+
+  ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #FF9933;
+    font-size: 0.75rem;
+  }
+
+  section.green ul li::before { color: #4CAF50; }
+  section.blue  ul li::before { color: #3BADFF; }
+
+  .contact-box {
+    background: linear-gradient(135deg, rgba(255,153,51,0.08) 0%, rgba(19,136,8,0.08) 100%);
+    border: 1px solid rgba(255,153,51,0.2);
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+    margin-top: 48px;
+  }
+
+  .contact-box h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #FF9933;
+    margin-bottom: 8px;
+  }
+
+  .contact-box a {
+    color: #3BADFF;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .contact-box a:hover { text-decoration: underline; }
+
+  .contact-box p {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.5);
+    margin: 6px 0 0;
+  }
+
+  footer {
+    text-align: center;
+    padding: 32px 24px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 1px;
+  }
+
+  footer a {
+    color: rgba(255,153,51,0.5);
+    text-decoration: none;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: rgba(255,153,51,0.1);
+    color: #FF9933;
+    border: 1px solid rgba(255,153,51,0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 1.4rem; }
+    .container { padding: 32px 16px 60px; }
+    section { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="https://www.indhanshodhak.in/logo.png" alt="IndhanShodhak" onerror="this.style.display='none'">
+  <div class="brand">
+    IndhanShodhak
+    <span>इंधन शोधक</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="hero">
+    <h1>Privacy Policy</h1>
+    <p class="meta">Last Updated: <strong>June 2026</strong> &nbsp;·&nbsp; Effective: June 2026</p>
+    <p style="margin-top:16px; font-size:0.82rem; color:rgba(255,255,255,0.45);">
+      This Privacy Policy applies to the IndhanShodhak mobile application, website (www.indhanshodhak.in),
+      and all related services provided by IndhanShodhak.
+    </p>
+  </div>
+
+  <section>
+    <h2>📋 Who We Are</h2>
+    <p>IndhanShodhak (इंधन शोधक) is a community-driven fuel availability tracking platform for India. We help citizens locate nearby petrol pumps with real-time fuel availability information during normal and crisis situations.</p>
+    <p>The platform is operated by <strong>Dr. Galnimbkar Accident Hospital</strong>, Newasa Fata, Newasa, Ahilyanagar, Maharashtra, India — 414603. (Udyam No: UDYAM-MH-01-0299118)</p>
+    <p>Owner: <strong>Kishorkumar Jayram Galnimbkar</strong> &nbsp;|&nbsp; Copyright Diary No: <strong>SW-26937/2026-CO</strong> | © 2026 IndhanShodhak™</p>
+  </section>
+
+  <section class="green">
+    <h2>📦 Information We Collect</h2>
+    <p>We collect only the minimum information necessary to provide our services:</p>
+    <ul>
+      <li><strong>Account Information:</strong> Mobile number, email address, full name (required for registration)</li>
+      <li><strong>Location Data:</strong> GPS coordinates — only when you actively use the "Find Nearby Pump" feature</li>
+      <li><strong>Device Information:</strong> Device type, operating system, browser type (for app performance)</li>
+      <li><strong>Usage Data:</strong> Fuel reports submitted, pumps visited, features used</li>
+      <li><strong>Pump Owner Data:</strong> Business name, pump address, GPS coordinates, contact details</li>
+      <li><strong>Identity Documents:</strong> For pump owners and tier upgrades — Aadhaar card (number + name verification only), Retail Outlet License</li>
+      <li><strong>Community Reports:</strong> Fuel availability reports submitted by users</li>
+    </ul>
+    <p>We do <strong>not</strong> collect Aadhaar biometric data. Document verification is limited to name and number matching only.</p>
+  </section>
+
+  <section>
+    <h2>🎯 How We Use Your Information</h2>
+    <ul>
+      <li>To show real-time fuel availability at nearby pumps</li>
+      <li>To verify pump registrations and maintain data accuracy</li>
+      <li>To send OTP verification via email for secure login</li>
+      <li>To award community reporter points and maintain leaderboards</li>
+      <li>To detect and prevent false or fraudulent fuel reports</li>
+      <li>To enable government oversight of fuel distribution patterns</li>
+      <li>To send important app notifications and alerts</li>
+      <li>To improve app performance and fix issues</li>
+    </ul>
+  </section>
+
+  <section class="blue">
+    <h2>🔐 How We Protect Your Data</h2>
+    <ul>
+      <li>All data is transmitted over HTTPS encrypted connections</li>
+      <li>Passwords are never stored in plain text</li>
+      <li>Session tokens are stored securely with 90-day expiry</li>
+      <li>Cloudflare protection against unauthorized access and DDoS attacks</li>
+      <li>Location data is used only for pump proximity calculation — never stored permanently</li>
+      <li>Identity documents are reviewed only by authorized verifiers and deleted after verification</li>
+      <li>We do not sell, rent, or trade your personal information to third parties</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>📍 Location Data</h2>
+    <p>IndhanShodhak requests location permission to find petrol pumps near you. Specifically:</p>
+    <ul>
+      <li>Location is accessed only when you tap "Find Nearby Pumps"</li>
+      <li>We do not track your location in the background</li>
+      <li>Location coordinates are used only to calculate pump distances</li>
+      <li>Your precise location is never stored on our servers</li>
+      <li>You can deny location permission and enter your area manually</li>
+    </ul>
+  </section>
+
+  <section class="green">
+    <h2>🤝 Data Sharing</h2>
+    <p>We share data only in the following limited circumstances:</p>
+    <ul>
+      <li><strong>Government Officials:</strong> Aggregated, anonymized fuel availability data for crisis management purposes only</li>
+      <li><strong>Authorized Verifiers:</strong> Pump registration documents for verification review only</li>
+      <li><strong>Service Providers:</strong> Email delivery (Gmail SMTP), payment processing (Razorpay), mapping services (MapMyIndia/Mappls) — bound by their own privacy policies</li>
+      <li><strong>Legal Requirements:</strong> If required by Indian law or court order</li>
+    </ul>
+    <p>We never share your personal data with advertisers, data brokers, or marketing companies.</p>
+  </section>
+
+  <section>
+    <h2>🏆 Community Points &amp; Rewards</h2>
+    <p>IndhanShodhak operates a community reward system. Regarding this system:</p>
+    <ul>
+      <li>Points earned are tied to your account and are non-transferable</li>
+      <li>Your username may appear on the public leaderboard (you can opt out in settings)</li>
+      <li>Points can be redeemed for subscription discounts at ₹0.05 per point</li>
+      <li>False report deductions are logged and visible to you in your account history</li>
+    </ul>
+  </section>
+
+  <section class="blue">
+    <h2>👶 Children's Privacy</h2>
+    <p>IndhanShodhak is not intended for use by children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal information, please contact us immediately and we will delete it.</p>
+  </section>
+
+  <section>
+    <h2>✏️ Your Rights</h2>
+    <p>As an IndhanShodhak user, you have the right to:</p>
+    <ul>
+      <li>Access all personal data we hold about you</li>
+      <li>Request correction of inaccurate data</li>
+      <li>Request deletion of your account and associated data</li>
+      <li>Opt out of leaderboard visibility</li>
+      <li>Withdraw location permission at any time via device settings</li>
+      <li>Request a copy of your data in portable format</li>
+    </ul>
+    <p>To exercise any of these rights, contact us at the email below. We respond within 7 working days.</p>
+  </section>
+
+  <section class="green">
+    <h2>🍪 Cookies &amp; Local Storage</h2>
+    <ul>
+      <li>We use browser local storage to remember your language preference and session</li>
+      <li>No third-party advertising cookies are used</li>
+      <li>Analytics are collected anonymously for app improvement only</li>
+      <li>You can clear local storage via your browser settings at any time</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>🔄 Changes to This Policy</h2>
+    <p>We may update this Privacy Policy as the app grows and new features are added. When we make significant changes:</p>
+    <ul>
+      <li>The "Last Updated" date at the top of this page will be revised</li>
+      <li>Registered users will be notified via email</li>
+      <li>Continued use of the app after changes constitutes acceptance</li>
+    </ul>
+    <p>We recommend reviewing this policy periodically.</p>
+  </section>
+
+  <section>
+    <h2>⚖️ Governing Law</h2>
+    <p>This Privacy Policy is governed by the laws of India, including the Information Technology Act, 2000 and the Digital Personal Data Protection Act, 2023 (DPDPA). Any disputes shall be subject to the jurisdiction of courts in Newasa, Ahilyanagar, Maharashtra, India.</p>
+  </section>
+
+  <div class="contact-box">
+    <h3>📬 Contact Us</h3>
+    <p style="font-size:0.9rem; color:rgba(255,255,255,0.7); margin-top:8px;">
+      For privacy concerns, data requests, or questions about this policy:
+    </p>
+    <p style="margin-top:12px;">
+      <a href="mailto:care@indhanshodhak.in">care@indhanshodhak.in</a>
+      &nbsp;·&nbsp;
+      <a href="mailto:indhanshodhak@gmail.com">indhanshodhak@gmail.com</a>
+    </p>
+    <p>Dr. Galnimbkar Accident Hospital<br>Newasa Fata, Newasa, Ahilyanagar — 414603<br>Maharashtra, India</p>
+    <p style="margin-top:12px; font-size:0.75rem;">We respond to all privacy requests within 7 working days.</p>
+  </div>
+
+</div>
+
+<footer>
+    <p style="font-size:0.72rem; color:rgba(255,255,255,0.2);">© 2026 IndhanShodhak™. All rights reserved. &nbsp;·&nbsp; <a href="https://www.indhanshodhak.in">www.indhanshodhak.in</a></p>
+  <p style="margin-top:6px; font-size:0.72rem; color:rgba(255,255,255,0.2);">Copyright Diary No: SW-26937/2026-CO &nbsp;·&nbsp; Udyam No: UDYAM-MH-01-0299118 &nbsp;·&nbsp; Newasa, Ahilyanagar, Maharashtra, India</p>
+</footer>
+
+</body>
+</html>
