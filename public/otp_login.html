@@ -38,7 +38,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .form-input{width:100%;padding:11px 13px;border:1.5px solid #e0e0e0;border-radius:11px;
   font-size:15px;background:white;outline:none;transition:border-color .2s;margin-bottom:10px}
 .form-input:focus{border-color:#1a6b2e;background:white}
-.email-note{font-size:11px;color:#aaa;margin-top:-7px;margin-bottom:10px}
+.email-note{font-size:13px;color:#138808;font-weight:700;margin-top:-7px;margin-bottom:10px;letter-spacing:0.2px}
 
 /* OTP Button with countdown */
 .btn-otp{width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;
@@ -124,11 +124,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             placeholder="10-digit mobile" maxlength="10"
             oninput="this.value=this.value.replace(/\D/g,'')"
             onkeypress="if(event.key==='Enter')document.getElementById('email').focus()">
-          <label class="form-label">Email Address <span style="color:#aaa;font-weight:400">(optional)</span></label>
+          <label class="form-label">Email Address <span style="color:#e53935;font-weight:600">* Required</span></label>
           <input class="form-input" type="email" id="email"
             placeholder="yourname@email.com"
             onkeypress="if(event.key==='Enter')sendOTP()">
-          <div class="email-note">📧 OTP will be sent to this email</div>
+          <div class="email-note">📧 OTP will be sent to this email — Email is required to login</div>
           <button class="btn-otp" id="otpBtn" onclick="sendOTP()">
             <span>📲</span><span id="otpBtnTxt">Send OTP</span>
           </button>
@@ -298,6 +298,7 @@ async function sendOTP(){
   emailId=document.getElementById('email').value.trim();
   hideErr('err1');
   if(mob.length!==10||isNaN(mob)){showErr('err1','Enter valid 10-digit mobile');return;}
+  if(!emailId || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailId)){showErr('err1','Enter valid email address — OTP will be sent to it');return;}
 
   const btn=document.getElementById('otpBtn');
   const btnTxt=document.getElementById('otpBtnTxt');
