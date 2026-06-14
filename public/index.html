@@ -872,6 +872,15 @@ async function submitReport() {
 
   closeModal('reportModal');
   if(btn){ btn.textContent = '📤 Submit Report — Notify Nearby Users'; btn.disabled = false; }
+  // Refresh points balance after report
+  try {
+    const pts = await fetch('/api/points/balance', {headers:{'x-auth-token':TOKEN}});
+    if(pts.ok) {
+      const pd = await pts.json();
+      const el = document.getElementById('user-points');
+      if(el) el.textContent = (pd.total_points || 0) + ' pts';
+    }
+  } catch(e) {}
   // Parse points from server response and show toast
   try {
     const rData = resp ? await resp.clone().json().catch(()=>null) : null;
@@ -885,7 +894,14 @@ async function submitReport() {
   }
 
   // Update card instantly — ONLY after server confirms save ✅
-  const card = document.querySelector('.pump-card[data-pump-id="' + pid + '"]');
+  // For external pumps (gpl_), find by data-pump-id OR by matching name
+  let card = document.querySelector('.pump-card[data-pump-id="' + pid + '"]');
+  if(!card && pid) {
+    // Try finding by partial match for external pumps
+    document.querySelectorAll('.pump-card').forEach(c => {
+      if(c.getAttribute('data-pump-id') === pid) card = c;
+    });
+  }
   if(card){
     // Update tags
     card.querySelectorAll('.tag[data-fuel]').forEach(tag => {
