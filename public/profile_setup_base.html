@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>IndhanShodhak — My Profile & Fuel ID</title>
+<!-- QR Code library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f0;min-height:100vh}
+.top-bar{background:#1a6b2e;padding:12px 16px}
+.top-bar-inner{max-width:500px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+.top-bar-title{color:white;font-size:15px;font-weight:600}
+.top-bar-sub{color:rgba(255,255,255,.7);font-size:11px}
+.home-btn{background:rgba(255,255,255,.2);color:white;border:none;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.content{padding:12px 14px;max-width:500px;margin:0 auto}
+.card{background:white;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card-title{font-size:14px;font-weight:700;color:#222;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+/* QR CARD — top priority */
+.qr-card{background:linear-gradient(135deg,#1a6b2e,#0d3d1a);border-radius:14px;padding:18px;margin-bottom:12px;text-align:center;color:white}
+.qr-tier-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:10px}
+.tier-P5{background:rgba(255,255,255,.2)}
+.tier-P4{background:#795548}
+.tier-P3{background:#1565c0}
+.tier-P2{background:#6a1b9a}
+.tier-P1{background:#b71c1c}
+.qr-canvas-wrap{background:white;border-radius:12px;padding:10px;width:160px;height:160px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center}
+#qrCanvas{width:140px;height:140px}
+.qr-placeholder{text-align:center;color:#aaa}
+.qr-placeholder .icon{font-size:40px;margin-bottom:6px}
+.qr-vehicle{color:rgba(255,255,255,.9);font-size:13px;margin-bottom:3px}
+.qr-limit{color:rgba(255,255,255,.7);font-size:11px;margin-bottom:10px}
+.qr-name{color:white;font-size:15px;font-weight:600;margin-bottom:4px}
+.download-btn{background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.4);border-radius:20px;padding:6px 16px;font-size:12px;cursor:pointer;display:none}
+.upgrade-hint{background:rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;font-size:11px;color:rgba(255,255,255,.8);margin-top:8px;line-height:1.6}
+
+/* Form */
+.field{margin-bottom:12px}
+.field label{font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px}
+.field input,.field select{width:100%;padding:11px 13px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;background:#fafafa;outline:none}
+.field input:focus,.field select:focus{border-color:#1a6b2e;background:white}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.save-btn{width:100%;padding:13px;background:#1a6b2e;color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+.save-btn:disabled{background:#aaa}
+
+/* Messages */
+.msg-err{background:#ffebee;color:#b71c1c;padding:9px 12px;border-radius:10px;font-size:13px;margin-bottom:10px;display:none}
+.msg-ok{background:#e8f5e9;color:#1b5e20;padding:9px 12px;border-radius:10px;font-size:13px;margin-bottom:10px;display:none}
+
+/* Tier cards */
+.tier-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.tier-card{border:2px solid #eee;border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;text-align:center}
+.tier-card:hover{border-color:#1a6b2e;background:#f0f9f0}
+.tier-card.selected{border-color:#1a6b2e;background:#e8f5e9}
+.tier-card .tier-icon{font-size:24px;margin-bottom:4px}
+.tier-card .tier-name{font-size:12px;font-weight:700;color:#222}
+.tier-card .tier-limit{font-size:11px;color:#888;margin-top:2px}
+.tier-card .tier-docs{font-size:10px;color:#aaa;margin-top:4px}
+.tier-p5-info{background:#e8f5e9;border-radius:10px;padding:10px 12px;font-size:12px;color:#1b5e20;line-height:1.7}
+
+.doc-upload-card{background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:12px;padding:12px;margin-bottom:10px}
+.doc-upload-card.uploaded{border-color:#1a6b2e;background:#f0f9f0}
+.doc-label{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.doc-icon{font-size:22px;flex-shrink:0}
+.doc-name{font-size:13px;font-weight:600;color:#222}
+.doc-hint{font-size:11px;color:#888;margin-top:2px;line-height:1.5}
+.choose-btn{display:inline-block;background:#1a6b2e;color:white;border:none;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:500}
+.file-name{font-size:11px;color:#aaa;margin-top:6px}
+.file-name.has-file{color:#1a6b2e;font-weight:500}
+/* Aadhaar */
+.aadhaar-benefit{background:#e8f5e9;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#1b5e20;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="top-bar-inner">
+    <div>
+      <div class="top-bar-title">👤 My Profile & Fuel ID</div>
+      <div class="top-bar-sub">Manage your details and QR code</div>
+    </div>
+    <a href="/" class="home-btn">← Home</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ① QR CODE CARD — Always at top -->
+  <div class="qr-card" id="qrCard">
+    <div class="qr-tier-badge tier-P5" id="qrTierBadge">P5 — General Public</div>
+    <div class="qr-canvas-wrap">
+      <div id="qrCanvas">
+        <div class="qr-placeholder">
+          <div class="icon">🎫</div>
+          <div style="font-size:11px">Save basic info<br>to generate QR</div>
+        </div>
+      </div>
+    </div>
+    <div class="qr-name" id="qrName">—</div>
+    <div class="qr-vehicle" id="qrVehicle">No vehicle added yet</div>
+    <div class="qr-limit" id="qrLimit">10 Litres / 72 hours</div>
+    <button class="download-btn" id="downloadBtn" onclick="downloadQR()">⬇️ Save QR to Phone</button>
+    <div class="upgrade-hint" id="upgradeHint">
+      ⬆️ Apply for higher priority below to increase fuel limit<br>
+      P4 Farmer → 30L · P3 Transport → 50L · P2 Doctor → 20L · P1 Emergency → Full Tank
+    </div>
+  </div>
+
+  <!-- ② BASIC INFO -->
+  <div class="card">
+    <div class="card-title">👤 Basic Information</div>
+    <div class="msg-err" id="err-basic"></div>
+    <div class="msg-ok"  id="ok-basic"></div>
+    <div class="field"><label>Full Name *</label>
+      <input type="text" id="p-name" placeholder="Your full name"
+             onkeypress="if(event.key==='Enter')document.getElementById('p-vehicle').focus()">
+    </div>
+    <div class="field"><label>Vehicle Number *</label>
+      <input type="text" id="p-vehicle" placeholder="e.g. MH 18 AH 6254"
+             oninput="this.value=this.value.toUpperCase()"
+             onkeypress="if(event.key==='Enter')saveBasic()">
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Vehicle Type</label>
+        <select id="p-vtype">
+          <option value="two_wheeler">🛵 Two Wheeler</option>
+          <option value="four_wheeler">🚗 Four Wheeler</option>
+          <option value="auto">🛺 Auto</option>
+          <option value="truck">🚛 Truck</option>
+          <option value="tractor">🚜 Tractor</option>
+        </select>
+      </div>
+      <div class="field"><label>Fuel Type</label>
+        <select id="p-fuel">
+          <option value="petrol">⛽ Petrol</option>
+          <option value="diesel">🛢️ Diesel</option>
+          <option value="cng">💨 CNG</option>
+          <option value="ev">⚡ EV</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Mobile Number</label>
+      <input type="tel" id="p-mobile" placeholder="10-digit mobile" maxlength="10"
+             oninput="this.value=this.value.replace(/\D/g,'')">
+    </div>
+    <div class="field"><label>Email Address</label>
+      <input type="email" id="p-email" placeholder="your@email.com">
+    </div>
+    <button class="save-btn" onclick="saveBasic()">🎫 Save & Generate P5 QR Code</button>
+  </div>
+
+  <!-- ③ AADHAAR — Optional -->
+  <div class="card">
+    <div class="card-title">🪪 Aadhaar Verification (Optional)</div>
+    <div class="aadhaar-benefit">
+      ✅ Higher fuel limits during crisis<br>
+      🏅 Priority queue at petrol pumps<br>
+      🔒 Trusted account — never gets blocked<br>
+      🔐 Only last 4 digits stored after verification
+    </div>
+    <div class="msg-err" id="err-aad"></div>
+    <div class="msg-ok"  id="ok-aad"></div>
+    <div class="field"><label>Aadhaar Number (12 digits)</label>
+      <input type="tel" id="p-aadhaar" placeholder="XXXX XXXX XXXX" maxlength="14"
+             oninput="fmtAadhaar(this)">
+    </div>
+    <button class="save-btn" onclick="saveAadhaar()">🔒 Verify Aadhaar</button>
+  </div>
+
+  <!-- ④ TIER UPGRADE -->
+  <div class="card">
+    <div class="card-title">🎯 Apply for Higher Priority Tier</div>
+    <div style="font-size:12px;color:#888;margin-bottom:10px;line-height:1.6">
+      Based on your profession you may qualify for higher fuel priority.<br>
+      <b style="color:#b71c1c">P1–P4 require verifier approval with documents.</b>
+    </div>
+    <div class="tier-grid">
+      <div class="tier-card" onclick="selectTier('P1',this)">
+        <div class="tier-icon">🚑</div>
+        <div class="tier-name">P1 — Emergency</div>
+        <div class="tier-limit" id="lim-P1" style="color:#b71c1c">Full Tank · Anytime</div>
+        <div class="tier-docs">Govt ID + Vehicle RC + NOC</div>
+      </div>
+      <div class="tier-card" onclick="selectTier('P2',this)">
+        <div class="tier-icon">👨‍⚕️</div>
+        <div class="tier-name">P2 — Essential</div>
+        <div class="tier-limit" id="lim-P2" style="color:#6a1b9a">20L / 72hrs</div>
+        <div class="tier-docs">Aadhaar + RC + Prof. Certificate</div>
+      </div>
+      <div class="tier-card" onclick="selectTier('P3',this)">
+        <div class="tier-icon">🚛</div>
+        <div class="tier-name">P3 — Transport</div>
+        <div class="tier-limit" id="lim-P3" style="color:#1565c0">50L / 48hrs</div>
+        <div class="tier-docs">RC + Permit + Licence</div>
+      </div>
+      <div class="tier-card" onclick="selectTier('P4',this)">
+        <div class="tier-icon">🚜</div>
+        <div class="tier-name">P4 — Farmer</div>
+        <div class="tier-limit" id="lim-P4" style="color:#795548">30L / 72hrs</div>
+        <div class="tier-docs">Aadhaar + KCC + 7/12</div>
+      </div>
+    </div>
+    <div class="tier-p5-info" style="margin-top:10px">
+      ✅ <b>P5 — General Public (Current):</b> <span id="lim-P5">10L / 72hrs</span><br>
+      Active with just Aadhaar verification. No documents needed.
+    </div>
+    <div id="tier-apply-section" style="display:none;margin-top:12px">
+      <div class="msg-err" id="err-tier"></div>
+      <div class="msg-ok"  id="ok-tier"></div>
+
+      <!-- MANDATORY: Aadhaar card for ALL tiers -->
+      <div style="background:#fff3e0;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#e65100;line-height:1.6">
+        ⚠️ <b>Aadhaar card image is mandatory for all tier upgrades.</b><br>
+        Verifier will check: Name on card = Name in app · Aadhaar number on card = Number entered.
+      </div>
+
+      <div class="doc-upload-card" id="doc-aadhaar-wrap">
+        <div class="doc-label">
+          <span class="doc-icon">🪪</span>
+          <div>
+            <div class="doc-name">Aadhaar Card — Front Side <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">Clear image · Verifier checks name + Aadhaar number match<br><span style="color:#e65100;font-size:10px">📸 JPG only · Max 100KB</span></div>
+          </div>
+        </div>
+        <label class="choose-btn">
+          📎 Choose File
+          <input type="file" id="doc-aadhaar" name="doc_aadhaar" class="doc-file-input" accept="image/jpeg,image/jpg" onchange="showFileName(this,'aadhaar-name')" style="display:none">
+        </label>
+        <div class="file-name" id="aadhaar-name">No file chosen</div>
+      </div>
+
+      <!-- Tier-specific documents — changes based on selected tier -->
+      <div id="tier-specific-docs"></div>
+
+      <button class="save-btn" id="tier-apply-btn" onclick="applyTier()" style="margin-top:8px">
+        📋 Submit for Verification
+      </button>
+    </div>
+  </div>
+
+</div>
+
+  <!-- ══ MY POINTS CARD ════════════════════════════════════════════════ -->
+  <div style="background:white;border-radius:16px;padding:16px;margin-top:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+    <div style="font-size:14px;font-weight:700;color:#1a6b2e;margin-bottom:12px">⭐ My Reporter Points</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="background:#e8f5e9;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:26px;font-weight:700;color:#1a6b2e" id="prof-pts-total">—</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">Total Points</div>
+      </div>
+      <div style="background:#fff8e1;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:26px;font-weight:700;color:#f57f17" id="prof-pts-disc">₹—</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">Discount Earned</div>
+      </div>
+    </div>
+    <!-- Progress bar -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px">
+        <span>Progress to ₹5 reward</span>
+        <span id="prof-pts-pct">0/100 pts</span>
+      </div>
+      <div style="background:#e0e0e0;border-radius:10px;height:8px;overflow:hidden">
+        <div id="prof-pts-bar" style="background:linear-gradient(90deg,#1a6b2e,#4caf50);height:100%;border-radius:10px;width:0%;transition:width .8s ease"></div>
+      </div>
+    </div>
+    <!-- Today stats -->
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="flex:1;background:#f3e5f5;border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:#6a1b9a" id="prof-today-pts">—</div>
+        <div style="font-size:10px;color:#666">Today's Points</div>
+      </div>
+      <div style="flex:1;background:#e3f2fd;border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:#1565c0" id="prof-daily-rem">—</div>
+        <div style="font-size:10px;color:#666">Can Earn Today</div>
+      </div>
+      <div style="flex:1;background:#fff3e0;border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:#e65100" id="prof-alltime">—</div>
+        <div style="font-size:10px;color:#666">All Time</div>
+      </div>
+    </div>
+    <!-- Redeem button -->
+    <button onclick="window.location.href='/subscribe'" id="prof-redeem-btn"
+      style="width:100%;padding:11px;background:linear-gradient(135deg,#1a6b2e,#2e7d32);color:white;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer">
+      💰 Use Points as Discount on Subscription →
+    </button>
+    <!-- Recent point log -->
+    <div style="margin-top:14px">
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px">📋 Recent Activity</div>
+      <div id="prof-pts-log" style="font-size:12px;color:#888;text-align:center;padding:8px">⏳ Loading...</div>
+    </div>
+
+    <!-- T&C and False Report Warning -->
+    <div style="margin-top:14px;background:#fff8e1;border:1px solid #ffe082;border-radius:12px;padding:12px 14px;box-sizing:border-box;width:100%;overflow:hidden">
+      <div style="font-size:12px;font-weight:700;color:#f57f17;margin-bottom:8px">📋 Points Terms &amp; Conditions</div>
+      <div style="font-size:11px;color:#555;line-height:2;word-break:break-word">
+        ✅ <b>1 fuel report = 1 point</b> — P5 General Users only<br>
+        ✅ <b>Daily cap: 5 pts/day</b> — Max 5 reports counted per day<br>
+        ✅ <b>6-hr cooldown per pump</b> — same pump once in 6 hrs<br>
+        ✅ <b>Points carry forward</b> — never expire<br>
+        ✅ <b>1 point = ₹0.05 off</b> subscription · 100 pts = ₹5 max<br>
+        ✅ Redeemable at payment only — not cash<br>
+      </div>
+    </div>
+
+    <!-- False Report Warning -->
+    <div style="margin-top:10px;background:#ffebee;border:1px solid #ef9a9a;border-radius:12px;padding:12px 14px;box-sizing:border-box;width:100%;overflow:hidden">
+      <div style="font-size:12px;font-weight:700;color:#b71c1c;margin-bottom:8px">⚠️ Warning — False Reporting Policy</div>
+      <div style="font-size:11px;color:#555;line-height:2;word-break:break-word">
+        🚫 <b>Wrong data intentionally</b> = violation<br>
+        🚫 Owner contradicts within 4 hrs → <b>-2 points auto-deducted</b><br>
+        🚫 Repeated false reports → <b>Verifier warning</b><br>
+        🚫 Continued violations → <b>Account suspended + -10 points</b><br>
+        🚫 Suspended accounts <b>lose all discounts</b><br>
+        <br>
+        <span style="color:#b71c1c;font-weight:600;font-size:11px">IndhanShodhak monitors accuracy automatically.<br>Only report what you actually see at the pump.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN  = localStorage.getItem('indhan_token');
+let currentTier = 'P5';
+let currentQRData = localStorage.getItem('indhan_qr') || '';
+
+// Safe fetch helper
+async function safeFetch(url, opts={}){
+  try {
+    const r = await fetch(url, opts);
+    const ct = r.headers.get('content-type')||'';
+    if(!ct.includes('application/json')) return null;
+    return await r.json();
+  } catch(e){ return null; }
+}
+
+function showMsg(id, msg){ const e=document.getElementById(id); if(e){e.textContent=msg;e.style.display='block';} }
+function hideMsg(id){ const e=document.getElementById(id); if(e) e.style.display='none'; }
+
+// ══════════════════════════════════════════
+// GENERATE QR — works locally, no login needed
+// ══════════════════════════════════════════
+let TIER_LABELS = {
+  P5:{ label:'P5 — General Public', limit:'10L / 72hrs', cls:'tier-P5', litres:10,   hrs:72 },
+  P4:{ label:'P4 — Farmer',         limit:'30L / 72hrs', cls:'tier-P4', litres:30,   hrs:72 },
+  P3:{ label:'P3 — Transport',      limit:'50L / 48hrs', cls:'tier-P3', litres:50,   hrs:48 },
+  P2:{ label:'P2 — Essential',      limit:'20L / 72hrs', cls:'tier-P2', litres:20,   hrs:72 },
+  P1:{ label:'P1 — Emergency',      limit:'Full Tank · Anytime',  cls:'tier-P1', litres:9999, hrs:0  },
+};
+
+// Load live tier limits from server (admin-configurable)
+async function loadTierLimits(){
+  const d = await safeFetch('/api/tier-limits');
+  if(!d?.limits) return;
+  const {litres, hrs} = d.limits;
+  const fmt = (l,h) => l>=9999 ? 'Full Tank · Anytime' : `${l}L / ${h}hrs`;
+  TIER_LABELS = {
+    P5:{ label:'P5 — General Public', limit:fmt(litres.P5,hrs.P5), cls:'tier-P5', litres:litres.P5, hrs:hrs.P5 },
+    P4:{ label:'P4 — Farmer',         limit:fmt(litres.P4,hrs.P4), cls:'tier-P4', litres:litres.P4, hrs:hrs.P4 },
+    P3:{ label:'P3 — Transport',       limit:fmt(litres.P3,hrs.P3), cls:'tier-P3', litres:litres.P3, hrs:hrs.P3 },
+    P2:{ label:'P2 — Essential',       limit:fmt(litres.P2,hrs.P2), cls:'tier-P2', litres:litres.P2, hrs:hrs.P2 },
+    P1:{ label:'P1 — Emergency',       limit:fmt(litres.P1,hrs.P1), cls:'tier-P1', litres:litres.P1, hrs:hrs.P1 },
+  };
+  // ✅ Update tier card displays with admin-set values
+  ['P1','P2','P3','P4','P5'].forEach(t => {
+    const el = document.getElementById('lim-'+t);
+    if(el) el.textContent = TIER_LABELS[t].limit;
+  });
+  // ✅ Update QR card if already displayed
+  const limEl = document.getElementById('qrLimit');
+  if(limEl && currentTier) limEl.textContent = TIER_LABELS[currentTier]?.limit || '';
+  // ✅ Update upgrade hint
+  document.getElementById('upgradeHint').innerHTML =
+    `⬆️ Apply for higher priority below to increase fuel limit<br>` +
+    `P4 Farmer→${litres.P4}L · P3 Transport→${litres.P3}L · P2 Doctor→${litres.P2}L · P1 Emergency→Full Tank`;
+}
+
+function generateQR(name, vehicle, tier, fuel){
+  const t = TIER_LABELS[tier] || TIER_LABELS.P5;
+  const payload = {
+    uid:  TOKEN || 'demo_' + Date.now(),
+    veh:  vehicle,
+    cat:  tier,
+    fuel: fuel,
+    ts:   Date.now()
+  };
+  const qrContent = 'INDHAN:' + btoa(JSON.stringify(payload));
+  localStorage.setItem('indhan_qr', qrContent);
+  currentQRData = qrContent;
+  currentTier = tier;
+
+  // Clear previous QR
+  const canvas = document.getElementById('qrCanvas');
+  canvas.innerHTML = '';
+
+  // Generate new QR
+  try {
+    new QRCode(canvas, {
+      text: qrContent,
+      width: 140, height: 140,
+      colorDark: '#1a6b2e', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    canvas.innerHTML = '<div style="font-size:36px;text-align:center;padding:20px">🎫</div>';
+  }
+
+  // Update display
+  const badge = document.getElementById('qrTierBadge');
+  badge.textContent  = t.label;
+  badge.className    = 'qr-tier-badge ' + t.cls;
+  document.getElementById('qrName').textContent    = name || '—';
+  document.getElementById('qrVehicle').textContent = '🚗 ' + vehicle;
+  document.getElementById('qrLimit').textContent   = t.limit;
+  document.getElementById('downloadBtn').style.display = 'inline-block';
+
+  // Hide upgrade hint if already P1
+  if(tier === 'P1') {
+    document.getElementById('upgradeHint').style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════
+// SAVE BASIC INFO → Generate P5 QR
+// ══════════════════════════════════════════
+async function saveBasic(){
+  const name    = document.getElementById('p-name').value.trim();
+  const vehicle = document.getElementById('p-vehicle').value.trim().toUpperCase();
+  const fuel    = document.getElementById('p-fuel').value;
+  const mobile  = document.getElementById('p-mobile').value.trim();
+  const email   = document.getElementById('p-email').value.trim();
+
+  hideMsg('err-basic'); hideMsg('ok-basic');
+
+  if(!name){    showMsg('err-basic','Please enter your full name'); return; }
+  if(!vehicle){ showMsg('err-basic','Please enter your vehicle number'); return; }
+
+  // Save to localStorage
+  localStorage.setItem('indhan_name',    name);
+  localStorage.setItem('indhan_vehicle', vehicle);
+  if(mobile) localStorage.setItem('indhan_mobile', mobile);
+  if(email)  localStorage.setItem('indhan_email',  email);
+
+  // Generate P5 QR immediately — no login needed!
+  generateQR(name, vehicle, 'P5', fuel);
+  showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated — 10L / 72hrs');
+
+  // Also save to server if logged in
+  if(TOKEN){
+    const d = await safeFetch('/api/user/update-name',{
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({name, email})
+    });
+    // Save vehicle to server
+    await safeFetch('/api/user/complete-profile',{
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({vehicle_number:vehicle, fuel_type:fuel, name})
+    });
+  }
+}
+
+// ══════════════════════════════════════════
+// AADHAAR VERIFICATION
+// ══════════════════════════════════════════
+function fmtAadhaar(el){
+  let v = el.value.replace(/\D/g,'');
+  if(v.length > 4)  v = v.slice(0,4) + ' ' + v.slice(4);
+  if(v.length > 9)  v = v.slice(0,9) + ' ' + v.slice(9);
+  el.value = v.slice(0,14);
+}
+
+async function saveAadhaar(){
+  const raw     = document.getElementById('p-aadhaar').value.replace(/\s/g,'');
+  const vehicle = document.getElementById('p-vehicle').value.trim().toUpperCase();
+  const name    = document.getElementById('p-name').value.trim();
+  const fuel    = document.getElementById('p-fuel').value;
+
+  hideMsg('err-aad'); hideMsg('ok-aad');
+
+  if(!name || !vehicle){
+    showMsg('err-aad','Please fill basic info first (name + vehicle)'); return;
+  }
+  if(raw.length !== 12){
+    showMsg('err-aad','Enter valid 12-digit Aadhaar number'); return;
+  }
+
+  // Save to server if logged in
+  if(TOKEN){
+    const d = await safeFetch('/api/user/complete-profile',{
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({aadhaar_number:raw, vehicle_number:vehicle, fuel_type:fuel, name})
+    });
+    if(d?.success){
+      // Use server-generated QR if available (has signature)
+      if(d.qr_image_b64){
+        document.getElementById('qrCanvas').innerHTML =
+          `<img src="${d.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
+      }
+    }
+  }
+
+  showMsg('ok-aad','✅ Aadhaar saved! Account is now verified — eligible for tier upgrades.');
+  // QR stays same P5 — tier upgrade needs verifier approval
+  generateQR(name, vehicle, currentTier, fuel);
+}
+
+// ══════════════════════════════════════════
+// TIER SELECTION & APPLICATION
+// ══════════════════════════════════════════
+let selectedTier = '';
+// Documents required per tier
+const TIER_DOCS = {
+  P1: [
+    { id:'doc_dept_id',           icon:'🪪', name:'Govt Service ID Card',           hint:'Police/Military/Fire Dept ID card — front photo' },
+    { id:'doc_vehicle_rc',        icon:'📄', name:'Vehicle RC',                     hint:'Registration Certificate of the vehicle' },
+    { id:'doc_official_letter',   icon:'📋', name:'NOC / Official Letter',          hint:'No-objection certificate from your department' },
+  ],
+  P2: [
+    { id:'doc_profession_cert',   icon:'📜', name:'Medical/Professional Certificate', hint:'MCI/Nursing/Bar Council registration certificate' },
+    { id:'doc_employer_letter',   icon:'🏥', name:'Hospital/Employer Letter',        hint:'Letter on official letterhead from employer' },
+    { id:'doc_vehicle_rc',        icon:'📄', name:'Vehicle RC',                     hint:'Registration Certificate of the vehicle' },
+  ],
+  P3: [
+    { id:'doc_commercial_permit', icon:'📋', name:'Commercial Vehicle Permit',      hint:'State RTO permit for commercial transport' },
+    { id:'doc_driver_licence',    icon:'🪪', name:'Driving Licence',                hint:'Commercial driving licence — front and back' },
+    { id:'doc_vehicle_rc',        icon:'📄', name:'Vehicle RC',                     hint:'Registration Certificate of the vehicle' },
+  ],
+  P4: [
+    { id:'doc_kisan_card',        icon:'🏦', name:'Kisan Credit Card (KCC)',        hint:'KCC issued by bank — front photo' },
+    { id:'doc_land_record',       icon:'📄', name:'7/12 Extract (Satbara)',         hint:'Land ownership extract from Tehsildar' },
+    { id:'doc_vehicle_rc',        icon:'📄', name:'Tractor/Vehicle RC',             hint:'RC of the vehicle to be refuelled' },
+  ],
+};
+
+function showFileName(input, nameId){
+  const el = document.getElementById(nameId);
+  if(!el) return;
+  if(input.files && input.files[0]){
+    const file = input.files[0];
+    const isJpg = ['image/jpeg','image/jpg'].includes(file.type);
+    const isSmall = file.size <= 100 * 1024; // 100KB
+
+    if(!isJpg){
+      el.textContent = '❌ Only JPG format allowed!';
+      el.style.color = '#b71c1c';
+      input.value = '';
+      input.closest('.doc-upload-card').classList.remove('uploaded');
+      return;
+    }
+    if(!isSmall){
+      const kb = Math.round(file.size/1024);
+      el.textContent = `❌ File too large (${kb}KB) — Max 100KB`;
+      el.style.color = '#b71c1c';
+      input.value = '';
+      input.closest('.doc-upload-card').classList.remove('uploaded');
+      return;
+    }
+    el.textContent = '✅ ' + file.name + ' (' + Math.round(file.size/1024) + 'KB)';
+    el.style.color = '#1a6b2e';
+    el.className = 'file-name has-file';
+    input.closest('.doc-upload-card').classList.add('uploaded');
+  }
+}
+
+function selectTier(tier, el){
+  document.querySelectorAll('.tier-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTier = tier;
+  hideMsg('err-tier'); hideMsg('ok-tier');
+
+  // Show tier-specific document section
+  const docs = TIER_DOCS[tier] || [];
+  const docsHtml = docs.map(doc => `
+    <div class="doc-upload-card" id="${doc.id}-wrap">
+      <div class="doc-label">
+        <span class="doc-icon">${doc.icon}</span>
+        <div>
+          <div class="doc-name">${doc.name} <span style="color:#b71c1c">*</span></div>
+          <div class="doc-hint">${doc.hint}<br><span style="color:#e65100;font-size:10px">📸 JPG only · Max 100KB</span></div>
+        </div>
+      </div>
+      <label class="choose-btn">
+        📎 Choose File
+        <input type="file" id="${doc.id}" name="${doc.id}" class="doc-file-input" accept="image/jpeg,image/jpg"
+               onchange="showFileName(this,'${doc.id}-fname')" style="display:none">
+      </label>
+      <div class="file-name" id="${doc.id}-fname">No file chosen</div>
+    </div>
+  `).join('');
+
+  document.getElementById('tier-specific-docs').innerHTML = docsHtml;
+  document.getElementById('tier-apply-section').style.display = 'block';
+  document.getElementById('tier-apply-btn').textContent =
+    `📋 Apply for ${tier} — Submit All Documents`;
+}
+
+async function applyTier(){
+  if(!selectedTier){ alert('Select a tier first'); return; }
+
+  if(!TOKEN){
+    alert('⚠️ Please login first!\nLogin with mobile OTP to submit documents.');
+    window.location.href='/otp_login.html';
+    return;
+  }
+
+  const name    = document.getElementById('p-name').value.trim();
+  const vehicle = document.getElementById('p-vehicle').value.trim().toUpperCase();
+  const fuel    = document.getElementById('p-fuel')?.value || 'petrol';
+
+  if(!name){ alert('Enter your full name first'); return; }
+  if(!vehicle){ alert('Enter vehicle number first'); return; }
+
+  // Build FormData with all uploaded files
+  const fd = new FormData();
+  fd.append('applicant_name',  name);
+  fd.append('vehicle_number',  vehicle);
+  fd.append('fuel_type',       fuel);
+  fd.append('category',        selectedTier);
+  fd.append('profession',      document.getElementById('p-profession')?.value || '');
+
+  // Collect all file inputs
+  const fileInputs = document.querySelectorAll('.doc-file-input');
+  let hasAadhaar = false;
+  fileInputs.forEach(input => {
+    if(input.files && input.files[0]){
+      fd.append(input.name, input.files[0]);
+      if(input.name === 'doc_aadhaar') hasAadhaar = true;
+    }
+  });
+
+  if(!hasAadhaar){
+    alert('⚠️ Aadhaar card image is mandatory!\nPlease upload Aadhaar front side.');
+    return;
+  }
+
+  const btn = document.getElementById('tier-apply-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Submitting documents...';
+
+  try {
+    const r = await fetch('/api/user/apply-tier', {
+      method: 'POST',
+      headers: { 'x-auth-token': TOKEN },
+      body: fd
+    });
+    const d = await r.json();
+
+    if(d.success){
+      showMsg('ok-tier', d.message);
+      btn.textContent = '✅ Application Submitted!';
+      // Hide the apply section
+      setTimeout(() => {
+        document.getElementById('tier-apply-section').style.display='none';
+      }, 3000);
+    } else {
+      showMsg('err-tier', '❌ ' + (d.error || 'Submission failed'));
+      btn.disabled = false;
+      btn.textContent = `📋 Apply for ${selectedTier} — Submit All Documents`;
+    }
+  } catch(e){
+    showMsg('err-tier', '❌ Network error. Check connection and try again.');
+    btn.disabled = false;
+    btn.textContent = `📋 Apply for ${selectedTier} — Submit All Documents`;
+  }
+}
+
+// ══════════════════════════════════════════
+// DOWNLOAD QR
+// ══════════════════════════════════════════
+function downloadQR(){
+  const canvas = document.querySelector('#qrCanvas canvas');
+  if(!canvas){ alert('Generate QR first'); return; }
+  const img = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = img;
+  a.download = 'IndhanShodhak_FuelID_' + (currentTier) + '.png';
+  a.click();
+}
+
+// ══════════════════════════════════════════
+// LOAD PROFILE ON OPEN
+// ══════════════════════════════════════════
+async function loadProfile(){
+  // Load from localStorage first (instant, no login needed)
+  const savedName    = localStorage.getItem('indhan_name');
+  const savedVehicle = localStorage.getItem('indhan_vehicle');
+  const savedMobile  = localStorage.getItem('indhan_mobile');
+  const savedEmail   = localStorage.getItem('indhan_email');
+  const savedQR      = localStorage.getItem('indhan_qr');
+
+  if(savedName)    document.getElementById('p-name').value    = savedName;
+  if(savedVehicle) document.getElementById('p-vehicle').value = savedVehicle;
+  if(savedMobile)  document.getElementById('p-mobile').value  = savedMobile;
+  if(savedEmail)   document.getElementById('p-email').value   = savedEmail;
+
+  // Show QR from localStorage if exists
+  if(savedQR && savedName && savedVehicle){
+    generateQR(savedName, savedVehicle, currentTier, 'petrol');
+  }
+
+  // Also load from server if logged in
+  if(!TOKEN) return;
+  const d = await safeFetch('/api/user/profile', {headers:{'x-auth-token':TOKEN}});
+  if(!d || !d.user) return;
+  const u = d.user;
+
+  // Update fields from server
+  if(u.name)           document.getElementById('p-name').value    = u.name;
+  if(u.mobile)         document.getElementById('p-mobile').value  = u.mobile;
+  if(u.email)          document.getElementById('p-email').value   = u.email;
+  if(u.vehicle_number) document.getElementById('p-vehicle').value = u.vehicle_number;
+
+  // Show server QR (has HMAC signature — more secure)
+  const tier = u.category || 'P5';
+  currentTier = tier;
+  if(u.qr_image_b64){
+    // Server QR available — display it
+    document.getElementById('qrCanvas').innerHTML =
+      `<img src="${u.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
+    const t = TIER_LABELS[tier] || TIER_LABELS.P5;
+    const badge = document.getElementById('qrTierBadge');
+    badge.textContent = t.label;
+    badge.className   = 'qr-tier-badge ' + t.cls;
+    document.getElementById('qrName').textContent    = u.name || '—';
+    document.getElementById('qrVehicle').textContent = '🚗 ' + (u.vehicle_number || '—');
+    document.getElementById('qrLimit').textContent   = t.limit;
+    document.getElementById('downloadBtn').style.display = 'inline-block';
+  } else if(u.name && u.vehicle_number){
+    // No server QR yet — generate locally
+    generateQR(u.name, u.vehicle_number, tier, u.fuel_type || 'petrol');
+  }
+}
+
+loadTierLimits();
+loadProfile();
+
+// ── Load Points on Profile Page ───────────────────────────────────────
+async function loadProfilePoints() {
+  if(!TOKEN) return;
+  try {
+    const pts = await fetch('/api/points/balance', {headers:{'x-auth-token':TOKEN}}).then(r=>r.json());
+    const total = pts.total || 0;
+    const pct   = Math.min(100, total);
+    document.getElementById('prof-pts-total').textContent = total;
+    document.getElementById('prof-pts-disc').textContent = '₹' + parseFloat(pts.discount_rs||0).toFixed(2);
+    document.getElementById('prof-pts-pct').textContent = Math.min(total,100) + '/100 pts';
+    document.getElementById('prof-today-pts').textContent = pts.today_points || 0;
+    document.getElementById('prof-daily-rem').textContent = pts.daily_remaining || 5;
+    document.getElementById('prof-alltime').textContent = pts.total_all_time || 0;
+    setTimeout(()=>{ const bar = document.getElementById('prof-pts-bar'); if(bar) bar.style.width = pct + '%'; }, 200);
+    // Load recent log
+    const hist = await fetch('/api/points/history', {headers:{'x-auth-token':TOKEN}}).then(r=>r.json());
+    const logEl = document.getElementById('prof-pts-log');
+    if(!hist.logs || hist.logs.length === 0) {
+      logEl.innerHTML = 'No points yet — start reporting fuel near you!';
+    } else {
+      logEl.innerHTML = hist.logs.slice(0,8).map(l => {
+        const sign  = l.points > 0 ? '+' : '';
+        const color = l.points > 0 ? '#1a6b2e' : '#b71c1c';
+        const pumpLabel = l.pump_name ? ' · ' + l.pump_name : '';
+        const label = (l.reason === 'fuel_report' ? '⛽ Fuel Report' + pumpLabel
+          : l.reason === 'false_report_penalty' ? '❌ False Report Penalty' + pumpLabel
+          : l.reason === 'deregister_penalty' ? '🚫 Account Penalty'
+          : l.reason);
+        const dt = l.created_at ? new Date(l.created_at.replace(' ','T')+'Z').toLocaleDateString('en-IN') : '—';
+        return '<div style="padding:6px 0;border-bottom:1px solid #f5f5f5">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+            + '<span style="color:#555;font-size:11px;flex:1;padding-right:8px">' + label + '</span>'
+            + '<span style="font-weight:700;color:' + color + ';white-space:nowrap">' + sign + l.points + ' pts</span>'
+          + '</div>'
+          + '<div style="font-size:10px;color:#aaa;margin-top:1px">' + dt + '</div>'
+          + '</div>';
+      }).join('');
+    }
+  } catch(e) { console.log('Profile points error:', e.message); }
+}
+loadProfilePoints();
+</script>
+</body>
+</html>

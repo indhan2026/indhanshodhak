@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Register Your Pump</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,#1a3a1a,#0d2d0d);min-height:100vh;padding:16px}
+.card{background:white;border-radius:20px;width:100%;max-width:480px;
+  margin:0 auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.top-bar{background:#e65100;padding:20px;text-align:center}
+.logo{font-size:36px;margin-bottom:6px}
+.title{color:white;font-size:18px;font-weight:700}
+.sub{color:rgba(255,255,255,.85);font-size:12px;margin-top:4px}
+.body{padding:20px}
+.section{margin-bottom:20px}
+.section-title{font-size:13px;font-weight:700;color:#e65100;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;
+  padding-bottom:6px;border-bottom:2px solid #fff3e0}
+.form-label{font-size:12px;font-weight:600;color:#555;margin-bottom:4px;display:block}
+.form-input{width:100%;padding:11px 13px;border:1.5px solid #e0e0e0;
+  border-radius:10px;font-size:14px;background:#f9f9f9;outline:none;
+  transition:border-color .2s;margin-bottom:10px}
+.form-input:focus{border-color:#e65100;background:white}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Map search */
+.map-search-box{background:#fff8f0;border:2px solid #e65100;border-radius:14px;
+  padding:14px;margin-bottom:16px}
+.map-search-title{font-size:13px;font-weight:700;color:#e65100;margin-bottom:8px}
+.search-input-wrap{display:flex;gap:8px}
+.map-search-input{flex:1;padding:10px 12px;border:1.5px solid #e0e0e0;
+  border-radius:10px;font-size:14px;outline:none}
+.map-search-input:focus{border-color:#e65100}
+.search-btn{padding:10px 14px;background:#e65100;color:white;border:none;
+  border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pump-results{margin-top:10px;max-height:220px;overflow-y:auto}
+.pump-result-item{padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+  margin-bottom:6px;cursor:pointer;transition:all .2s}
+.pump-result-item:hover{border-color:#e65100;background:#fff3e0}
+.pump-result-item.selected{border-color:#1a6b2e;background:#e8f5e9}
+.result-name{font-size:13px;font-weight:600;color:#333}
+.result-addr{font-size:11px;color:#888;margin-top:2px}
+.manual-link{text-align:center;margin-top:8px}
+.manual-link button{background:none;border:none;color:#e65100;font-size:12px;
+  font-weight:600;cursor:pointer;text-decoration:underline}
+.selected-pump-badge{background:#e8f5e9;border:1.5px solid #1a6b2e;border-radius:10px;
+  padding:10px 12px;margin-bottom:12px;font-size:12px;color:#1b5e20}
+
+/* Doc cards */
+.doc-card{background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:12px;
+  padding:12px;margin-bottom:10px;transition:border-color .2s}
+.doc-card.uploaded{border-color:#1a6b2e;background:#f0f9f0}
+.doc-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.doc-icon{font-size:22px}
+.doc-name{font-size:13px;font-weight:600;color:#333}
+.doc-hint{font-size:11px;color:#888;margin-top:2px}
+.doc-badge{font-size:10px;color:#e65100;font-weight:600;margin-top:2px}
+.choose-btn{display:inline-block;padding:7px 14px;background:#e65100;
+  color:white;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+.file-name{font-size:12px;color:#888;margin-top:6px}
+.file-name.ok{color:#1a6b2e;font-weight:600}
+.submit-btn{width:100%;padding:14px;background:#e65100;color:white;
+  border:none;border-radius:12px;font-size:15px;font-weight:700;
+  cursor:pointer;margin-top:4px}
+.submit-btn:disabled{background:#aaa;cursor:not-allowed}
+.err{background:#ffebee;color:#b71c1c;padding:10px 12px;border-radius:10px;
+  font-size:13px;margin-bottom:12px;display:none}
+.ok-msg{background:#e8f5e9;color:#1b5e20;padding:12px;border-radius:10px;
+  font-size:13px;margin-bottom:12px;display:none;line-height:1.6}
+.info-box{background:#fff3e0;border-radius:10px;padding:12px;
+  margin-bottom:16px;font-size:12px;color:#e65100;line-height:1.7}
+.back-link{text-align:center;margin-top:14px}
+.back-link a{color:#e65100;font-size:13px;font-weight:600;text-decoration:none}
+.coords-badge{font-size:11px;color:#1b5e20;background:#e8f5e9;
+  padding:4px 8px;border-radius:6px;display:inline-block;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top-bar">
+    <div class="logo">⛽</div>
+    <div class="title">Register Your Petrol Pump</div>
+    <div class="sub">IndhanShodhak · Document Verification Required</div>
+  </div>
+  <div class="body">
+
+    <div class="info-box">
+      📋 <b>How it works:</b><br>
+      1️⃣ Search your pump on map OR enter manually<br>
+      2️⃣ Upload documents · Verifier reviews in 48hrs<br>
+      3️⃣ Approval → Login ID + Password sent to email<br>
+      4️⃣ Login → Update fuel stock → Green tick on map!
+    </div>
+
+    <div class="err" id="errMsg"></div>
+    <div class="ok-msg" id="okMsg"></div>
+
+    <!-- STEP 1: Search pump on map -->
+    <div class="map-search-box">
+      <div class="map-search-title">🗺️ Step 1: Find Your Pump on Map</div>
+      <div class="search-input-wrap">
+        <input class="map-search-input" type="text" id="mapSearch"
+          placeholder="Search: HP Pump Newasa / IOC Shrirampur..."
+          onkeypress="if(event.key==='Enter')searchPumpsOnMap()">
+        <button class="search-btn" onclick="searchPumpsOnMap()">🔍 Search</button>
+      </div>
+      <div id="searchStatus" style="font-size:11px;color:#888;margin-top:6px"></div>
+      <div class="pump-results" id="pumpResults"></div>
+      <div class="manual-link">
+        <button onclick="showManualEntry()">✏️ My pump not in list — Enter manually</button>
+      </div>
+    </div>
+
+    <!-- Selected pump badge -->
+    <div id="selectedBadge" style="display:none" class="selected-pump-badge">
+      ✅ <span id="selectedName">—</span><br>
+      📍 <span id="selectedAddr">—</span><br>
+      <span id="coordsBadge" class="coords-badge"></span>
+    </div>
+
+    <!-- Hidden lat/lng fields -->
+    <input type="hidden" id="pumpLat" value="0">
+    <input type="hidden" id="pumpLng" value="0">
+    <input type="hidden" id="googlePlaceId" value="">
+
+    <!-- SECTION 1: Owner Details -->
+    <div class="section">
+      <div class="section-title">👤 Owner Details</div>
+      <label class="form-label">Full Name *</label>
+      <input class="form-input" type="text" id="name" placeholder="Owner's full name">
+      <div class="form-row">
+        <div>
+          <label class="form-label">Mobile Number *</label>
+          <input class="form-input" type="tel" id="mobile" placeholder="10-digit mobile"
+            maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div>
+          <label class="form-label">Email Address *</label>
+          <input class="form-input" type="email" id="email" placeholder="yourname@email.com">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Pump Details -->
+    <div class="section">
+      <div class="section-title">⛽ Pump Details</div>
+      <label class="form-label">Pump Name *</label>
+      <input class="form-input" type="text" id="pumpName" placeholder="e.g. HP Petrol Pump, Newasa">
+      <div class="form-row">
+        <div>
+          <label class="form-label">Oil Company *</label>
+          <select class="form-input" id="oilCompany">
+            <option value="">Select...</option>
+            <option>HP</option><option>BPCL</option><option>IOC</option>
+            <option>Reliance</option><option>Shell</option><option>Nayara</option><option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">PIN Code *</label>
+          <input class="form-input" type="tel" id="pinCode" placeholder="6-digit PIN"
+            maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+      </div>
+      <label class="form-label">Full Address *</label>
+      <input class="form-input" type="text" id="address" placeholder="Village/Town, Taluka, District">
+      <div class="form-row">
+        <div>
+          <label class="form-label">District *</label>
+          <input class="form-input" type="text" id="district" placeholder="e.g. Ahilyanagar">
+        </div>
+        <div>
+          <label class="form-label">State *</label>
+          <input class="form-input" type="text" id="state" value="Maharashtra" placeholder="e.g. Maharashtra">
+        </div>
+      </div>
+      <label class="form-label">Pump License Number *</label>
+      <input class="form-input" type="text" id="licenseNo"
+        placeholder="e.g. MH-HP-2019-00123"
+        oninput="this.value=this.value.toUpperCase()">
+      <div style="font-size:11px;color:#888;margin-top:-6px;margin-bottom:10px">
+        This becomes your Login ID after approval
+      </div>
+    </div>
+
+    <!-- SECTION 3: Documents -->
+    <div class="section">
+      <div class="section-title">📄 Documents (JPG · Max 100KB each)</div>
+
+      <div class="doc-card" id="wrap-license">
+        <div class="doc-top">
+          <span class="doc-icon">📄</span>
+          <div>
+            <div class="doc-name">Pump License Certificate <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">Petroleum Retail License — District Collector issued</div>
+            <div class="doc-badge">📸 JPG only · Max 100KB</div>
+          </div>
+        </div>
+        <label class="choose-btn">📎 Choose File
+          <input type="file" id="doc-license" accept="image/jpeg,image/jpg" style="display:none"
+            onchange="handleFile(this,'wrap-license','license-name')">
+        </label>
+        <div class="file-name" id="license-name">No file chosen</div>
+      </div>
+
+      <div class="doc-card" id="wrap-aadhaar">
+        <div class="doc-top">
+          <span class="doc-icon">🪪</span>
+          <div>
+            <div class="doc-name">Owner Aadhaar Card <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">Front side — Name + number visible</div>
+            <div class="doc-badge">📸 JPG only · Max 100KB</div>
+          </div>
+        </div>
+        <label class="choose-btn">📎 Choose File
+          <input type="file" id="doc-aadhaar" accept="image/jpeg,image/jpg" style="display:none"
+            onchange="handleFile(this,'wrap-aadhaar','aadhaar-name')">
+        </label>
+        <div class="file-name" id="aadhaar-name">No file chosen</div>
+      </div>
+
+      <div class="doc-card" id="wrap-selfie">
+        <div class="doc-top">
+          <span class="doc-icon">🤳</span>
+          <div>
+            <div class="doc-name">Selfie at Pump <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">You at your pump — board visible</div>
+            <div class="doc-badge">📸 JPG only · Max 100KB</div>
+          </div>
+        </div>
+        <label class="choose-btn">📎 Choose File
+          <input type="file" id="doc-selfie" accept="image/jpeg,image/jpg" style="display:none"
+            onchange="handleFile(this,'wrap-selfie','selfie-name')">
+        </label>
+        <div class="file-name" id="selfie-name">No file chosen</div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitApplication()">
+      📤 Submit for Verification
+    </button>
+    <div class="back-link"><a href="/login">← Back to Login</a></div>
+  </div>
+</div>
+
+<script>
+let selectedPump = null;
+
+// Search pumps using our server (Google Places API)
+async function searchPumpsOnMap(){
+  const query = document.getElementById('mapSearch').value.trim();
+  if(!query){ alert('Enter pump name or location to search'); return; }
+
+  const statusEl = document.getElementById('searchStatus');
+  const resultsEl = document.getElementById('pumpResults');
+  statusEl.textContent = '🔍 Searching...';
+  resultsEl.innerHTML = '';
+
+  try {
+    // Use our server's Google Places search
+    const r = await fetch(`/api/pumps/search-place?q=${encodeURIComponent(query)}`);
+    const d = await r.json();
+
+    if(!d.places || d.places.length === 0){
+      statusEl.textContent = 'No pumps found. Try different search or enter manually.';
+      return;
+    }
+
+    statusEl.textContent = `Found ${d.places.length} pumps — select yours:`;
+    resultsEl.innerHTML = d.places.map((p,i) => `
+      <div class="pump-result-item" id="result-${i}" onclick="selectPump(${i})">
+        <div class="result-name">⛽ ${p.name}</div>
+        <div class="result-addr">📍 ${p.address}</div>
+      </div>
+    `).join('');
+
+    // Store results globally
+    window._searchResults = d.places;
+
+  } catch(e){
+    statusEl.textContent = 'Search failed. Enter manually below.';
+  }
+}
+
+function selectPump(idx){
+  const p = window._searchResults[idx];
+  selectedPump = p;
+
+  // Highlight selected
+  document.querySelectorAll('.pump-result-item').forEach((el,i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+
+  // Show badge
+  document.getElementById('selectedBadge').style.display = 'block';
+  document.getElementById('selectedName').textContent = p.name;
+  document.getElementById('selectedAddr').textContent = p.address;
+  document.getElementById('coordsBadge').textContent =
+    `📡 GPS: ${parseFloat(p.lat).toFixed(4)}, ${parseFloat(p.lng).toFixed(4)}`;
+
+  // Store lat/lng
+  document.getElementById('pumpLat').value = p.lat;
+  document.getElementById('pumpLng').value = p.lng;
+  document.getElementById('googlePlaceId').value = p.place_id || '';
+
+  // Auto-fill form fields
+  document.getElementById('pumpName').value  = p.name || '';
+  document.getElementById('address').value   = p.address || '';
+  document.getElementById('pinCode').value   = p.pin_code || '';
+  document.getElementById('district').value  = p.district || '';
+
+  // Detect oil company
+  const name = p.name.toUpperCase();
+  const sel = document.getElementById('oilCompany');
+  if(name.includes('HP') || name.includes('HINDUSTAN')) sel.value = 'HP';
+  else if(name.includes('BPCL') || name.includes('BHARAT')) sel.value = 'BPCL';
+  else if(name.includes('IOC') || name.includes('INDIAN OIL') || name.includes('INDANE')) sel.value = 'IOC';
+  else if(name.includes('SHELL')) sel.value = 'Shell';
+  else if(name.includes('RELIANCE')) sel.value = 'Reliance';
+  else sel.value = '';
+}
+
+function showManualEntry(){
+  // Clear selection and hide results
+  selectedPump = null;
+  document.getElementById('pumpResults').innerHTML = '';
+  document.getElementById('searchStatus').textContent = '✏️ Enter pump details manually below';
+  document.getElementById('selectedBadge').style.display = 'none';
+  document.getElementById('pumpLat').value = '0';
+  document.getElementById('pumpLng').value = '0';
+  // Focus on pump name
+  document.getElementById('pumpName').focus();
+}
+
+function handleFile(input, wrapId, nameId){
+  const wrap = document.getElementById(wrapId);
+  const nameEl = document.getElementById(nameId);
+  if(!input.files || !input.files[0]){
+    nameEl.textContent = 'No file chosen'; nameEl.className = 'file-name';
+    wrap.classList.remove('uploaded'); return;
+  }
+  const file = input.files[0];
+  if(!['image/jpeg','image/jpg'].includes(file.type)){
+    nameEl.textContent = '❌ Only JPG format allowed!';
+    nameEl.style.color = '#b71c1c'; input.value = ''; wrap.classList.remove('uploaded'); return;
+  }
+  if(file.size > 100*1024){
+    nameEl.textContent = `❌ Too large (${Math.round(file.size/1024)}KB) — Max 100KB`;
+    nameEl.style.color = '#b71c1c'; input.value = ''; wrap.classList.remove('uploaded'); return;
+  }
+  nameEl.textContent = `✅ ${file.name} (${Math.round(file.size/1024)}KB)`;
+  nameEl.className = 'file-name ok'; wrap.classList.add('uploaded');
+}
+
+async function submitApplication(){
+  const errEl = document.getElementById('errMsg');
+  const okEl  = document.getElementById('okMsg');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+
+  const name      = document.getElementById('name').value.trim();
+  const mobile    = document.getElementById('mobile').value.trim();
+  const email     = document.getElementById('email').value.trim();
+  const pumpName  = document.getElementById('pumpName').value.trim();
+  const oilCo     = document.getElementById('oilCompany').value;
+  const pinCode   = document.getElementById('pinCode').value.trim();
+  const address   = document.getElementById('address').value.trim();
+  const district  = document.getElementById('district').value.trim();
+  const state     = document.getElementById('state').value.trim();
+  const licenseNo = document.getElementById('licenseNo').value.trim();
+  const lat       = document.getElementById('pumpLat').value;
+  const lng       = document.getElementById('pumpLng').value;
+
+  const show = (msg) => { errEl.textContent=msg; errEl.style.display='block';
+    errEl.scrollIntoView({behavior:'smooth'}); };
+
+  if(!name)      return show('Enter owner full name');
+  if(mobile.length!==10) return show('Enter valid 10-digit mobile');
+  if(!email||!email.includes('@')) return show('Enter valid email address');
+  if(!pumpName)  return show('Enter pump name');
+  if(!oilCo)    return show('Select oil company');
+  if(pinCode.length!==6) return show('Enter valid 6-digit PIN');
+  if(!address)   return show('Enter pump address');
+  if(!district)  return show('Enter district name');
+  if(!licenseNo) return show('Enter pump license number');
+
+  const licFile     = document.getElementById('doc-license').files[0];
+  const aadhaarFile = document.getElementById('doc-aadhaar').files[0];
+  const selfieFile  = document.getElementById('doc-selfie').files[0];
+
+  if(!licFile)     return show('Upload Pump License Certificate');
+  if(!aadhaarFile) return show('Upload Aadhaar Card');
+  if(!selfieFile)  return show('Upload Selfie at Pump');
+
+  const fd = new FormData();
+  fd.append('owner_name',    name);
+  fd.append('mobile',        mobile);
+  fd.append('email',         email);
+  fd.append('pump_name',     pumpName);
+  fd.append('oil_company',   oilCo);
+  fd.append('pin_code',      pinCode);
+  fd.append('address',       address);
+  fd.append('district',      district);
+  fd.append('state',         state);
+  fd.append('license_number',licenseNo);
+  fd.append('lat',           lat);
+  fd.append('lng',           lng);
+  fd.append('license',       licFile);
+  fd.append('aadhaar',       aadhaarFile);
+  fd.append('selfie',        selfieFile);
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '⏳ Submitting...';
+
+  try {
+    const r = await fetch('/api/pump-owner/register', { method:'POST', body:fd });
+    const d = await r.json();
+    if(d.success){
+      okEl.innerHTML = `✅ <b>Application Submitted!</b><br><br>
+        📋 App ID: <b>${d.app_id||'—'}</b><br>
+        ⏳ Review within <b>48 hours</b><br>
+        📧 Login details to: <b>${email}</b><br><br>
+        ${lat!=='0' ? '📡 <b>GPS location saved!</b> Your pump will appear on map after approval.<br>' : ''}
+        → <a href="/login" style="color:#1a6b2e">Back to Login</a>`;
+      okEl.style.display = 'block';
+      btn.textContent = '✅ Submitted!';
+    } else {
+      show('❌ '+(d.error||'Submission failed. Try again.'));
+      btn.disabled=false; btn.textContent='📤 Submit for Verification';
+    }
+  } catch(e){
+    show('❌ Network error. Try again.');
+    btn.disabled=false; btn.textContent='📤 Submit for Verification';
+  }
+}
+</script>
+</body>
+</html>

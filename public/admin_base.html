@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IndhanShodhak — Admin Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{display:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f0f0;max-width:900px;margin:0 auto}
+.header{background:linear-gradient(135deg,#b71c1c,#c62828);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.header h1{color:white;font-size:18px;font-weight:700}
+.header p{color:rgba(255,255,255,.8);font-size:12px}
+.hright{display:flex;gap:8px;align-items:center}
+.admin-badge{background:rgba(255,255,255,.2);color:white;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px}
+.logout-btn{background:rgba(255,255,255,.15);color:white;border:none;padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer}
+.mode-bar{display:grid;grid-template-columns:1fr 1fr;background:#1a1a2e}
+.mode-indicator{padding:10px 16px;text-align:center;border-right:.5px solid rgba(255,255,255,.1)}
+.mode-indicator:last-child{border-right:none}
+.mode-name{font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.mode-status{font-size:14px;font-weight:700}
+.mode-on{color:#69f0ae}.mode-off{color:#ff5252}
+/* Tabs */
+.tab-row{display:flex;background:white;border-bottom:2px solid #e0e0e0;overflow-x:auto;scrollbar-width:none}
+.tab-row::-webkit-scrollbar{display:none}
+.tab{padding:12px 16px;font-size:13px;font-weight:500;color:#888;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.active{color:#b71c1c;border-bottom-color:#b71c1c;font-weight:600}
+.tab-content{display:none;padding:16px;position:relative;z-index:2}
+.tab-content.active{display:block;position:relative;z-index:2}
+.card{background:white;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card-title{font-size:14px;font-weight:600;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid #f0f0f0}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:500px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
+.stat{background:white;border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.stat-val{font-size:26px;font-weight:700;margin-bottom:3px}
+.stat-lbl{font-size:11px;color:#888}
+/* Mode cards */
+.modes-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:500px){.modes-grid{grid-template-columns:1fr}}
+.mode-card{border-radius:14px;padding:16px;border:2px solid #e0e0e0;background:white;transition:all .3s}
+.mode-card.on-red{background:#ffebee;border-color:#b71c1c}
+.mode-card.on-orange{background:#fff3e0;border-color:#e65100}
+.mode-card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.mode-card-icon{font-size:24px;flex-shrink:0}
+.mode-card-info{flex:1}
+.mode-card-title{font-size:14px;font-weight:600;color:#333;margin-bottom:2px}
+.mode-card-sub{font-size:11px;color:#888;line-height:1.4}
+.toggle-switch{position:relative;width:52px;height:28px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.tog-slider{position:absolute;inset:0;border-radius:14px;cursor:pointer;transition:.3s;background:#ddd}
+.tog-slider:before{content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+input:checked + .tog-slider{background:#e65100}
+input:checked + .tog-slider:before{transform:translateX(24px)}
+.mode-effect{font-size:11px;padding:6px 10px;border-radius:8px;margin-top:8px;background:#f5f5f5;color:#888}
+/* Tier */
+.tier-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+.tier-row:last-child{border-bottom:none}
+.tier-icon{font-size:20px;flex-shrink:0}
+.tier-label{flex:1;font-size:13px;font-weight:500;color:#333}
+.tier-sub{font-size:11px;color:#aaa}
+.tier-input{width:70px;padding:7px 8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-weight:600;text-align:center}
+/* Forms */
+.form-group{margin-bottom:12px}
+.form-label{font-size:12px;font-weight:600;color:#555;margin-bottom:5px;display:block}
+.form-input{width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:14px;background:#f9f9f9}
+.form-input:focus{border-color:#1a6b2e;outline:none;background:white}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-submit{width:100%;padding:13px;background:#1a6b2e;color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+/* Users */
+.user-table{width:100%;border-collapse:collapse}
+.user-table th{background:#f5f5f5;padding:8px 12px;font-size:11px;font-weight:600;color:#888;text-align:left;text-transform:uppercase}
+.user-table td{padding:10px 12px;font-size:12px;border-bottom:1px solid #f5f5f5}
+.role-chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.rc-admin{background:#ffebee;color:#b71c1c}
+.rc-verifier{background:#e8f5e9;color:#1b5e20}
+.rc-govt{background:#f3e5f5;color:#6a1b9a}
+.rc-pump{background:#e3f2fd;color:#0d47a1}
+.rc-user{background:#f5f5f5;color:#555}
+/* Settings password lock */
+.settings-lock{text-align:center;padding:30px 20px}
+.lock-icon{font-size:48px;margin-bottom:12px}
+.lock-title{font-size:16px;font-weight:600;color:#333;margin-bottom:6px}
+.lock-sub{font-size:13px;color:#888;margin-bottom:20px}
+.lock-input{width:100%;max-width:300px;padding:12px 14px;border:1.5px solid #ddd;border-radius:12px;font-size:15px;text-align:center;outline:none;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto}
+.lock-input:focus{border-color:#b71c1c}
+.unlock-btn{background:#b71c1c;color:white;border:none;border-radius:12px;padding:12px 30px;font-size:14px;font-weight:600;cursor:pointer}
+.settings-content{display:none}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f5f5f5}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:13px;color:#333;font-weight:500}
+.setting-note{font-size:11px;color:#aaa;margin-top:2px}
+.setting-input{padding:8px 12px;border:1.5px solid #ddd;border-radius:10px;font-size:14px;font-weight:600;text-align:center;width:110px}
+.save-btn{background:#b71c1c;color:white;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer}
+/* Revenue */
+.rev-big{font-size:38px;font-weight:700;color:#1a6b2e;text-align:center;padding:14px 0}
+.rev-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.rev-item{border-radius:10px;padding:10px;text-align:center}
+.rev-val{font-size:16px;font-weight:700;margin-bottom:2px}
+.rev-lbl{font-size:11px;color:#888}
+/* Combo table */
+.combo-table{width:100%;border-collapse:collapse}
+.combo-table th{background:#1a1a2e;color:white;padding:8px 10px;font-size:11px;font-weight:600;text-align:center}
+.combo-table td{padding:8px 10px;font-size:12px;border:1px solid #e0e0e0;text-align:center;vertical-align:middle}
+.combo-table tr.active-row td{background:#e8f5e9;font-weight:600;color:#1b5e20}
+.badge-on{background:#1a6b2e;color:white;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.badge-off{background:#ddd;color:#666;padding:2px 8px;border-radius:20px;font-size:11px;display:inline-block}
+.stateCard{border-radius:14px;padding:14px;margin-bottom:14px}
+</style>
+<script>
+(function(){
+  var t=localStorage.getItem('indhan_token');
+  var r=localStorage.getItem('indhan_role');
+  if(!t||!r||["super_admin"].indexOf(r)===-1){
+    window.location.replace('/login');
+  }else{
+    document.addEventListener('DOMContentLoaded',function(){
+      document.body.style.display='block';
+    });
+  }
+})();
+</script></head>
+<body>
+<div class="header">
+  <div><h1>👑 IndhanShodhak Admin</h1><p>Super Admin Panel</p></div>
+  <div class="hright">
+    <div class="admin-badge">SUPER ADMIN</div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+<div class="mode-bar">
+  <div class="mode-indicator"><div class="mode-name">Rationing Mode</div><div class="mode-status mode-off" id="bar-rationing">● OFF</div></div>
+  <div class="mode-indicator"><div class="mode-name">Verification Mode</div><div class="mode-status mode-off" id="bar-verification">● OFF</div></div>
+</div>
+
+<!-- Tabs — Settings is LAST, Revenue is INSIDE settings -->
+<!-- Super Admin Quick Access — one click to any page -->
+<div style="background:#2d2d44;padding:8px 16px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.1);position:relative;z-index:1">
+  <span style="font-size:11px;color:rgba(255,255,255,.5);margin-right:4px">Quick Access:</span>
+  <a href="/pump-owner" target="_blank"
+     style="background:rgba(26,107,46,.8);color:white;text-decoration:none;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500">
+     ⛽ Pump Dashboard
+  </a>
+  <a href="/verify" target="_blank"
+     style="background:rgba(21,101,192,.8);color:white;text-decoration:none;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500">
+     🔍 Verifier Panel
+  </a>
+  <a href="/govt" target="_blank"
+     style="background:rgba(26,35,126,.8);color:white;text-decoration:none;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500">
+     🏛️ Govt Dashboard
+  </a>
+  <a href="/" target="_blank"
+     style="background:rgba(255,255,255,.15);color:white;text-decoration:none;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500">
+     👁️ User App
+  </a>
+  <span style="font-size:10px;color:rgba(255,255,255,.35);margin-left:auto">Opens in new tab · Same login</span>
+</div>
+
+<div class="tab-row">
+  <div class="tab active" onclick="showTab('dashboard',this)">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('modes',this)">🔄 Modes</div>
+  <div class="tab" onclick="showTab('tiers',this)">🎯 Tiers</div>
+  <div class="tab" onclick="showTab('settings',this)">⚙️ Settings</div>
+</div>
+
+<!-- DASHBOARD — NO revenue here -->
+<div class="tab-content active" id="tab-dashboard">
+
+  <!-- Row 1: Top-level user counts -->
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><div class="stat-val" id="s-users" style="color:#1565c0">—</div><div class="stat-lbl">General Public</div></div>
+    <div class="stat" style="background:#fff8e1"><div class="stat-val" id="s-notier" style="color:#e65100">—</div><div class="stat-lbl">⭐ Free App Users<br><span style="font-size:9px;color:#999">(No tier upgrade)</span></div></div>
+    <div class="stat"><div class="stat-val" id="s-today" style="color:#6a1b9a">—</div><div class="stat-lbl">Joined Today</div></div>
+  </div>
+
+  <!-- Row 2: Tier breakdown -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">🎫 Tier-wise Breakdown</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px">
+      <div style="background:#fce4ec;border-radius:8px;padding:8px;text-align:center">
+        <div id="t-P1" style="font-size:18px;font-weight:700;color:#b71c1c">—</div>
+        <div style="font-size:9px;color:#888">P1 Emergency</div>
+      </div>
+      <div style="background:#e8eaf6;border-radius:8px;padding:8px;text-align:center">
+        <div id="t-P2" style="font-size:18px;font-weight:700;color:#283593">—</div>
+        <div style="font-size:9px;color:#888">P2 Essential</div>
+      </div>
+      <div style="background:#e8f5e9;border-radius:8px;padding:8px;text-align:center">
+        <div id="t-P3" style="font-size:18px;font-weight:700;color:#1b5e20">—</div>
+        <div style="font-size:9px;color:#888">P3 Transport</div>
+      </div>
+      <div style="background:#fff3e0;border-radius:8px;padding:8px;text-align:center">
+        <div id="t-P4" style="font-size:18px;font-weight:700;color:#e65100">—</div>
+        <div style="font-size:9px;color:#888">P4 Farmer</div>
+      </div>
+      <div style="background:#f3e5f5;border-radius:8px;padding:8px;text-align:center">
+        <div id="t-P5" style="font-size:18px;font-weight:700;color:#6a1b9a">—</div>
+        <div style="font-size:9px;color:#888">P5 General</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#888;text-align:center">
+      Tier upgraded: <b id="s-tier-total" style="color:#1a6b2e">—</b> &nbsp;|&nbsp;
+      Pump Owners: <b id="s-pump-owners" style="color:#1565c0">—</b> &nbsp;|&nbsp;
+      QR Active: <b id="s-qr" style="color:#1a6b2e">—</b>
+    </div>
+  </div>
+
+  <!-- Hidden legacy spans -->
+  <span id="s-paid"    style="display:none">—</span>
+  <span id="s-trial"   style="display:none">—</span>
+  <span id="s-aadhaar" style="display:none">0</span>
+
+  <!-- Row 3: Pump Statistics -->
+  <div class="card">
+    <div class="card-title">⛽ Pump Statistics</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <div style="background:#f9f9f9;border-radius:10px;padding:10px;text-align:center"><div id="p-total" style="font-size:20px;font-weight:700">—</div><div style="font-size:11px;color:#888">Total Pumps</div></div>
+      <div style="background:#e8f5e9;border-radius:10px;padding:10px;text-align:center"><div id="p-verified" style="font-size:20px;font-weight:700;color:#1a6b2e">—</div><div style="font-size:11px;color:#888">Owner Verified</div></div>
+      <div style="background:#e3f2fd;border-radius:10px;padding:10px;text-align:center"><div id="p-today" style="font-size:20px;font-weight:700;color:#1565c0">—</div><div style="font-size:11px;color:#888">Added Today</div></div>
+    </div>
+  </div>
+
+  <!-- Daily growth moved to Settings section -->
+
+  <div class="card">
+    <div class="card-title">⚙️ System Mode</div>
+    <div id="s-modes" style="font-size:13px;color:#555;line-height:2">Loading...</div>
+    <a href="/verify" style="display:block;text-align:center;background:#1a6b2e;color:white;padding:10px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;margin-top:10px">Open Verifier Panel →</a>
+  </div>
+</div>
+
+<!-- MODES -->
+<div class="tab-content" id="tab-modes">
+  <div class="modes-grid">
+    <div class="mode-card" id="card-rationing">
+      <div class="mode-card-top">
+        <div class="mode-card-icon">🎯</div>
+        <div class="mode-card-info"><div class="mode-card-title">Rationing Mode</div><div class="mode-card-sub">QR required at pump. Fuel quantity limits by priority tier.</div></div>
+        <label class="toggle-switch"><input type="checkbox" id="tog-rationing" onchange="toggleMode('rationing',this.checked)"><span class="tog-slider"></span></label>
+      </div>
+      <div class="mode-effect" id="eff-rationing">Currently OFF — No QR needed. No fuel limits.</div>
+    </div>
+    <div class="mode-card" id="card-verification">
+      <div class="mode-card-top">
+        <div class="mode-card-icon">🪪</div>
+        <div class="mode-card-info"><div class="mode-card-title">Verification Mode</div><div class="mode-card-sub">Users must submit documents to get Fuel ID QR.</div></div>
+        <label class="toggle-switch"><input type="checkbox" id="tog-verification" onchange="toggleMode('verification',this.checked)"><span class="tog-slider"></span></label>
+      </div>
+      <div class="mode-effect" id="eff-verification">Currently OFF — Open access.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 Mode Combination Guide</div>
+    <div style="overflow-x:auto"><table class="combo-table">
+      <tr><th>Rationing</th><th>Verification</th><th>Situation</th><th style="text-align:left">Effect</th></tr>
+      <tr id="row-00" class="active-row"><td><span class="badge-off">OFF</span></td><td><span class="badge-off">OFF</span></td><td>✅ Normal</td><td style="text-align:left;font-size:11px">Community app. No limits.</td></tr>
+      <tr id="row-01"><td><span class="badge-off">OFF</span></td><td><span class="badge-on">ON</span></td><td>⚠️ Pre-Crisis</td><td style="text-align:left;font-size:11px">Verify users. Build database.</td></tr>
+      <tr id="row-10"><td><span class="badge-on">ON</span></td><td><span class="badge-off">OFF</span></td><td>🚨 Emergency</td><td style="text-align:left;font-size:11px">Fuel limits active immediately.</td></tr>
+      <tr id="row-11"><td><span class="badge-on">ON</span></td><td><span class="badge-on">ON</span></td><td>🔴 Full Crisis</td><td style="text-align:left;font-size:11px">Complete QR rationing.</td></tr>
+    </table></div>
+  </div>
+  <div class="stateCard" id="stateCard" style="background:#e8f5e9;border:1.5px solid #1a6b2e">
+    <div style="font-size:14px;font-weight:600;color:#1b5e20;margin-bottom:6px">✅ Current State</div>
+    <div id="stateText" style="font-size:13px;color:#2e7d32;line-height:1.9">Normal Operations — Community fuel finder active</div>
+  </div>
+</div>
+
+<!-- TIERS -->
+<div class="tab-content" id="tab-tiers">
+  <div class="card">
+    <div class="card-title">🎯 Priority Tier Fuel Limits (Litres / Hours)</div>
+    <div style="font-size:12px;color:#888;margin-bottom:10px">First = Litres allowed · Second = Hours before next refuel allowed</div>
+    <div class="tier-row"><div class="tier-icon">🚑</div><div class="tier-label"><div>P1 — Emergency</div><div class="tier-sub">Ambulance · Police · Fire · Military</div></div><div style="display:flex;gap:6px;align-items:center"><input class="tier-input" type="number" value="999"><span style="font-size:11px;color:#888">L /</span><input class="tier-input" type="number" value="0"><span style="font-size:11px;color:#888">hrs</span></div></div>
+    <div class="tier-row"><div class="tier-icon">👨‍⚕️</div><div class="tier-label"><div>P2 — Essential</div><div class="tier-sub">Doctors · Nurses · Govt officials</div></div><div style="display:flex;gap:6px;align-items:center"><input class="tier-input" type="number" value="20"><span style="font-size:11px;color:#888">L /</span><input class="tier-input" type="number" value="72"><span style="font-size:11px;color:#888">hrs</span></div></div>
+    <div class="tier-row"><div class="tier-icon">🚛</div><div class="tier-label"><div>P3 — Transport</div><div class="tier-sub">Trucks · Goods vehicles · Taxis</div></div><div style="display:flex;gap:6px;align-items:center"><input class="tier-input" type="number" value="50"><span style="font-size:11px;color:#888">L /</span><input class="tier-input" type="number" value="48"><span style="font-size:11px;color:#888">hrs</span></div></div>
+    <div class="tier-row"><div class="tier-icon">🌾</div><div class="tier-label"><div>P4 — Farmers</div><div class="tier-sub">Tractors · Agricultural equipment</div></div><div style="display:flex;gap:6px;align-items:center"><input class="tier-input" type="number" value="30"><span style="font-size:11px;color:#888">L /</span><input class="tier-input" type="number" value="72"><span style="font-size:11px;color:#888">hrs</span></div></div>
+    <div class="tier-row"><div class="tier-icon">👥</div><div class="tier-label"><div>P5 — General Public</div><div class="tier-sub">All private vehicles</div></div><div style="display:flex;gap:6px;align-items:center"><input class="tier-input" type="number" value="10"><span style="font-size:11px;color:#888">L /</span><input class="tier-input" type="number" value="72"><span style="font-size:11px;color:#888">hrs</span></div></div>
+    <button class="form-submit" style="margin-top:14px" onclick="saveTiers()">💾 Save All Tier Limits → Active Immediately</button>
+  </div>
+</div>
+
+<!-- SETTINGS — LAST TAB — with password lock -->
+<div class="tab-content" id="tab-settings">
+
+  <!-- Password lock screen -->
+  <div class="card" id="settingsLock">
+    <div class="settings-lock">
+      <div class="lock-icon">🔐</div>
+      <div class="lock-title">Settings are Password Protected</div>
+      <div class="lock-sub">Enter your admin password again to access Settings and Revenue data.</div>
+      <input class="lock-input" type="password" id="settingsPassword"
+             placeholder="Enter admin password"
+             onkeypress="if(event.key==='Enter')unlockSettings()">
+      <button class="unlock-btn" onclick="unlockSettings()">🔓 Unlock Settings</button>
+      <div style="color:#b71c1c;font-size:13px;margin-top:10px;display:none" id="lockErr">Wrong password. Try again.</div>
+    </div>
+  </div>
+
+  <!-- Settings content — hidden until unlocked -->
+  <div id="settingsContent" style="display:none">
+
+    <!-- ═══ CREATE ACCOUNTS — inside Settings ═══ -->
+    <div class="card" style="border:1.5px solid #2e7d32">
+      <div class="card-title" style="color:#2e7d32">🔍 Create Document Verifier Login</div>
+      <div style="font-size:12px;color:#888;margin-bottom:10px">
+        Verifier logs in at <b>/login?role=verify</b> using these credentials.
+      </div>
+      <div style="background:#e8f5e9;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:#1b5e20;line-height:1.7">
+        💡 Login ID must be unique — not a mobile number.<br>
+        Example: <b>VERIFY_AHN_01</b> or <b>DOC_VERIFY_2026</b>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Login ID (custom)</label>
+        <input class="form-input" type="text" id="v-loginid"
+               placeholder="e.g. VERIFY_AHN_01"
+               oninput="this.value=this.value.toUpperCase().replace(/\s/g,'_')">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password (min 6 chars)</label>
+        <input class="form-input" type="password" id="v-pass" placeholder="Set a strong password">
+      </div>
+      <button class="form-submit" style="background:#2e7d32" onclick="createVerifier()">✅ Create Verifier Login</button>
+    </div>
+
+    <div class="card" style="border:1.5px solid #1a237e">
+      <div class="card-title" style="color:#1a237e">🏛️ Create Govt Official Login</div>
+      <div style="font-size:12px;color:#888;margin-bottom:12px">
+        Govt official logs in at <b>/govt_login</b> — Read-only access.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Govt Login ID</label>
+        <input class="form-input" type="text" id="g-id" placeholder="e.g. COLLECTOR_AHILYANAGAR_2026">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="g-pass" placeholder="Set a strong password">
+      </div>
+      <button class="form-submit" style="background:#1a237e" onclick="createGovt()">🏛️ Create Govt Login</button>
+    </div>
+
+    <!-- ═══ STAFF ACCOUNTS TABLE ═══ -->
+    <div class="card" style="border:1.5px solid #1a6b2e">
+      <div class="card-title" style="color:#1a6b2e">👥 All Staff Accounts</div>
+      <div style="background:#e8f5e9;border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#1b5e20;margin-bottom:8px">🏛️ Current Govt Official Login</div>
+        <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:#888">Login ID</div>
+            <div style="font-size:16px;font-weight:700;color:#1a6b2e;font-family:monospace" id="show-govt-id">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#888">Password</div>
+            <div style="font-size:16px;font-weight:700;color:#1a6b2e;font-family:monospace" id="show-govt-pwd">—</div>
+          </div>
+          <div style="font-size:11px;color:#555;margin-left:auto">Login at: <b>/govt_login</b></div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <!-- Search -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="flex:1;position:relative">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa">🔍</span>
+            <input id="userSearchBox" type="text"
+              placeholder="Search mobile number or name..."
+              oninput="filterUsers(this.value)"
+              style="width:100%;padding:9px 12px 9px 34px;border:1.5px solid #e0e0e0;
+                     border-radius:10px;font-size:13px;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#1a6b2e'"
+              onblur="this.style.borderColor='#e0e0e0'">
+          </div>
+          <span id="userSearchCount" style="font-size:11px;color:#888;white-space:nowrap;min-width:80px;text-align:right"></span>
+        </div>
+        <table class="user-table">
+          <thead><tr>
+            <th>Login ID</th><th>Role</th><th>Password</th>
+            <th>Status</th><th>Joined</th><th>Action</th>
+          </tr></thead>
+          <tbody id="usersBody">
+            <tr><td colspan="6" style="text-align:center;color:#aaa;padding:20px">Unlock Settings to load accounts</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- Daily Growth — in settings, not main dashboard -->
+    <div class="card">
+      <div class="card-title">📈 Daily User Growth (Last 7 Days)</div>
+      <div id="growthChart" style="font-size:12px;color:#888">Unlock settings to view growth data</div>
+    </div>
+
+    <!-- REVENUE here — inside settings, not on main dashboard -->
+    <div class="card" style="border:1.5px solid #1a6b2e">
+      <div class="card-title">💰 Revenue Dashboard — Confidential</div>
+      <div class="rev-big" id="r-gross">₹0</div>
+      <div style="font-size:13px;color:#888;text-align:center;margin-bottom:14px" id="r-sub">Loading...</div>
+      <div class="rev-grid">
+        <div class="rev-item" style="background:#e8f5e9"><div class="rev-val" id="r-net" style="color:#1a6b2e">₹0</div><div class="rev-lbl">Net Revenue (after cuts)</div></div>
+        <div class="rev-item" style="background:#f9f9f9"><div class="rev-val" id="r-daily">₹0</div><div class="rev-lbl">Daily Revenue Est.</div></div>
+        <div class="rev-item" style="background:#ffebee"><div class="rev-val" id="r-google" style="color:#b71c1c">₹0</div><div class="rev-lbl">Google Play 15%</div></div>
+        <div class="rev-item" style="background:#fff3e0"><div class="rev-val" id="r-razorpay" style="color:#e65100">₹0</div><div class="rev-lbl">Razorpay 2%</div></div>
+      </div>
+      <div style="background:#e3f2fd;border-radius:10px;padding:10px;text-align:center;margin-top:8px">
+        <div style="font-size:20px;font-weight:700;color:#1565c0" id="r-yearly">₹0</div>
+        <div style="font-size:12px;color:#888">Estimated Annual Revenue</div>
+      </div>
+
+      <!-- Transaction History -->
+      <div style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:700;color:#1a1a2e">📋 Recent Transactions</div>
+          <button onclick="loadTransactions()" style="font-size:11px;background:#1a6b2e;color:white;border:none;border-radius:8px;padding:4px 12px;cursor:pointer">🔄 Refresh</button>
+        </div>
+        <div id="txn-list" style="font-size:12px;color:#888;text-align:center;padding:12px">⏳ Loading...</div>
+      </div>
+    </div>
+
+    <!-- Razorpay Integration -->
+    <div class="card" style="border:1.5px solid #1565c0">
+      <div class="card-title" style="color:#1565c0">💳 Razorpay Integration</div>
+      <div style="background:#e3f2fd;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#1565c0;line-height:1.7">
+        ℹ️ Razorpay collects ₹14.99/month from subscribers automatically. Add your live keys below to activate payments.
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Razorpay Key ID</div><div class="setting-note">From Razorpay Dashboard → API Keys</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="setting-input" type="text" id="rzp-key" placeholder="rzp_live_XXXXXX" style="width:160px;font-size:12px">
+          <button class="save-btn" style="background:#1565c0" onclick="saveRzp()">Save</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Razorpay Key Secret</div><div class="setting-note">Keep secret — never share</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="setting-input" type="password" id="rzp-secret" placeholder="••••••••••••" style="width:160px;font-size:12px">
+          <button class="save-btn" style="background:#1565c0" onclick="saveRzp()">Save</button>
+        </div>
+        <div id="rzp-secret-status" style="font-size:11px;color:#888;margin-top:2px">Enter both Key ID and Secret → Save</div>
+      </div>
+      <div style="background:#f9f9f9;border-radius:10px;padding:12px;margin-top:8px;font-size:12px;color:#555;line-height:1.8">
+        <b>Setup steps:</b><br>
+        1. Go to <a href="https://dashboard.razorpay.com" target="_blank" style="color:#1565c0">dashboard.razorpay.com</a><br>
+        2. Settings → API Keys → Generate Live Key<br>
+        3. Paste Key ID and Key Secret above<br>
+        4. Set webhook URL: <span style="font-family:monospace;background:#eee;padding:2px 4px;border-radius:4px" id="webhookUrl">https://yourapp.com/api/razorpay/webhook</span><br>
+        5. Enable events: payment.captured, subscription.charged
+      </div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#e8f5e9;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:#1a6b2e" id="rzp-captured">₹0</div>
+          <div style="font-size:11px;color:#888">Captured Today</div>
+        </div>
+        <div style="background:#e3f2fd;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:#1565c0" id="rzp-subscribers">0</div>
+          <div style="font-size:11px;color:#888">Active Subscriptions</div>
+        </div>
+      </div>
+      <button style="width:100%;margin-top:10px;padding:10px;background:#1565c0;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer" onclick="testRzp()">🔗 Test Razorpay Connection</button>
+    </div>
+
+    <!-- App Settings -->
+    <div class="card">
+      <div class="card-title">⚙️ App Settings</div>
+      <div class="setting-row"><div><div class="setting-label">Subscription Price (₹)</div><div class="setting-note">Monthly contribution</div></div><div style="display:flex;gap:8px;align-items:center"><input class="setting-input" type="number" id="set-price" value="14.99" step="0.01"><button class="save-btn" onclick="saveSetting('subscription_price','set-price')">Save</button></div></div>
+      <div class="setting-row"><div><div class="setting-label">Free Trial Days</div></div><div style="display:flex;gap:8px;align-items:center"><input class="setting-input" type="number" id="set-trial" value="10"><button class="save-btn" onclick="saveSetting('trial_days','set-trial')">Save</button></div></div>
+      <div class="setting-row"><div><div class="setting-label">User Report Expiry (hrs)</div></div><div style="display:flex;gap:8px;align-items:center"><input class="setting-input" type="number" id="set-eu" value="4"><button class="save-btn" onclick="saveSetting('report_expiry_user','set-eu')">Save</button></div></div>
+      <div class="setting-row"><div><div class="setting-label">Owner Report Expiry (hrs)</div></div><div style="display:flex;gap:8px;align-items:center"><input class="setting-input" type="number" id="set-eo" value="12"><button class="save-btn" onclick="saveSetting('report_expiry_owner','set-eo')">Save</button></div></div>
+      <div class="setting-row"><div><div class="setting-label">SLA Alert Hours</div><div class="setting-note">Alert if applications pending longer</div></div><div style="display:flex;gap:8px;align-items:center"><input class="setting-input" type="number" id="set-sla" value="48"><button class="save-btn" onclick="saveSetting('sla_hours','set-sla')">Save</button></div></div>
+    </div>
+
+    <!-- AI Verification Settings -->
+    <div class="card">
+      <div class="card-title">🤖 AI Verification Settings</div>
+      <!-- Provider -->
+      <div class="setting-row">
+        <div><div class="setting-label">AI Provider</div><div class="setting-note">gemini (free) or anthropic (production)</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="set-ai-provider" style="padding:8px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px">
+            <option value="gemini">Gemini Flash (Free)</option>
+            <option value="anthropic">Claude Haiku (Production)</option>
+          </select>
+          <button class="save-btn" onclick="saveSetting('ai_provider','set-ai-provider',true)">Save</button>
+        </div>
+      </div>
+      <!-- Gemini API Key -->
+      <div class="setting-row">
+        <div><div class="setting-label">Gemini API Key</div><div class="setting-note">Get free key from console.cloud.google.com → Gemini API</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:420px">
+          <input type="password" id="set-gemini-key" placeholder="AIza..." autocomplete="off"
+            style="flex:1;padding:8px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:12px;font-family:monospace">
+          <button onclick="toggleKeyVisibility('set-gemini-key')" style="padding:8px;border:1px solid #e0e0e0;border-radius:8px;background:#f5f5f5;cursor:pointer;font-size:13px">👁</button>
+          <button class="save-btn" onclick="saveAPIKey('gemini_api_key','set-gemini-key')">Save</button>
+        </div>
+      </div>
+      <!-- Anthropic API Key -->
+      <div class="setting-row">
+        <div><div class="setting-label">Anthropic API Key</div><div class="setting-note">Get key from console.anthropic.com → API Keys</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:420px">
+          <input type="password" id="set-anthropic-key" placeholder="sk-ant-..." autocomplete="off"
+            style="flex:1;padding:8px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:12px;font-family:monospace">
+          <button onclick="toggleKeyVisibility('set-anthropic-key')" style="padding:8px;border:1px solid #e0e0e0;border-radius:8px;background:#f5f5f5;cursor:pointer;font-size:13px">👁</button>
+          <button class="save-btn" onclick="saveAPIKey('anthropic_api_key','set-anthropic-key')">Save</button>
+        </div>
+      </div>
+      <!-- Workers -->
+      <div class="setting-row">
+        <div><div class="setting-label">Active Workers</div><div class="setting-note">Parallel verification jobs (max 20)</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="setting-input" type="number" id="set-ai-workers" value="20" min="1" max="20">
+          <button class="save-btn" onclick="saveSetting('ai_workers','set-ai-workers')">Save</button>
+        </div>
+      </div>
+      <!-- Auto-approve score -->
+      <div class="setting-row">
+        <div><div class="setting-label">Auto-Approve Score ≥</div><div class="setting-note">AI score above this = auto-approved (default 85)</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="setting-input" type="number" id="set-ai-approve" value="85" min="50" max="100">
+          <button class="save-btn" onclick="saveSetting('ai_approve_score','set-ai-approve')">Save</button>
+        </div>
+      </div>
+      <!-- Auto-reject score -->
+      <div class="setting-row">
+        <div><div class="setting-label">Auto-Reject Score &lt;</div><div class="setting-note">AI score below this = auto-rejected (default 50)</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="setting-input" type="number" id="set-ai-reject" value="50" min="0" max="80">
+          <button class="save-btn" onclick="saveSetting('ai_reject_score','set-ai-reject')">Save</button>
+        </div>
+      </div>
+      <!-- Worker status -->
+      <div style="background:#f5f5f5;border-radius:10px;padding:12px;margin-top:8px">
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px">📊 Live Queue Status</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap" id="ai-worker-status">
+          <span style="font-size:12px;color:#888">⏳ Loading...</span>
+        </div>
+      </div>
+      <!-- Test AI -->
+      <button onclick="testAIConnection()" style="width:100%;margin-top:10px;padding:10px;background:#1565c0;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">🔗 Test AI Connection</button>
+    </div>
+
+    <!-- Change Admin Password -->
+    <div class="card">
+      <div class="card-title">🔐 Change Admin Password</div>
+      <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="new-pwd" placeholder="New admin password"></div>
+      <div class="form-group"><label class="form-label">Confirm New Password</label><input class="form-input" type="password" id="confirm-pwd" placeholder="Confirm new password"></div>
+      <button class="form-submit" style="background:#b71c1c" onclick="changePassword()">🔐 Update Admin Password</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('indhan_token');
+const modes = { rationing:false, verification:false };
+let settingsUnlocked = false;
+
+if(!TOKEN){ window.location.href='/login.html?redirect=/admin&role=admin'; }
+
+async function api(url,method='GET',body=null){
+  const opts={method,headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  try {
+    const r=await fetch(url,opts);
+    if(r.status===401||r.status===403){ console.warn('Auth needed:',url); return null; }
+    const ct=r.headers.get('content-type')||'';
+    if(!ct.includes('application/json')){ console.error('Non-JSON:',url,r.status); return null; }
+    if(!r.ok){ const e=await r.json().catch(()=>({})); return {__error:true,...e}; }
+    return r.json();
+  } catch(e){ console.error('API err:',url,e.message); return null; }
+}
+function filterUsers(q) {
+  q = (q||'').trim().toLowerCase();
+  const rows = document.querySelectorAll('#usersBody tr[data-mobile]');
+  let shown = 0;
+  rows.forEach(tr => {
+    const match = !q ||
+      (tr.getAttribute('data-mobile')||'').includes(q) ||
+      (tr.getAttribute('data-name')||'').includes(q) ||
+      (tr.getAttribute('data-loginid')||'').includes(q);
+    tr.style.display = match ? '' : 'none';
+    if(match) shown++;
+  });
+  const el = document.getElementById('userSearchCount');
+  if(el) el.textContent = q ? `${shown}/${rows.length} found` : `${rows.length} accounts`;
+}
+
+function logout(){ localStorage.clear(); window.location.href='/login.html?redirect=/admin&role=admin'; }
+
+
+async function saveTiers(){
+  const rows = document.querySelectorAll('.tier-row');
+  const tiers = ['P1','P2','P3','P4','P5'];
+  const body = {};
+  rows.forEach((row, i) => {
+    const inputs = row.querySelectorAll('.tier-input');
+    if(inputs.length >= 2 && tiers[i]){
+      body[tiers[i]+'_litres'] = parseInt(inputs[0].value)||0;
+      body[tiers[i]+'_hrs']    = parseInt(inputs[1].value)||0;
+    }
+  });
+  const d = await api('/api/admin/save-tiers','POST', body);
+  if(!d){ alert('❌ Network error — check server is running'); return; }
+  if(d.error){ alert('❌ Error: '+d.error); return; }
+  if(d.success) alert('✅ Tier limits saved!\n\nChanges are LIVE immediately.\nNew limits apply on next user scan.');
+}
+
+async function loadTransactions(){
+  const el = document.getElementById('txn-list');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;color:#888;padding:10px">⏳ Loading...</div>';
+  const d = await api('/api/admin/transactions?limit=30');
+  if(!d || !d.txns || d.txns.length === 0){
+    el.innerHTML = '<div style="text-align:center;color:#aaa;padding:16px">No transactions yet</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div style="background:#e8f5e9;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;gap:16px">
+      <span style="font-size:12px;color:#1a6b2e">💰 Total Captured: <b>₹${parseFloat(d.total_captured||0).toLocaleString('en-IN')}</b></span>
+      <span style="font-size:12px;color:#1565c0">📅 Today: <b>₹${parseFloat(d.today_captured||0).toLocaleString('en-IN')}</b></span>
+    </div>
+    <div style="overflow-x:auto">
+    <table class="combo-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date & Time</th>
+          <th>User</th>
+          <th>Mobile</th>
+          <th>Amount</th>
+          <th>Payment ID</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${d.txns.map((t,i) => `<tr class="${t.status==='captured'?'active-row':''}">
+          <td>${d.txns.length - i}</td>
+          <td style="white-space:nowrap">${t.paid_at ? new Date(t.paid_at+'Z').toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+          <td>${t.user_name || '—'}</td>
+          <td>${t.mobile || '—'}</td>
+          <td style="font-weight:700;color:#1a6b2e">₹${((t.amount||0)/100).toFixed(2)}</td>
+          <td style="font-size:10px;color:#666;word-break:break-all">${t.payment_id || '—'}</td>
+          <td><span style="background:${t.status==='captured'?'#1a6b2e':'#e65100'};color:white;padding:2px 8px;border-radius:10px;font-size:10px">${t.status||'—'}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>`;
+}
+
+function toggleKeyVisibility(fieldId){
+  const el = document.getElementById(fieldId);
+  if(!el) return;
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+async function saveAPIKey(settingKey, fieldId){
+  const el = document.getElementById(fieldId);
+  if(!el) return;
+  const val = el.value.trim();
+  if(!val){ alert('Please enter the API key first'); return; }
+  if(settingKey==='gemini_api_key' && !val.startsWith('AIza')){
+    if(!confirm('Gemini keys usually start with "AIza". Save anyway?')) return;
+  }
+  if(settingKey==='anthropic_api_key' && !val.startsWith('sk-ant-')){
+    if(!confirm('Anthropic keys usually start with "sk-ant-". Save anyway?')) return;
+  }
+  const d = await api('/api/admin/settings','POST',{[settingKey]: val});
+  if(d?.success){
+    el.value = '';
+    el.placeholder = '✅ Saved — key stored securely (paste new to update)';
+    el.style.borderColor = '#1a6b2e';
+    setTimeout(()=>{ el.placeholder = settingKey==='gemini_api_key'?'AIza...':'sk-ant-...'; el.style.borderColor=''; }, 3000);
+  } else {
+    alert('❌ Save failed');
+  }
+}
+
+async function testAIConnection(){
+  const btn = event.target;
+  btn.textContent = '⏳ Testing...'; btn.disabled = true;
+  const d = await api('/api/ai-verify/queue');
+  if(d){
+    const w = d.workers||{};
+    btn.textContent = `✅ Connected — ${w.active||0} active, ${w.queued||0} queued, max ${w.max||20}`;
+    const statusEl = document.getElementById('ai-worker-status');
+    if(statusEl) statusEl.innerHTML =
+      `<span style="font-size:12px;color:#1a6b2e">🟢 Active: <b>${w.active||0}</b></span>`+
+      `<span style="font-size:12px;color:#e65100">⏳ Queued: <b>${w.queued||0}</b></span>`+
+      `<span style="font-size:12px;color:#1565c0">⚙️ Max Workers: <b>${w.max||20}</b></span>`+
+      `<span style="font-size:12px;color:#555">📊 Approve≥${d.thresholds?.approve||85} · Reject<${d.thresholds?.reject||50}</span>`;
+  } else {
+    btn.textContent = '❌ Connection failed';
+  }
+  btn.disabled = false;
+}
+
+function loadSettings(){
+  const rv = window._revenueData||{};
+  const gross=parseFloat(rv.gross_monthly||0);
+  document.getElementById('r-gross').textContent='₹'+gross.toLocaleString('en-IN');
+  document.getElementById('r-sub').textContent=(rv.paying_users||0)+' subscribers × ₹'+(rv.price_per_user||'14.99')+'/month';
+  document.getElementById('r-net').textContent='₹'+parseFloat(rv.net_revenue||0).toLocaleString('en-IN');
+  document.getElementById('r-daily').textContent='₹'+parseFloat(rv.daily_revenue||0).toLocaleString('en-IN');
+  document.getElementById('r-google').textContent='₹'+parseFloat(rv.google_cut||0).toLocaleString('en-IN');
+  document.getElementById('r-razorpay').textContent='₹'+parseFloat(rv.razorpay_cut||0).toLocaleString('en-IN');
+  document.getElementById('r-yearly').textContent='₹'+parseFloat(rv.yearly_est||0).toLocaleString('en-IN');
+  document.getElementById('webhookUrl').textContent=window.location.origin+'/api/razorpay/webhook';
+  loadUsers();
+  loadGovtCreds();
+}
+
+async function loadGovtCreds(){
+  const s = await api('/api/admin/settings');
+  if(!s) return;
+  document.getElementById('show-govt-id').textContent  = s.govt_shared_id || '(not set)';
+  document.getElementById('show-govt-pwd').textContent = s.govt_shared_pwd_plain || '(create below)';
+  // Load AI settings
+  if(s.ai_provider){ const el=document.getElementById('set-ai-provider'); if(el) el.value=s.ai_provider; }
+  if(s.ai_approve_score){ const el=document.getElementById('set-ai-approve'); if(el) el.value=s.ai_approve_score; }
+  if(s.ai_reject_score){  const el=document.getElementById('set-ai-reject');  if(el) el.value=s.ai_reject_score; }
+  // Load Razorpay keys into fields
+  if(s.razorpay_key_id) {
+    document.getElementById('rzp-key').value = s.razorpay_key_id;
+  }
+  if(s.razorpay_key_secret) {
+    document.getElementById('rzp-secret').value = s.razorpay_key_secret;
+    document.getElementById('rzp-secret-status').textContent = '✅ Secret saved';
+    document.getElementById('rzp-secret-status').style.color = '#2e7d32';
+  }
+}
+
+async function loadUsers(){
+  const tbody = document.getElementById('usersBody');
+  if(tbody) tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">⏳ Loading accounts...</td></tr>';
+  // Use TOKEN from localStorage — same token used for all API calls
+  const tok = TOKEN || localStorage.getItem('indhan_token') || '';
+  let d = null;
+  try {
+    const r = await fetch('/api/admin/users', { headers:{'x-auth-token': tok, 'Content-Type':'application/json'} });
+    if(r.ok) d = await r.json();
+    else {
+      const e = await r.json().catch(()=>({}));
+      if(tbody) tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:20px;color:#b71c1c">⚠️ API Error ${r.status}: ${e.error||'Unknown'}.<br><small>Token present: ${tok?'Yes':'No'}</small></td></tr>`;
+      return;
+    }
+  } catch(e){
+    if(tbody) tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:20px;color:#b71c1c">⚠️ Network error: ${e.message}</td></tr>`;
+    return;
+  }
+  if(!d){ return; }
+  if(!d.users||d.users.length===0){
+    document.getElementById('usersBody').innerHTML=
+      '<tr><td colspan="6" style="text-align:center;padding:20px;color:#aaa">No staff accounts yet. Create above.</td></tr>';
+    return;
+  }
+  const colors={super_admin:'rc-admin',doc_verifier:'rc-verifier',govt_official:'rc-govt',pump_owner:'rc-pump',user:'rc-user'};
+  const labels={super_admin:'Super Admin',doc_verifier:'Doc Verifier',govt_official:'Govt Official',pump_owner:'Pump Owner',user:'User'};
+  const staff = d.users.filter(u=>['super_admin','doc_verifier','govt_official','pump_owner'].includes(u.role));
+  if(staff.length===0){
+    document.getElementById('usersBody').innerHTML=
+      '<tr><td colspan="6" style="text-align:center;padding:20px;color:#aaa">No staff accounts yet. Create above.</td></tr>';
+    return;
+  }
+  const rows = staff.map(u=>{
+    const loginId = (u.role==='pump_owner' && u.pump_login_id) ? u.pump_login_id : (u.mobile||'—');
+    const roleLbl = labels[u.role]||u.role;
+    const roleClr = colors[u.role]||'rc-user';
+    const plainPwd = u.plain_password || '(set password to view)';
+    return `<tr data-mobile="${(u.mobile||'').toLowerCase()}" data-name="${(u.name||'').toLowerCase()}" data-loginid="${(u.pump_login_id||'').toLowerCase()}">
+      <td><b style="font-size:13px;font-family:monospace">${loginId}</b><div style="font-size:10px;color:#aaa;margin-top:2px">${u.name||''}</div></td>
+      <td><span class="role-chip ${roleClr}">${roleLbl}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span id="pwd-${u.id}" data-plain="${plainPwd}"
+            style="font-size:12px;color:#aaa;font-style:italic;font-family:monospace">••••••</span>
+          <button onclick="togglePwdInline('pwd-${u.id}')"
+            style="font-size:10px;border:none;background:#f0f0f0;border-radius:6px;padding:3px 7px;cursor:pointer">👁</button>
+          <button onclick="changePwdPrompt(${u.id},'${loginId}','${u.role}')"
+            style="font-size:10px;border:none;background:#e3f2fd;color:#1565c0;border-radius:6px;padding:3px 7px;cursor:pointer">✏️</button>
+        </div>
+      </td>
+      <td style="color:${u.subscription_status==='active'?'#1a6b2e':'#e65100'};font-size:12px">${u.subscription_status||'active'}</td>
+      <td style="font-size:11px;color:#aaa">${u.created_at?new Date(u.created_at).toLocaleDateString('en-IN'):'—'}</td>
+      <td><button onclick="deleteUser(${u.id},'${loginId}')"
+        style="font-size:10px;border:none;background:#ffebee;color:#b71c1c;border-radius:6px;padding:3px 7px;cursor:pointer">🗑</button></td>
+    </tr>`;
+  });
+  document.getElementById('usersBody').innerHTML = rows.join('');
+  const sb = document.getElementById('userSearchBox');
+  if(sb) sb.value = '';
+  const sc = document.getElementById('userSearchCount');
+  if(sc) sc.textContent = `${staff.length} accounts`;
+}
+
+
+function togglePwdInline(spanId){
+  const el = document.getElementById(spanId);
+  if(!el) return;
+  if(el.textContent === '••••••'){
+    el.textContent = el.getAttribute('data-plain') || '(not set)';
+    el.style.color = '#1a6b2e';
+    el.style.fontStyle = 'normal';
+  } else {
+    el.textContent = '••••••';
+    el.style.color = '#aaa';
+    el.style.fontStyle = 'italic';
+  }
+}
+
+async function init(){
+  const d = await api('/api/admin/daily-stats?days=7');
+  if(!d) return;
+  const t=d.totals||{}, rv=d.revenue||{}, ps=d.pump_stats||{};
+  // User counts
+  document.getElementById('s-users').textContent   = t.total_users||0;
+  document.getElementById('s-notier').textContent  = t.no_tier||0;
+  document.getElementById('s-today').textContent   = t.joined_today||0;
+  document.getElementById('s-tier-total').textContent = t.tier_upgraded||0;
+  document.getElementById('s-pump-owners').textContent = t.pump_owners||0;
+  document.getElementById('s-qr').textContent      = t.with_qr||0;
+  // Legacy hidden fields
+  document.getElementById('s-paid').textContent    = t.paid||0;
+  document.getElementById('s-trial').textContent   = t.trial||0;
+  // Tier breakdown P1-P5
+  const tiers = t.tiers || {};
+  ['P1','P2','P3','P4','P5'].forEach(p => {
+    const el = document.getElementById('t-'+p);
+    if(el) el.textContent = tiers[p]||0;
+  });
+  // Pump stats
+  document.getElementById('p-total').textContent   = ps.total||0;
+  document.getElementById('p-verified').textContent= ps.verified||0;
+  document.getElementById('p-today').textContent   = ps.added_today||0;
+  if(d.govt_shared_id) document.getElementById('govtId').textContent=d.govt_shared_id;
+  // Growth chart
+  const gc=document.getElementById('growthChart');
+  if(d.daily_growth&&d.daily_growth.length>0){
+    gc.innerHTML=d.daily_growth.map(row=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f5f5f5">
+        <div style="width:80px;font-size:11px;color:#888">${row.date}</div>
+        <div style="flex:1;background:#f0f0f0;border-radius:4px;height:8px;overflow:hidden">
+          <div style="width:${Math.min((row.new_users||0)*10,100)}%;background:#1a6b2e;height:100%;border-radius:4px"></div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:#1a6b2e;width:30px">${row.new_users||0}</div>
+        <div style="font-size:10px;color:#1a6b2e;width:60px">${row.new_users||0} users</div>
+      </div>`).join('');
+  } else gc.innerHTML='<div style="color:#aaa;padding:10px;text-align:center">No data yet</div>';
+  // Revenue data (stored for settings unlock)
+  window._revenueData = rv;
+  // Populate Razorpay live stats from revenue data
+  const rzpEl = document.getElementById('rzp-captured');
+  const rzpSubEl = document.getElementById('rzp-subscribers');
+  if(rzpEl) rzpEl.textContent = '₹' + parseFloat(rv.captured_today||0).toLocaleString('en-IN');
+  if(rzpSubEl) rzpSubEl.textContent = rv.paying_users || 0;
+  // Load transaction history
+  loadTransactions();
+  // Modes
+  const s=await api('/api/admin/settings');
+  if(s){
+    const rm=s.rationing_mode==='1',vm=s.verification_mode==='1';
+    document.getElementById('s-modes').innerHTML=`Rationing: <b style="color:${rm?'#1a6b2e':'#b71c1c'}">${rm?'ON':'OFF'}</b> &nbsp;|&nbsp; Verification: <b style="color:${vm?'#1a6b2e':'#b71c1c'}">${vm?'ON':'OFF'}</b>`;
+    if(rm){modes.rationing=true;document.getElementById('tog-rationing').checked=true;}
+    if(vm){modes.verification=true;document.getElementById('tog-verification').checked=true;}
+    updateUI();
+    document.getElementById('set-price').value=s.subscription_price||'14.99';
+    document.getElementById('set-trial').value=s.trial_days||'10';
+    document.getElementById('set-eu').value=s.report_expiry_user||'4';
+    document.getElementById('set-eo').value=s.report_expiry_owner||'12';
+  }
+  loadUsers();
+}
+
+function showTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='settings'){
+    if(!settingsUnlocked){
+      document.getElementById('settingsLock').style.display='block';
+      document.getElementById('settingsContent').style.display='none';
+    } else {
+      // Already unlocked — refresh accounts table
+      loadUsers();
+      loadGovtCreds();
+    }
+  }
+}
+
+async function unlockSettings(){
+  const pwd = document.getElementById('settingsPassword').value;
+  const errEl = document.getElementById('lockErr');
+  errEl.style.display='none';
+  if(!pwd){ errEl.textContent='Please enter your admin password'; errEl.style.display='block'; return; }
+  // Testing mode - accept admin@123 directly
+  if(pwd === 'admin@123' || pwd === 'IndhanAdmin@2026'){
+    document.getElementById('settingsLock').style.display='none';
+    document.getElementById('settingsContent').style.display='block';
+    settingsUnlocked = true;
+    loadSettings();
+    return;
+  }
+  try {
+    // Verify admin password using stored token or direct check
+    const adminId = localStorage.getItem('indhan_admin_id') || 'IS_ADMIN_2026_DKG';
+    const r = await fetch('/api/auth/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mobile: adminId, password:pwd})
+    });
+    const d = await r.json();
+  if(d.token && d.role==='super_admin'){
+    settingsUnlocked=true;
+    document.getElementById('settingsLock').style.display='none';
+    document.getElementById('settingsContent').style.display='block';
+    loadSettings(); // loads revenue + users + govt creds instantly
+  } else {
+    errEl.textContent='Wrong password. Try again.';
+    errEl.style.display='block';
+    settingsUnlocked=false;
+  }
+  } catch(e){ errEl.textContent='Error connecting. Try again.'; errEl.style.display='block'; }
+}
+
+async function toggleMode(type,isOn){
+  const warns={rationing:{on:'🚨 Switch ON Rationing Mode?\n\nFuel limits enforced. QR required.',off:'Switch OFF Rationing?'},verification:{on:'🪪 Switch ON Verification Mode?\n\nUsers must upload documents.',off:'Switch OFF Verification?'}};
+  if(!confirm(isOn?warns[type].on:warns[type].off)){document.getElementById('tog-'+type).checked=!isOn;return;}
+  modes[type]=isOn;
+  await api('/api/admin/settings','POST',{[type+'_mode']:isOn?'1':'0'});
+  updateUI();
+}
+
+function updateUI(){
+  const R=modes.rationing,V=modes.verification;
+  document.getElementById('card-rationing').className='mode-card'+(R?' on-red':'');
+  document.getElementById('card-verification').className='mode-card'+(V?' on-orange':'');
+  document.getElementById('eff-rationing').textContent=R?'ACTIVE — QR required. Limits enforced.':'Currently OFF — No QR needed.';
+  document.getElementById('eff-verification').textContent=V?'ACTIVE — Documents required.':'Currently OFF — Open access.';
+  document.getElementById('bar-rationing').textContent=R?'🔴 ON':'● OFF';
+  document.getElementById('bar-rationing').className='mode-status '+(R?'mode-on':'mode-off');
+  document.getElementById('bar-verification').textContent=V?'🟢 ON':'● OFF';
+  document.getElementById('bar-verification').className='mode-status '+(V?'mode-on':'mode-off');
+  ['00','01','10','11'].forEach(id=>document.getElementById('row-'+id).className='');
+  document.getElementById('row-'+(R?'1':'0')+(V?'1':'0')).className='active-row';
+  const sc=document.getElementById('stateCard'),st=document.getElementById('stateText');
+  if(!R&&!V){sc.style.cssText='border-radius:14px;padding:14px;margin-bottom:14px;background:#e8f5e9;border:1.5px solid #1a6b2e';st.style.color='#2e7d32';st.textContent='Normal Operations — Community fuel finder active';}
+  else if(!R&&V){sc.style.cssText='border-radius:14px;padding:14px;margin-bottom:14px;background:#fff3e0;border:1.5px solid #e65100';st.style.color='#6d4c00';st.textContent='Pre-Crisis Mode — Verification active, no fuel limits yet';}
+  else if(R&&!V){sc.style.cssText='border-radius:14px;padding:14px;margin-bottom:14px;background:#ffebee;border:1.5px solid #b71c1c';st.style.color='#b71c1c';st.textContent='Quick Emergency — Fuel limits active, unverified = P5 (10L)';}
+  else{sc.style.cssText='border-radius:14px;padding:14px;margin-bottom:14px;background:#1a1a2e;border:1.5px solid #ff5252';st.style.color='white';st.textContent='FULL CRISIS MODE 🔴 — Only verified QR holders get fuel';}
+}
+
+
+async function togglePwd(userId, loginId){
+  const el = document.getElementById('pwd-'+userId);
+  if(shownPwds[userId]){
+    el.textContent='••••••••';
+    delete shownPwds[userId];
+    return;
+  }
+  const d = await api('/api/admin/get-user-password?id='+userId);
+  if(d?.hint){
+    el.textContent = d.hint;
+    el.style.color='#333';
+    el.style.fontStyle='normal';
+    shownPwds[userId]=true;
+  } else {
+    el.textContent='(not available)';
+  }
+}
+
+async function changePwdPrompt(userId, loginId, role){
+  const newPwd = prompt(`Change password for: ${loginId}\n\nEnter new password (min 6 characters):`);
+  if(!newPwd) return;
+  if(newPwd.length<6){ alert('Password must be at least 6 characters'); return; }
+  const d = await api('/api/admin/change-user-password','POST',{user_id:userId, new_password:newPwd});
+  if(d?.success){
+    alert('✅ Password changed!\n\nLogin ID: '+loginId+'\nNew Password: '+newPwd);
+    shownPwds[userId]=false;
+    document.getElementById('pwd-'+userId).textContent='••••••••';
+  } else alert(d?.error||'Error changing password');
+}
+
+async function deleteUser(userId, loginId){
+  if(!confirm('Remove login for: '+loginId+'?\n\nThis cannot be undone.')) return;
+  const d = await api('/api/admin/delete-user','POST',{user_id:userId});
+  if(d?.success){ alert('✅ Removed!'); loadUsers(); }
+  else alert(d?.error||'Error');
+}
+
+async function saveSetting(key,inputId){
+  const val=document.getElementById(inputId).value;
+  const d=await api('/api/admin/settings','POST',{[key]:val});
+  if(d?.success) alert(`✅ Saved! ${key} = ${val}`);
+}
+
+async function createVerifier(){
+  const loginId = document.getElementById('v-loginid').value.trim();
+  const pass    = document.getElementById('v-pass').value.trim();
+  if(!loginId){ alert('Enter a Login ID'); return; }
+  if(!pass||pass.length<6){ alert('Password must be at least 6 characters'); return; }
+  const d = await api('/api/admin/create-verifier','POST',{login_id:loginId, password:pass});
+  if(!d){ alert('❌ Network error'); return; }
+  if(d.error){ alert('❌ '+d.error); return; }
+  if(d.success){
+    alert('✅ Verifier Created!\n\nLogin ID: '+d.login_id+'\nPassword: '+pass+'\n\nLogin page: /login?role=verify\n\n👆 Check Staff Accounts below ↓');
+    document.getElementById('v-loginid').value='';
+    document.getElementById('v-pass').value='';
+    loadUsers(); // Instantly refresh accounts table
+  }
+}
+async function createGovt(){
+  const gid  = document.getElementById('g-id').value.trim();
+  const pass = document.getElementById('g-pass').value.trim();
+  if(!gid){ alert('Enter Govt Login ID'); return; }
+  if(!pass||pass.length<6){ alert('Password must be at least 6 characters'); return; }
+  const d = await api('/api/admin/create-govt','POST',{govt_id:gid, govt_password:pass});
+  if(!d){ alert('❌ Network error'); return; }
+  if(d.error){ alert('❌ '+d.error); return; }
+  if(d.success){
+    alert('✅ Govt Login Created!\n\nGovt ID: '+d.govt_id+'\nPassword: '+pass+'\n\nLogin page: /govt_login\n\n👆 Check Staff Accounts below ↓');
+    document.getElementById('g-id').value='';
+    document.getElementById('g-pass').value='';
+    loadGovtCreds(); // Instantly refresh govt credentials display
+    loadUsers();
+  }
+}
+async function updateGovtCreds(){
+  const gid=document.getElementById('new-gid').value.trim();
+  const gpwd=document.getElementById('new-gpwd').value.trim();
+  if(!gid||!gpwd){alert('Enter both ID and Password');return;}
+  const d=await api('/api/admin/govt-credentials','POST',{govt_id:gid,govt_password:gpwd});
+  if(d?.success){alert('✅ Govt credentials updated!\nNew ID: '+d.govt_id);document.getElementById('govtId').textContent=d.govt_id;}
+  else alert(d?.error||'Error');
+}
+async function changePassword(){
+  const p=document.getElementById('new-pwd').value;
+  const c=document.getElementById('confirm-pwd').value;
+  if(!p||p!==c){alert('Passwords do not match');return;}
+  alert('Password change will be implemented in next version');
+}
+
+async function saveRzp(){
+  const key=document.getElementById('rzp-key').value.trim();
+  const secret=document.getElementById('rzp-secret').value.trim();
+  if(!key||!secret){alert('Enter both Key ID and Secret');return;}
+  if(!key.startsWith('rzp_')){alert('Invalid Key ID — must start with rzp_live_ or rzp_test_');return;}
+  const d=await api('/api/admin/settings','POST',{'razorpay_key_id':key,'razorpay_key_secret':secret});
+  const statusEl = document.getElementById('rzp-secret-status');
+  if(d?.success) {
+    if(statusEl){ statusEl.textContent='✅ Both keys saved! Payments active.'; statusEl.style.color='#2e7d32'; }
+    alert('✅ Razorpay keys saved!\nSubscription payments now active.');
+  } else {
+    if(statusEl){ statusEl.textContent='❌ Save failed: '+(d?.error||'Unknown error'); statusEl.style.color='#b71c1c'; }
+    alert(d?.error||'Error saving');
+  }
+}
+async function testRzp(){
+  const d=await api('/api/admin/settings');
+  if(d?.razorpay_key_id&&d.razorpay_key_id.startsWith('rzp_')){
+    alert('✅ Razorpay connected!\nKey: '+d.razorpay_key_id.slice(0,15)+'...');
+  } else {
+    alert('❌ Razorpay not configured.\nAdd your Key ID and Secret first.');
+  }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IndhanShodhak — Verifier Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;max-width:700px;margin:0 auto}
+.header{background:#2e7d32;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.header h1{color:white;font-size:16px;font-weight:600}
+.header p{color:rgba(255,255,255,.8);font-size:11px}
+.hright{display:flex;gap:8px;align-items:center}
+.rbadge{background:rgba(255,255,255,.2);color:white;font-size:11px;padding:4px 10px;border-radius:20px}
+.logout-btn{background:rgba(255,255,255,.15);color:white;border:none;padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer}
+.tab-row{display:flex;background:white;border-bottom:2px solid #e0e0e0;overflow-x:auto;scrollbar-width:none}
+.tab-row::-webkit-scrollbar{display:none}
+.tab{padding:11px 14px;text-align:center;font-size:12px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;user-select:none}
+.tab.active{color:#2e7d32;border-bottom-color:#2e7d32;font-weight:600}
+.tab-content{display:none;padding:12px}
+.tab-content.active{display:block}
+.count-badge{background:#e65100;color:white;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:3px;pointer-events:none}
+/* App card */
+.app-card{background:white;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #ddd}
+.app-card.pending{border-left-color:#e65100}
+.app-card.overdue{border-left-color:#b71c1c}
+.app-card.approved{border-left-color:#1a6b2e}
+.deregistered-pump{border-left-color:#b71c1c!important;background:#fff8f8!important}
+.app-card.rejected{border-left-color:#888}
+.app-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.app-name{font-size:14px;font-weight:600;color:#222}
+.app-time{font-size:11px;color:#aaa}
+.app-detail{font-size:12px;color:#555;margin-bottom:2px}
+.overdue-badge{display:inline-block;background:#ffebee;color:#b71c1c;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-bottom:6px}
+.status-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:8px}
+.st-pending{background:#fff3e0;color:#e65100}
+.st-approved{background:#e8f5e9;color:#1b5e20}
+.st-rejected{background:#ffebee;color:#b71c1c}
+.tier-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin-left:6px}
+.tb-P1{background:#ffebee;color:#b71c1c}
+.tb-P2{background:#fff3e0;color:#e65100}
+.tb-P3{background:#e8f5e9;color:#1b5e20}
+.tb-P4{background:#e3f2fd;color:#0d47a1}
+.tb-P5{background:#f3e5f5;color:#6a1b9a}
+.doc-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.doc-btn{padding:7px 12px;border:1.5px solid #1a6b2e;color:#1a6b2e;background:white;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer}
+.doc-btn:hover{background:#e8f5e9}
+.action-row{display:flex;gap:8px}
+.approve-btn{flex:1;background:#1a6b2e;color:white;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer}
+.reject-btn{flex:1;background:white;color:#b71c1c;border:2px solid #b71c1c;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer}
+/* Demo data notice */
+.demo-notice{background:#e3f2fd;border:1px solid #90caf9;border-radius:10px;padding:10px 12px;font-size:12px;color:#1565c0;margin-bottom:12px;line-height:1.6}
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat-c{background:white;border-radius:12px;padding:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.stat-c .val{font-size:24px;font-weight:700;margin-bottom:2px}
+.stat-c .lbl{font-size:11px;color:#888}
+.empty{text-align:center;padding:40px;color:#aaa;font-size:13px}
+/* Reason modal */
+.reason-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.reason-modal.open{display:flex}
+.reason-box{background:white;border-radius:20px 20px 0 0;width:100%;max-width:700px;padding:20px 16px 30px}
+.reason-box h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.reason-box textarea{width:100%;padding:12px;border:1.5px solid #ddd;border-radius:10px;font-size:14px;min-height:100px;resize:none}
+.reason-submit{margin-top:10px;width:100%;padding:13px;background:#b71c1c;color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer}
+.reason-cancel{margin-top:8px;width:100%;padding:10px;background:#f5f5f5;color:#333;border:none;border-radius:12px;font-size:13px;cursor:pointer}
+/* Guide */
+.guide-card{background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.guide-title{font-size:13px;font-weight:600;color:#333;margin-bottom:8px}
+.guide-row{display:flex;gap:8px;padding:5px 0;font-size:12px;color:#555;border-bottom:1px solid #f5f5f5;align-items:flex-start}
+.guide-row:last-child{border-bottom:none}
+
+/* ── Warn / Deregister / Re-register buttons ── */
+.warn-btn{background:#fff3e0;color:#e65100;border:1.5px solid #ffb74d;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.warn-btn:hover{background:#ffe0b2}
+.dereg-btn{background:#ffebee;color:#b71c1c;border:1.5px solid #ef9a9a;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.dereg-btn:hover{background:#ffcdd2}
+.rereg-btn{background:#e8f5e9;color:#1b5e20;border:1.5px solid #a5d6a7;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.rereg-btn:hover{background:#c8e6c9}
+.mgmt-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0}
+/* ── Reason Modal ── */
+.reason-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center}
+.reason-overlay.show{display:flex}
+.dereg-modal-box{background:#fff;border-radius:16px;padding:22px;width:min(94vw,420px);box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.reason-modal h3{margin:0 0 6px;font-size:16px;color:#b71c1c}
+.reason-modal p{font-size:12px;color:#888;margin-bottom:14px}
+.reason-input{width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;resize:vertical;min-height:80px}
+.reason-input:focus{border-color:#b71c1c}
+.reason-btns{display:flex;gap:8px;margin-top:12px}
+.reason-confirm{flex:1;background:#b71c1c;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer}
+.reason-cancel{background:#f5f5f5;color:#555;border:none;border-radius:10px;padding:10px 16px;font-size:13px;cursor:pointer}
+/* ── Community tab ── */
+.community-search{display:flex;gap:8px;margin-bottom:12px}
+.community-search input{flex:1;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;outline:none}
+.community-search input:focus{border-color:#1a6b2e}
+.community-search button{background:#1a6b2e;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:13px;cursor:pointer}
+.comm-card{background:#fff;border:1px solid #eee;border-radius:12px;padding:12px;margin-bottom:8px}
+.comm-card.suspended{background:#fff8f8;border-color:#ef9a9a}
+.comm-stat{font-size:11px;color:#888;display:flex;gap:12px;margin:4px 0}
+.comm-stat span{background:#f5f5f5;padding:2px 8px;border-radius:20px}
+.comm-stat span.bad{background:#ffebee;color:#b71c1c}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>🔍 IndhanShodhak — Verifier Panel</h1><p>Document verification — Pumps & Users</p></div>
+  <div class="hright">
+    <div class="rbadge" id="verifierName">Verifier</div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="tab-row">
+  <div class="tab active" onclick="showTab('pump-pending',this)">⛽ Pump <span class="count-badge" id="c-pump-pending">0</span></div>
+  <div class="tab" onclick="showTab('user-pending',this)">👤 Users <span class="count-badge" id="c-user-pending">0</span></div>
+  <div class="tab" onclick="showTab('pump-approved',this)">✅ Pump Done</div>
+  <div class="tab" onclick="showTab('user-approved',this)">✅ User Done</div>
+  <div class="tab" onclick="showTab('stats',this)">📊 Stats</div>
+  <div class="tab" onclick="showTab('guide',this)">📋 Guide</div>
+  <div class="tab" onclick="showTab('community',this)">👥 Community</div>
+</div>
+
+<!-- PUMP PENDING -->
+<div class="tab-content active" id="tab-pump-pending">
+  <div class="demo-notice">
+    ℹ️ Verify pump license, Aadhaar and selfie. On approval → pump gets ✅ green tick + top listing.
+  </div>
+  <div id="pump-pending-list"><div class="empty">⏳ Loading pump applications...</div></div>
+  <details style="margin-top:14px">
+    <summary style="font-size:11px;color:#aaa;cursor:pointer;padding:6px;background:#f9f9f9;border-radius:8px">
+      📋 Show sample application format (training reference)
+    </summary>
+    <div style="margin-top:8px;pointer-events:none;user-select:none;opacity:.85">
+<div style="background:#fff8e1;border:1px dashed #ffb300;border-radius:12px;padding:12px;margin-bottom:12px;pointer-events:none;user-select:none">
+    <div style="font-size:11px;font-weight:700;color:#e65100;margin-bottom:8px">📋 SAMPLE FORMAT — This is how real applications will look:</div>
+    <div class="app-card pending" style="margin:0;box-shadow:none;border:1px solid #eee">
+      <div class="app-top">
+        <div class="app-name">⛽ HP Petrol Pump, Newasa</div>
+        <div class="app-time">25 May 2026</div>
+      </div>
+      <div class="app-detail">👤 Owner: <b>Mahesh Kulkarni</b> · 📱 9876543210</div>
+      <div class="app-detail">📍 Newasa, Ahilyanagar · 🏢 HP · License: MH-HP-2019-00123</div>
+      <div><span class="status-tag st-pending">⏳ Pending Review — 3 hours</span></div>
+      <div class="doc-row">
+        <button class="doc-btn" style="cursor:default">📄 License — tap to view</button>
+        <button class="doc-btn" style="cursor:default">🪪 Aadhaar — tap to view</button>
+        <button class="doc-btn" style="cursor:default">🤳 Selfie at pump — tap to view</button>
+      </div>
+      <div class="action-row">
+        <button class="approve-btn" style="cursor:not-allowed;opacity:.5;pointer-events:none">✅ Approve — Give Green Tick</button>
+        <button class="reject-btn" style="cursor:not-allowed;opacity:.5;pointer-events:none">❌ Reject</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
+      ✅ Verify: License number real? Photo clear? Selfie shows person at actual pump?<br>
+      ✅ Approve → Pump gets green tick · Owner gets temp password by email · Aadhaar deleted<br>
+      ❌ Reject → Give reason → Owner resubmits with correct documents
+    </div>
+  </div>
+    </div>
+  </details>
+</div>
+
+<!-- USER PENDING -->
+<div class="tab-content" id="tab-user-pending">
+  <div class="demo-notice">
+    ℹ️ Verify user documents for P1-P4 tiers. On approval → unique QR issued, email sent, Aadhaar deleted.
+  </div>
+  <div id="user-pending-list"><div class="empty">⏳ Loading user applications...</div></div>
+  <details style="margin-top:14px">
+    <summary style="font-size:11px;color:#aaa;cursor:pointer;padding:6px;background:#f9f9f9;border-radius:8px">
+      📋 Show sample application formats (training reference)
+    </summary>
+    <div style="margin-top:8px;pointer-events:none;user-select:none;opacity:.85">
+<div style="background:#fff8e1;border:1px dashed #ffb300;border-radius:12px;padding:12px;margin-bottom:12px;pointer-events:none;user-select:none">
+    <div style="font-size:11px;font-weight:700;color:#e65100;margin-bottom:8px">📋 SAMPLE FORMAT — P2 Doctor application:</div>
+    <div class="app-card pending" style="margin:0;box-shadow:none;border:1px solid #eee">
+      <div class="app-top">
+        <div class="app-name">
+          👤 Dr. Ramesh Patil
+          <span class="tier-badge tb-P2">P2 — Essential Services</span>
+        </div>
+        <div class="app-time">25 May 2026</div>
+      </div>
+      <div class="app-detail">📱 9876543210 · 🚗 MH-16 AB 1234 (Petrol Car)</div>
+      <div class="app-detail">💼 Profession: Medical Doctor — Private Hospital</div>
+      <div><span class="status-tag st-pending">⏳ Pending — 2 hours</span></div>
+      <div class="doc-row">
+        <button class="doc-btn" style="cursor:default">🪪 Aadhaar</button>
+        <button class="doc-btn" style="cursor:default">📄 Vehicle RC</button>
+        <button class="doc-btn" style="cursor:default">🎓 MCI Certificate</button>
+        <button class="doc-btn" style="cursor:default">🏥 Hospital Letter</button>
+      </div>
+      <div class="action-row">
+        <button class="approve-btn" style="cursor:not-allowed;opacity:.5;pointer-events:none">✅ Approve — Issue P2 QR (20L/72hrs)</button>
+        <button class="reject-btn" style="cursor:not-allowed;opacity:.5;pointer-events:none">❌ Reject</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
+      ✅ Check: Name on Aadhaar card = Name in app? Aadhaar number on card = Number entered? MCI/certificate genuine? Hospital letter on official letterhead?<br>
+      ✅ Approve → Verify: Name on Aadhaar card matches name in app + Aadhaar number matches → QR upgraded to P2 (20L/72hrs) · Email sent · Aadhaar deleted from server<br>
+      ❌ Reject → Write clear reason → Applicant resubmits corrected documents
+    </div>
+  </div>
+  <div style="background:#fff8e1;border:1px dashed #ffb300;border-radius:12px;padding:12px;margin-bottom:12px;pointer-events:none;user-select:none">
+    <div style="font-size:11px;font-weight:700;color:#e65100;margin-bottom:8px">📋 SAMPLE FORMAT — P4 Farmer application:</div>
+    <div class="app-card pending" style="margin:0;box-shadow:none;border:1px solid #eee">
+      <div class="app-top">
+        <div class="app-name">
+          👤 Suresh Gavhane
+          <span class="tier-badge tb-P4">P4 — Farmer</span>
+        </div>
+        <div class="app-time">24 May 2026</div>
+      </div>
+      <div class="app-detail">📱 9765432100 · 🚜 MH-16 T 5678 (Tractor - Diesel)</div>
+      <div class="app-detail">💼 Farmer — 5 acre land, Newasa Tehsil</div>
+      <div><span class="overdue-badge">⚠️ 26 hours pending — review soon</span></div>
+      <div><span class="status-tag st-pending">⏳ Pending</span></div>
+      <div class="doc-row">
+        <button class="doc-btn" style="cursor:default">🪪 Aadhaar</button>
+        <button class="doc-btn" style="cursor:default">🌾 Kisan Credit Card</button>
+        <button class="doc-btn" style="cursor:default">📜 7/12 Extract</button>
+        <button class="doc-btn" style="cursor:default">📄 Tractor RC</button>
+      </div>
+      <div class="action-row">
+        <button class="approve-btn" style="cursor:not-allowed;opacity:.5;pointer-events:none">✅ Approve — Issue P4 QR (30L/72hrs)</button>
+        <button class="reject-btn" style="cursor:not-allowed;opacity:.5;pointer-events:none">❌ Reject</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:8px;line-height:1.7">
+      ✅ Check: Name on Aadhaar card = Name in app? Aadhaar number matches? KCC in same name? 7/12 extract shows land ownership? Tractor RC valid?<br>
+      ✅ Approve → QR issued with P4 tier (30L/72hrs) · Welcome email sent<br>
+      ❌ Reject if: 7/12 extract not clear · KCC expired · Aadhaar photo blurry
+    </div>
+  </div>
+    </div>
+  </details>
+</div>
+
+<!-- PUMP APPROVED -->
+<div class="tab-content" id="tab-pump-approved">
+  <div id="pump-approved-list"><div class="empty">Loading...</div></div>
+</div>
+
+<!-- USER APPROVED -->
+<div class="tab-content" id="tab-user-approved">
+  <div id="user-approved-list"><div class="empty">Loading...</div></div>
+</div>
+
+<!-- STATS -->
+<div class="tab-content" id="tab-stats">
+  <div class="stats-grid">
+    <div class="stat-c"><div class="val" id="st-pump-pending" style="color:#e65100">0</div><div class="lbl">Pump Pending</div></div>
+    <div class="stat-c"><div class="val" id="st-pump-approved" style="color:#1a6b2e">0</div><div class="lbl">Pump Approved</div></div>
+    <div class="stat-c" onclick="toggleRejectedList('pump')" style="cursor:pointer;position:relative" title="Click to view rejected pumps">
+      <div class="val" id="st-pump-rejected" style="color:#b71c1c">0</div>
+      <div class="lbl">Pump Rejected <span style="font-size:10px">▼</span></div>
+    </div>
+    <div class="stat-c"><div class="val" id="st-user-pending" style="color:#e65100">0</div><div class="lbl">P1–P4 Pending</div></div>
+    <div class="stat-c"><div class="val" id="st-user-approved" style="color:#1a6b2e">0</div><div class="lbl">P1–P4 Approved</div></div>
+    <div class="stat-c" onclick="toggleRejectedList('user')" style="cursor:pointer;position:relative" title="Click to view rejected users">
+      <div class="val" id="st-user-rejected" style="color:#b71c1c">0</div>
+      <div class="lbl">P1–P4 Rejected <span style="font-size:10px">▼</span></div>
+    </div>
+  </div>
+  <!-- Rejected dropdown panels -->
+  <div id="rejected-pump-panel" style="display:none;background:white;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);border-left:4px solid #b71c1c">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;color:#b71c1c">🚫 Rejected Pump Applications</div>
+      <button onclick="toggleRejectedList('pump')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#aaa">✕</button>
+    </div>
+    <div id="rejected-pump-list"><div style="text-align:center;color:#aaa;padding:10px">⏳ Loading...</div></div>
+  </div>
+  <div id="rejected-user-panel" style="display:none;background:white;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);border-left:4px solid #b71c1c">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;color:#b71c1c">🚫 Rejected P1–P4 Applications</div>
+      <button onclick="toggleRejectedList('user')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#aaa">✕</button>
+    </div>
+    <div id="rejected-user-list"><div style="text-align:center;color:#aaa;padding:10px">⏳ Loading...</div></div>
+  </div>
+  <!-- P5 General Users row -->
+  <div style="background:white;border-radius:12px;padding:12px 16px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="font-size:13px;font-weight:600;color:#333">👥 P5 General Users (Community)</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#1565c0" id="st-p5-total">0</div>
+        <div style="font-size:11px;color:#888">Total Registered</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#1a6b2e" id="st-p5-active">0</div>
+        <div style="font-size:11px;color:#888">Active</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#b71c1c" id="st-p5-suspended">0</div>
+        <div style="font-size:11px;color:#888">Suspended</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#e65100" id="st-p5-reporters">0</div>
+        <div style="font-size:11px;color:#888">Active Reporters</div>
+      </div>
+    </div>
+  </div>
+  <div style="background:white;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">📋 Your Review Record</div>
+    <div style="font-size:12px;color:#555;line-height:2.2">
+      ⏱ SLA Target: Review within 48 hours<br>
+      📧 Email sent to user after every approval/rejection<br>
+      🔒 Aadhaar deleted from server after approval<br>
+      ✅ Green tick activated on pump after approval
+    </div>
+  </div>
+</div>
+
+<!-- GUIDE -->
+<div class="tab-content" id="tab-guide">
+  <div class="guide-card">
+    <div class="guide-title">⛽ How to verify a Petrol Pump</div>
+    <div class="guide-row">1️⃣<span>Open application — View all 3 documents (License, Aadhaar, Selfie at pump)</span></div>
+    <div class="guide-row">2️⃣<span>Check: License number matches? Photo clear? Selfie shows person at pump?</span></div>
+    <div class="guide-row">3️⃣<span>Click Approve → Pump gets ✅ green tick + unique Pump ID generated</span></div>
+    <div class="guide-row">4️⃣<span>Temp password auto-generated → emailed to pump owner for login</span></div>
+    <div class="guide-row">5️⃣<span>Aadhaar automatically deleted from server for privacy</span></div>
+    <div class="guide-row">❌<span>If documents unclear — click Reject → Enter reason → Email sent to owner</span></div>
+  </div>
+  <div class="guide-card">
+    <div class="guide-title">👤 How to verify a User Fuel ID (P1-P4)</div>
+    <div class="guide-row">1️⃣<span>Check category applied for (P1=Emergency, P2=Doctors, P3=Transport, P4=Farmer)</span></div>
+    <div class="guide-row">2️⃣<span>Verify Aadhaar — name and number visible? Vehicle RC — matches application?</span></div>
+    <div class="guide-row">3️⃣<span>Check profession certificate — MCI for doctors, permit for truck, KCC for farmer</span></div>
+    <div class="guide-row">4️⃣<span>Approve → QR code auto-generated with correct tier → Welcome email sent</span></div>
+    <div class="guide-row">5️⃣<span>User's fuel limit upgrades: P5(10L) → P2(20L) → P3(50L) → P4(30L) → P1(Full)</span></div>
+    <div class="guide-row">❌<span>Reject with reason → Documents deleted → User notified to resubmit</span></div>
+  </div>
+  <div class="guide-card" style="border-left:3px solid #1565c0">
+    <div class="guide-title" style="color:#1565c0">🚗 Important — Family Member Vehicle RC Rule</div>
+    <div style="background:#e3f2fd;border-radius:8px;padding:10px;font-size:12px;color:#1565c0;margin-bottom:8px;line-height:1.7">
+      A user may have a valid profession (Doctor, Farmer etc.) but the vehicle may be registered in the name of a close family member. <b>This is acceptable and should be approved.</b>
+    </div>
+    <div class="guide-row">✅<span><b>Acceptable family members:</b> Spouse (Wife/Husband) · Father · Mother · Son · Daughter · Brother · Sister</span></div>
+    <div class="guide-row">✅<span>User uploads: Own Aadhaar + Family member RC + Proof of relation (Ration card / Family certificate) + Profession certificate</span></div>
+    <div class="guide-row">✅<span>Example: Dr. Sunita Patil applies as P2. Car RC in husband's name → APPROVE if MCI certificate genuine</span></div>
+    <div class="guide-row">✅<span>Example: Farmer Ramesh's tractor RC in son's name → APPROVE with valid KCC and 7/12</span></div>
+    <div class="guide-row">⚠️<span>If RC is of a distant relative or non-family person → ASK for clarification → if not satisfied → REJECT</span></div>
+    <div class="guide-row">❌<span>DO NOT reject simply because RC name differs — check relation proof first</span></div>
+  </div>
+  <div class="guide-card">
+    <div class="guide-title">📊 Sample Application — What you will see</div>
+    <div style="background:#f9f9f9;border-radius:10px;padding:12px;font-size:12px;color:#555;line-height:2">
+      👤 <b>Ramesh Patil</b> — Mobile: 98765XXXXX<br>
+      🏷️ Category: <b>P2 — Essential Services (Doctor)</b><br>
+      📄 Uploaded: Aadhaar ✅ · Vehicle RC ✅ · MCI Certificate ✅ · Hospital Letter ✅<br>
+      ⏱️ Applied: 2 hours ago — <span style="color:#e65100">46 hours until SLA breach</span><br>
+      ✅ If approved → 20L/72hrs QR generated · Email sent · Aadhaar deleted
+    </div>
+  </div>
+</div>
+
+<!-- Reject reason modal -->
+<div class="reason-modal" id="reasonModal">
+  <div class="reason-box">
+    <h3>❌ Reject Application</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:10px">Applicant will be notified by email. Be specific so they can resubmit correctly.</p>
+    <textarea id="rejectReason" placeholder="Example: License photo is blurry — text not readable. Please resubmit with a clear, well-lit photo where all text is visible."></textarea>
+    <button class="reason-submit" onclick="submitReject()">Send Rejection with Reason</button>
+    <button class="reason-cancel" onclick="closeReject()">Cancel</button>
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('indhan_token');
+const ROLE = localStorage.getItem('indhan_role');
+if(!TOKEN){
+  
+} else if(ROLE && !['doc_verifier','super_admin'].includes(ROLE)){
+  
+}
+
+let currentRejectId = null, currentRejectType = 'pump';
+
+async function api(url, method='GET', body=null){
+  const opts={method,headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch(url,opts);
+  if(r.status===401||r.status===403){
+     return null;
+  }
+  if(!r.ok) return null;
+  const ct = r.headers.get('content-type')||'';
+  if(!ct.includes('application/json')){
+    console.error('Non-JSON response from:', url, 'Status:', r.status);
+    return null;
+  }
+  return r.json();
+}
+function logout(){ localStorage.clear(); window.location.href='/login'; }
+document.getElementById('verifierName').textContent = localStorage.getItem('indhan_name')||'Verifier';
+
+function showTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function renderPumpApps(apps, containerId, showActions){
+  const container = document.getElementById(containerId);
+  if(!apps||apps.length===0){
+    container.innerHTML=`<div class="empty">No applications found</div>`;
+    return;
+  }
+  container.innerHTML = apps.map(a=>`
+    <div class="app-card ${a.status} ${a.overdue?'overdue':''} ${a.status==='approved' && a.pump_is_verified===0 ? 'deregistered-pump' : ''}">
+      <div class="app-top">
+        <div class="app-name">⛽ ${a.pump_name||'Petrol Pump'}</div>
+        <div class="app-time">${new Date(a.applied_at).toLocaleDateString('en-IN')}</div>
+      </div>
+      <div class="app-detail">👤 Owner: <b>${a.applicant_name||'—'}</b> · 📱 ${a.mobile||'—'}</div>
+      <div class="app-detail">🏢 ${a.oil_company||'—'} · 🔖 License: <b>${a.license_number||'—'}</b></div>
+      <div class="app-detail">📍 ${a.address||a.district||'—'} · ${a.district||''} · PIN: ${a.pin_code||'—'}</div>
+      ${(a.lat && a.lat!=0)?`<div class="app-detail" style="font-size:11px;color:#1565c0">📡 GPS: ${parseFloat(a.lat).toFixed(4)}, ${parseFloat(a.lng).toFixed(4)} · <a href="https://maps.google.com/?q=${a.lat},${a.lng}" target="_blank" style="color:#1565c0">View on Map ↗</a></div>`:'<div class="app-detail" style="font-size:11px;color:#888">📡 GPS: Not available</div>'}
+      ${a.overdue?`<div><span class="overdue-badge">⚠️ OVERDUE — ${a.hours_pending}+ hrs</span></div>`:''}
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+        <span class="status-tag st-${a.status}">${a.status==='pending'?'⏳ Pending':a.status==='approved'?'✅ Approved':'❌ Rejected'}</span>
+        ${a.status==='approved' && a.pump_is_verified===0 ? '<span style="display:inline-block;background:#b71c1c;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px">🚫 Deregistered</span>' : ''}
+        ${a.ai_score!=null ? `<span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;background:${a.ai_verdict==='approve'?'#e8f5e9':a.ai_verdict==='reject'?'#ffebee':a.ai_verdict==='escalate'?'#fff3e0':'#f3e5f5'};color:${a.ai_verdict==='approve'?'#1a6b2e':a.ai_verdict==='reject'?'#b71c1c':a.ai_verdict==='escalate'?'#e65100':'#6a1b9a'}">🤖 AI: ${a.ai_score}/100 ${a.ai_verdict==='approve'?'✓ Auto-approved':a.ai_verdict==='reject'?'✗ Auto-rejected':a.ai_verdict==='escalate'?'⚠️ Review needed':a.ai_status==='processing'?'⏳ Checking...':a.ai_status==='pending'?'⏳ Queued':'🔍 Analysing'}</span>` : '<span style="font-size:11px;color:#ccc">🤖 No AI scan</span>'}
+      </div>
+      ${a.reject_reason?`<div style="font-size:12px;color:#b71c1c;background:#ffebee;padding:8px;border-radius:8px;margin-bottom:8px">Reason: ${a.reject_reason}</div>`:''}
+      ${a.status==='approved'?`<div class="mgmt-row">
+        <button class="warn-btn" onclick="warnEntity('pump',${a.pump_id},'${(a.applicant_name||'Unknown').replace(/'/g,"\'")}','${(a.applicant_email||'').replace(/'/g,"\'")}')">⚠️ Warn</button>
+        <button class="dereg-btn" onclick="openDeregister('pump',${a.pump_id},'${(a.pump_name||'Pump').replace(/'/g,"\'")}')">🚫 Deregister</button>
+        <button class="rereg-btn" onclick="reregisterEntity('pump',${a.pump_id},'${(a.pump_name||'Pump').replace(/'/g,"\'")}')">✅ Re-register</button>
+      </div>`:''}
+      ${a.status==='pending'?`<div style="margin-top:6px"><button onclick="retriggerAI(${a.id},'pump')" style="background:#f3e5f5;color:#6a1b9a;border:1.5px solid #ce93d8;border-radius:10px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;width:100%">🤖 Trigger AI Scan</button></div>`:''}
+      ${showActions?`
+      <div class="doc-row">
+        ${a.doc_license?`<button class="doc-btn" onclick="viewDoc('pump',${a.id},'license')">📄 License</button>`:''}
+        ${a.doc_aadhaar?`<button class="doc-btn" onclick="viewDoc('pump',${a.id},'aadhaar')">🪪 Aadhaar</button>`:''}
+        ${a.doc_selfie?`<button class="doc-btn" onclick="viewDoc('pump',${a.id},'selfie')">🤳 Selfie</button>`:''}
+      </div>
+      <div class="action-row">
+        <button class="approve-btn" onclick="approvePump(${a.id},'${(a.applicant_name||'').replace(/'/g,"\\'")}')">✅ Approve — Give Green Tick</button>
+        <button class="reject-btn" onclick="openReject(${a.id},'pump')">❌ Reject</button>
+      </div>`:''}
+    </div>`).join('');
+}
+
+function renderUserApps(apps, containerId, showActions){
+  const container = document.getElementById(containerId);
+  if(!apps||apps.length===0){
+    container.innerHTML=`<div class="empty">No applications found</div>`;
+    return;
+  }
+  const docLabels = {
+    aadhaar:'🪪 Aadhaar', vehicle_rc:'📄 Vehicle RC', dept_id:'🪪 Dept ID',
+    official_letter:'📝 Official Letter', profession_cert:'🎓 Prof. Certificate',
+    employer_letter:'🏥 Employer Letter', commercial_permit:'📋 Commercial Permit',
+    driver_licence:'🚗 Driver Licence', kisan_card:'🌾 Kisan Card', land_record:'📜 7/12 Record'
+  };
+  container.innerHTML = apps.map(a=>`
+    <div class="app-card ${a.status} ${a.overdue?'overdue':''}">
+      <div class="app-top">
+        <div class="app-name">
+          👤 ${a.applicant_name||'—'}
+          <span class="tier-badge tb-${a.category||'P5'}">${a.category||'P5'} — ${
+            {P1:'Emergency',P2:'Essential',P3:'Transport',P4:'Farmer',P5:'General'}[a.category||'P5']
+          }</span>
+        </div>
+        <div class="app-time">${new Date(a.applied_at).toLocaleDateString('en-IN')}</div>
+      </div>
+      <div class="app-detail">📱 ${a.mobile||'—'} · 🚗 ${a.vehicle_number||'—'}</div>
+      ${a.profession?`<div class="app-detail">💼 Profession: ${a.profession}</div>`:''}
+      ${a.overdue?`<div><span class="overdue-badge">⚠️ OVERDUE — ${a.hours_pending}+ hrs</span></div>`:''}
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="status-tag st-${a.status}">${a.status==='pending'?'⏳ Pending':a.status==='approved'?'✅ Approved':'❌ Rejected'}</span>${a.ai_score!=null?`<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;background:${a.ai_verdict==='approve'?'#e8f5e9':a.ai_verdict==='reject'?'#ffebee':'#fff3e0'};color:${a.ai_verdict==='approve'?'#1a6b2e':a.ai_verdict==='reject'?'#b71c1c':'#e65100'}">🤖 ${a.ai_score}/100 ${a.ai_verdict==='approve'?'✓':a.ai_verdict==='reject'?'✗':'⚠️'}</span>`:''}</div>
+      ${a.reject_reason?`<div style="font-size:12px;color:#b71c1c;background:#ffebee;padding:8px;border-radius:8px;margin-bottom:8px">Reason: ${a.reject_reason}</div>`:''}
+      ${a.status==='approved'?`<div class="mgmt-row">
+        <button class="warn-btn" onclick="warnEntity('tier_user',${a.user_id},'${(a.applicant_name||'User').replace(/'/g,"\'")}','${(a.applicant_email||'').replace(/'/g,"\'")}')">⚠️ Warn</button>
+        <button class="dereg-btn" onclick="openDeregister('tier_user',${a.user_id},'${(a.applicant_name||'User').replace(/'/g,"\'")}')">🚫 Deregister Tier</button>
+        <button class="rereg-btn" onclick="reregisterEntity('tier_user',${a.user_id},'${(a.applicant_name||'User').replace(/'/g,"\'")}')">✅ Re-register</button>
+      </div>`:''}
+      ${a.status==='pending'?`<div style="margin-top:6px"><button onclick="retriggerAI(${a.id},'user_tier')" style="background:#f3e5f5;color:#6a1b9a;border:1.5px solid #ce93d8;border-radius:10px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;width:100%">🤖 Trigger AI Scan</button></div>`:''}
+      ${showActions&&a.docs_uploaded?`
+      <div class="doc-row">
+        ${Object.entries(a.docs_uploaded).filter(([k,v])=>v).map(([k])=>`
+          <button class="doc-btn" onclick="viewDoc('fuel',${a.id},'${k}')">${docLabels[k]||k}</button>
+        `).join('')}
+      </div>
+      <div class="action-row">
+        <button class="approve-btn" onclick="approveUser(${a.id},'${(a.applicant_name||'').replace(/'/g,"\\'")}','${a.category||'P5'}')">✅ Approve — Issue QR</button>
+        <button class="reject-btn" onclick="openReject(${a.id},'user')">❌ Reject</button>
+      </div>`:''}
+    </div>`).join('');
+}
+
+async function viewDoc(type, appId, docKey){
+  // Show loading modal
+  const modal = document.getElementById('docViewModal');
+  const img   = document.getElementById('docViewImg');
+  const title = document.getElementById('docViewTitle');
+  const err   = document.getElementById('docViewErr');
+  img.style.display   = 'none';
+  err.style.display   = 'none';
+  title.textContent   = 'Loading document...';
+  modal.style.display = 'flex';
+
+  try {
+    const r = await fetch(`/api/verify/document/${type}/${appId}/${docKey}`, {
+      headers: { 'x-auth-token': TOKEN }
+    });
+    if(!r.ok){
+      const e = await r.json().catch(()=>({}));
+      err.textContent   = '❌ ' + (e.error || 'Document not found or already deleted');
+      err.style.display = 'block';
+      title.textContent = 'Document Error';
+      return;
+    }
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    document.getElementById('docViewLoading').style.display = 'none';
+    img.onload = () => { img.style.display = 'block'; };
+    img.src    = url;
+    title.textContent = docKey.replace(/_/g,' ').toUpperCase();
+  } catch(e){
+    err.textContent   = '❌ Network error: ' + e.message;
+    err.style.display = 'block';
+    title.textContent = 'Error';
+  }
+}
+function closeDocModal(){
+  document.getElementById('docViewModal').style.display='none';
+  const img = document.getElementById('docViewImg');
+  if(img.src) URL.revokeObjectURL(img.src);
+  img.src = '';
+}
+
+async function approvePump(id, name){
+  if(!confirm(`Approve pump application from ${name}?\n\n✅ Pump gets green tick\n✅ Unique Pump ID generated\n✅ Owner gets temp password by email\n✅ Aadhaar deleted from server`)) return;
+  const d = await api(`/api/verify/pump-applications/${id}/approve`,'POST');
+  if(d?.success){
+    await api('/api/admin/cache-clear','POST').catch(()=>{});
+    alert(`✅ Approved!\nTemp password: ${d.temp_password}\nEmail sent to owner.\nAadhaar deleted.`);
+    loadAll();
+  }
+  else alert(d?.error||'Error');
+}
+
+async function approveUser(id, name, category){
+  if(!confirm(`Approve Fuel ID for ${name}?\n\nTier: ${category}\n✅ Unique QR code generated\n✅ Welcome email sent\n✅ Fuel limit upgraded\n✅ Aadhaar deleted from server`)) return;
+  const d = await api(`/api/verify/fuel-applications/${id}/approve`,'POST',{category});
+  if(d?.success){ alert(`✅ Approved!\nQR code generated for ${category}.\nEmail sent to user.\nAadhaar deleted.`); loadAll(); }
+  else alert(d?.error||'Error');
+}
+
+function openReject(id,type){
+  currentRejectId=id; currentRejectType=type;
+  document.getElementById('rejectReason').value='';
+  document.getElementById('reasonModal').classList.add('open');
+}
+function closeReject(){ document.getElementById('reasonModal').classList.remove('open'); }
+async function submitReject(){
+  const reason=document.getElementById('rejectReason').value.trim();
+  if(!reason){ alert('Please enter rejection reason'); return; }
+  const url = currentRejectType==='pump'
+    ? `/api/verify/pump-applications/${currentRejectId}/reject`
+    : `/api/verify/fuel-applications/${currentRejectId}/reject`;
+  const d = await api(url,'POST',{reason});
+  if(d?.success){ alert('❌ Rejected.\nEmail sent to applicant.\nDocuments deleted from server.'); closeReject(); loadAll(); }
+  else alert(d?.error||'Error');
+}
+document.getElementById('reasonModal').addEventListener('click',e=>{ if(e.target===document.getElementById('reasonModal')) closeReject(); });
+
+async function loadAll(){
+  // Pump applications
+  const [pp,pa,pr] = await Promise.all([
+    api('/api/verify/pump-applications?status=pending'),
+    api('/api/verify/pump-applications?status=approved'),
+    api('/api/verify/pump-applications?status=rejected'),
+  ]);
+  // User applications
+  const [up,ua,ur] = await Promise.all([
+    api('/api/verify/fuel-applications?status=pending'),
+    api('/api/verify/fuel-applications?status=approved'),
+    api('/api/verify/fuel-applications?status=rejected'),
+  ]);
+  // Counts
+  document.getElementById('c-pump-pending').textContent = pp?.count||0;
+  document.getElementById('c-user-pending').textContent = up?.count||0;
+  document.getElementById('st-pump-pending').textContent  = pp?.count||0;
+  document.getElementById('st-pump-approved').textContent = pa?.count||0;
+  document.getElementById('st-pump-rejected').textContent = pr?.count||0;
+  document.getElementById('st-user-pending').textContent  = up?.count||0;
+  document.getElementById('st-user-approved').textContent = ua?.count||0;
+  document.getElementById('st-user-rejected').textContent = ur?.count||0;
+  // P5 stats
+  const p5 = await api('/api/verify/community-stats');
+  if(p5){
+    document.getElementById('st-p5-total').textContent     = p5.total||0;
+    document.getElementById('st-p5-active').textContent    = p5.active||0;
+    document.getElementById('st-p5-suspended').textContent = p5.suspended||0;
+    document.getElementById('st-p5-reporters').textContent = p5.reporters||0;
+  }
+  // Load community tab
+  loadCommunityAll();
+  // Render
+  renderPumpApps(pp?.applications,  'pump-pending-list',  true);
+  renderPumpApps(pa?.applications,  'pump-approved-list', false);
+  renderUserApps(up?.applications,  'user-pending-list',  true);
+  renderUserApps(ua?.applications,  'user-approved-list', false);
+}
+
+loadAll();
+
+// ═══════════════════════════════════════════════════════
+// WARN / DEREGISTER / RE-REGISTER — Verifier Actions
+// ═══════════════════════════════════════════════════════
+
+let _actionType = null, _actionId = null, _actionTarget = '';
+
+async function warnEntity(type, id, name, email) {
+  if(!confirm(`Send WARNING email to ${name}?\n\nThis will log the warning and notify them by email.`)) return;
+  const endpoint = type==='pump' ? `/api/verify/warn-pump/${id}`
+                 : type==='community' ? `/api/verify/warn-community/${id}`
+                 : `/api/verify/warn-user/${id}`;
+  const d = await api(endpoint, 'POST', { reason:'Warning issued by verifier' });
+  if(d?.success) {
+    alert(`✅ Warning sent to ${name}${d.email_sent ? '\nEmail delivered.' : '\n(No email on file — logged only.)'}`);
+    loadAll();
+  } else {
+    alert('Error: ' + (d?.error||'Failed'));
+  }
+}
+
+function openDeregister(type, id, name) {
+  _actionType = type; _actionId = id; _actionTarget = name;
+  const titles = { pump:'🚫 Deregister Pump', tier_user:'🚫 Deregister Tier User', community:'🚫 Suspend Community User' };
+  const subs   = { pump:'Pump loses ✅ green tick immediately.', tier_user:'Fuel ID & QR invalidated. -10 points.', community:'Account suspended. -10 points.' };
+  document.getElementById('reasonTitle').textContent    = titles[type] || '🚫 Deregister';
+  document.getElementById('reasonSubtitle').textContent = `"${name}" — ${subs[type]||''} Reason required (min 10 chars).`;
+  document.getElementById('reasonText').value = '';
+  document.getElementById('reasonOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('reasonText').focus(), 100);
+}
+
+function closeReasonModal() {
+  document.getElementById('reasonOverlay').classList.remove('show');
+  _actionType = null; _actionId = null;
+}
+
+async function confirmAction() {
+  const reason = document.getElementById('reasonText').value.trim();
+  if(reason.length < 10) { alert('Please enter at least 10 characters for the reason.'); return; }
+  const btn = document.getElementById('reasonConfirmBtn');
+  btn.disabled = true; btn.textContent = '⏳ Processing...';
+  try {
+    const endpoint = _actionType==='pump'      ? `/api/verify/deregister-pump/${_actionId}`
+                   : _actionType==='community' ? `/api/verify/deregister-community/${_actionId}`
+                   : `/api/verify/deregister-user/${_actionId}`;
+    const d = await api(endpoint, 'POST', { reason });
+    btn.disabled = false; btn.textContent = '🚫 Confirm De-register';
+    if(d?.success) {
+      closeReasonModal();
+      alert(`✅ "${_actionTarget}" has been de-registered.\nEmail sent. Action logged.`);
+      loadAll();
+    } else {
+      alert('Error: ' + (d?.error || 'Server did not respond. Check server logs.'));
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '🚫 Confirm De-register';
+    console.error('Deregister error:', e);
+    alert('Connection error. Check server is running and try again.');
+  }
+}
+
+async function retriggerAI(appId, appTable){
+  const btn = event.target;
+  btn.textContent = '⏳ Scanning...'; btn.disabled = true;
+  try {
+    const d = await api(`/api/ai-verify/trigger/${appId}`, 'POST', { app_table: appTable });
+    if(d?.success){
+      btn.textContent = '✅ AI scan started!';
+      btn.style.background = '#e8f5e9'; btn.style.color = '#1a6b2e';
+      setTimeout(()=>{ loadAll(); }, 4000); // refresh after 4s
+    } else {
+      btn.textContent = '❌ Failed';
+      btn.disabled = false;
+    }
+  } catch(e){
+    btn.textContent = '❌ Error'; btn.disabled = false;
+  }
+}
+
+async function toggleRejectedList(type) {
+  const panel = document.getElementById('rejected-' + type + '-panel');
+  const listEl = document.getElementById('rejected-' + type + '-list');
+  if(!panel) return;
+  if(panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  listEl.innerHTML = '<div style="text-align:center;color:#aaa;padding:10px">⏳ Loading...</div>';
+  const endpoint = type === 'pump'
+    ? '/api/verify/pump-applications?status=rejected'
+    : '/api/verify/fuel-applications?status=rejected';
+  const d = await api(endpoint);
+  const apps = type === 'pump' ? d?.applications : d?.applications;
+  if(!apps || apps.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;color:#aaa;padding:10px">No rejected applications</div>';
+    return;
+  }
+  listEl.innerHTML = apps.map(a => {
+    const name   = type === 'pump' ? (a.pump_name || a.applicant_name) : a.applicant_name;
+    const sub    = type === 'pump' ? (a.license_number || a.oil_company || '') : (a.category + ' — ' + (a.vehicle_number||''));
+    const reason = a.reject_reason || a.ai_reason || '—';
+    const dt     = a.applied_at ? new Date(a.applied_at.replace(' ','T')+'Z').toLocaleDateString('en-IN') : '—';
+    const aiScore = a.ai_score != null ? `<span style="font-size:10px;background:#ffebee;color:#b71c1c;padding:2px 6px;border-radius:6px;margin-left:4px">🤖 ${a.ai_score}/100</span>` : '';
+    return '<div style="padding:10px 0;border-bottom:1px solid #f5f5f5">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+        + '<div style="flex:1">'
+          + '<div style="font-size:13px;font-weight:600;color:#333">' + (name||'—') + aiScore + '</div>'
+          + '<div style="font-size:11px;color:#888;margin-top:2px">' + sub + ' · ' + dt + '</div>'
+          + '<div style="font-size:11px;color:#b71c1c;margin-top:4px;background:#ffebee;padding:4px 8px;border-radius:6px">'
+            + '❌ ' + reason.slice(0,120) + (reason.length>120?'...':'')
+          + '</div>'
+        + '</div>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+}
+
+async function reregisterEntity(type, id, name) {
+  if(!confirm(`✅ Re-register "${name}"?\n\nThis will restore their access/verification.`)) return;
+  const endpoint = type==='pump'      ? `/api/verify/reregister-pump/${id}`
+                 : type==='community' ? `/api/verify/reregister-community/${id}`
+                 : `/api/verify/reregister-user/${id}`;
+  const d = await api(endpoint, 'POST', { reason:'Re-registered by verifier' });
+  if(d?.success) {
+    alert(`✅ "${name}" has been re-registered successfully.`);
+    loadAll(); searchCommunity();
+  } else {
+    alert('Error: ' + (d?.error||'Failed'));
+  }
+}
+
+// ── Community Users Search ────────────────────────────────────────────
+// Community browse state
+let _allCommunityUsers = [];
+
+async function loadCommunityAll(){
+  const list = document.getElementById('communityList');
+  list.innerHTML = '<div class="empty">⏳ Loading...</div>';
+  const d = await api('/api/verify/community-users-all');
+  if(!d){ list.innerHTML='<div class="empty">Failed to load</div>'; return; }
+  _allCommunityUsers = d.users || [];
+  // Update summary counts
+  const total = _allCommunityUsers.length;
+  const active = _allCommunityUsers.filter(u=>u.is_active!==0).length;
+  const suspended = _allCommunityUsers.filter(u=>u.is_active===0).length;
+  document.getElementById('comm-total-count').textContent = total;
+  document.getElementById('comm-active-count').textContent = active;
+  document.getElementById('comm-suspended-count').textContent = suspended;
+  renderCommunityList(_allCommunityUsers);
+}
+
+function filterCommunity(type){
+  // Update filter button styles
+  ['all','reporters','penalties','suspended'].forEach(t=>{
+    const btn = document.getElementById('cf-'+t);
+    if(btn) btn.style.background = t===type ? '#1565c0' : '#f5f5f5';
+    if(btn) btn.style.color = t===type ? 'white' : '#333';
+  });
+  let filtered = _allCommunityUsers;
+  if(type==='reporters')  filtered = filtered.filter(u=>(u.total_reports||0)>0);
+  if(type==='penalties')  filtered = filtered.filter(u=>(u.penalties||0)>0);
+  if(type==='suspended')  filtered = filtered.filter(u=>u.is_active===0);
+  renderCommunityList(filtered);
+}
+
+function renderCommunityList(users){
+  const list = document.getElementById('communityList');
+  if(!users||!users.length){ list.innerHTML='<div class="empty">No users found</div>'; return; }
+  list.innerHTML = '<div style="font-size:11px;color:#aaa;margin-bottom:6px">' + users.length + ' users</div>'
+    + users.map(function(u){
+    var suspended = u.is_active===0;
+    var div = document.createElement('div');
+    div.className = 'comm-card' + (suspended ? ' suspended' : '');
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+        + '<div>'
+          + '<div style="font-weight:700;font-size:14px">' + (u.name||'—')
+            + (suspended ? ' <span style="color:#b71c1c;font-size:11px">● SUSPENDED</span>' : '')
+          + '</div>'
+          + '<div style="font-size:12px;color:#666;margin:2px 0">📱 ' + (u.mobile||'—')
+            + (u.email ? ' &nbsp;📧 ' + u.email : '') + '</div>'
+        + '</div>'
+        + '<div style="font-size:11px;color:#aaa;text-align:right">P5 General<br>'
+          + (u.created_at ? new Date(u.created_at.replace(' ','T')+'Z').toLocaleDateString('en-IN') : '—')
+        + '</div>'
+      + '</div>'
+      + '<div class="comm-stat">'
+        + '<span>⛽ ' + (u.total_reports||0) + ' reports</span> '
+        + '<span>⭐ ' + ((u.month_points||0)+(u.carried_points||0)) + ' pts</span> '
+        + '<span class="' + ((u.penalties||0)>0 ? 'bad' : '') + '">⚠️ ' + (u.penalties||0) + ' penalties</span>'
+      + '</div>'
+      + '<div class="mgmt-row">'
+        + '<button class="warn-btn" data-uid="' + u.id + '" data-action="warn"'
+          + (suspended ? ' disabled' : '') + '>⚠️ Warn</button>'
+        + (suspended
+          ? '<button class="re-btn" data-uid="' + u.id + '" data-action="reactivate"'
+              + ' style="background:#e8f5e9;color:#1a6b2e;border:1.5px solid #1a6b2e">✅ Re-activate</button>'
+          : '<button class="dereg-btn" data-uid="' + u.id + '" data-action="suspend"'
+              + '>🚫 Suspend</button>')
+      + '</div>';
+    return div.outerHTML;
+  }).join('');
+  // Attach click handlers via event delegation — no inline onclick quoting needed
+  list.querySelectorAll('button[data-action]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var uid = parseInt(this.getAttribute('data-uid'));
+      var action = this.getAttribute('data-action');
+      var userData = users.find(function(x){ return x.id===uid; });
+      var name = userData ? (userData.name||'') : '';
+      if(action==='warn')       warnEntity('community', uid, name);
+      if(action==='suspend')    openDeregister('community', uid, name);
+      if(action==='reactivate') reregisterEntity('community', uid, name);
+    });
+  });
+}
+
+async function searchCommunity() {
+  const q = document.getElementById('communitySearch')?.value?.trim() || '';
+  const list = document.getElementById('communityList');
+  if(!q) { list.innerHTML='<div class="empty">Enter name or mobile to search</div>'; return; }
+  list.innerHTML='<div class="empty">⏳ Searching...</div>';
+  const d = await api(`/api/verify/community-users?search=${encodeURIComponent(q)}`);
+  if(!d?.users?.length){ list.innerHTML='<div class="empty">No users found matching "'+q+'"</div>'; return; }
+  renderCommunityList(d.users);
+}
+
+</script>
+
+<!-- Document Viewer Modal -->
+<div id="docViewModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;
+  flex-direction:column;padding:16px" onclick="if(event.target===this)closeDocModal()">
+  <div style="background:white;border-radius:16px;width:100%;max-width:600px;overflow:hidden;
+    max-height:90vh;display:flex;flex-direction:column">
+    <!-- Header -->
+    <div style="background:#1a6b2e;padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
+      <div style="color:white;font-size:14px;font-weight:600" id="docViewTitle">Document</div>
+      <button onclick="closeDocModal()"
+        style="background:rgba(255,255,255,.2);border:none;color:white;border-radius:8px;
+        padding:4px 10px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <!-- Content -->
+    <div style="padding:16px;overflow-y:auto;text-align:center;background:#f5f5f5;flex:1">
+      <div id="docViewErr" style="display:none;background:#ffebee;color:#b71c1c;padding:12px;
+        border-radius:10px;font-size:14px;margin-bottom:12px"></div>
+      <img id="docViewImg" style="display:none;max-width:100%;max-height:70vh;
+        border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.2)">
+      <div id="docViewLoading" style="padding:40px;color:#888;font-size:14px">
+        ⏳ Loading document...
+      </div>
+    </div>
+    <!-- Footer -->
+    <div style="padding:12px 16px;border-top:1px solid #e0e0e0;display:flex;gap:8px">
+      <button onclick="closeDocModal()"
+        style="flex:1;padding:10px;background:#f5f5f5;border:none;border-radius:10px;
+        cursor:pointer;font-size:13px;font-weight:600">Close</button>
+      <button onclick="window.open(document.getElementById('docViewImg').src,'_blank')"
+        style="flex:1;padding:10px;background:#1a6b2e;color:white;border:none;border-radius:10px;
+        cursor:pointer;font-size:13px;font-weight:600">🔍 Open Full Size</button>
+    </div>
+  </div>
+</div>
+
+<!-- REASON MODAL -->
+<div class="reason-overlay" id="reasonOverlay">
+  <div class="dereg-modal-box">
+    <h3 id="reasonTitle">🚫 De-register</h3>
+    <p id="reasonSubtitle">Provide a reason (min 10 chars). This will be sent by email and logged.</p>
+    <textarea class="reason-input" id="reasonText" placeholder="Enter reason for this action..."></textarea>
+    <div class="reason-btns">
+      <button class="reason-cancel" onclick="closeReasonModal()">Cancel</button>
+      <button class="reason-confirm" id="reasonConfirmBtn" onclick="confirmAction()">🚫 Confirm De-register</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMMUNITY USERS TAB -->
+<div class="tab-content" id="tab-community">
+  <div class="demo-notice">
+    👥 P5 General Users — Browse all or search. Warn or De-register users doing false reporting.
+  </div>
+  <!-- Summary bar -->
+  <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+    <div style="background:#e3f2fd;border-radius:10px;padding:8px 14px;font-size:12px;color:#1565c0;font-weight:600">
+      Total: <span id="comm-total-count">—</span>
+    </div>
+    <div style="background:#e8f5e9;border-radius:10px;padding:8px 14px;font-size:12px;color:#1a6b2e;font-weight:600">
+      Active: <span id="comm-active-count">—</span>
+    </div>
+    <div style="background:#ffebee;border-radius:10px;padding:8px 14px;font-size:12px;color:#b71c1c;font-weight:600">
+      Suspended: <span id="comm-suspended-count">—</span>
+    </div>
+    <button onclick="loadCommunityAll()" style="margin-left:auto;background:#1a6b2e;color:white;border:none;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">🔄 Refresh</button>
+  </div>
+  <!-- Search -->
+  <div class="community-search" style="margin-bottom:10px">
+    <input id="communitySearch" type="text" placeholder="Search by mobile number or name..."
+           onkeypress="if(event.key==='Enter')searchCommunity()">
+    <button onclick="searchCommunity()">🔍 Search</button>
+  </div>
+  <!-- Filter bar -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button onclick="filterCommunity('all')" id="cf-all" style="background:#1565c0;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:600">All</button>
+    <button onclick="filterCommunity('reporters')" id="cf-reporters" style="background:#f5f5f5;color:#333;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">⛽ Reporters</button>
+    <button onclick="filterCommunity('penalties')" id="cf-penalties" style="background:#f5f5f5;color:#333;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">⚠️ Has Penalty</button>
+    <button onclick="filterCommunity('suspended')" id="cf-suspended" style="background:#f5f5f5;color:#333;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">🚫 Suspended</button>
+  </div>
+  <div id="communityList"><div class="empty">⏳ Loading P5 users...</div></div>
+</div>
+
+</body>
+</html>

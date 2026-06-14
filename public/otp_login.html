@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Login</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:linear-gradient(160deg,#0d3d1a 0%,#1a6b2e 50%,#0d3d1a 100%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+
+/* Patriotic tagline */
+.patriotic{text-align:center;margin-bottom:18px;padding:0 10px}
+.patriotic .tag-mr{font-size:15px;font-weight:700;color:#fff;letter-spacing:.3px}
+.patriotic .tag-en{font-size:13px;color:rgba(255,255,255,.85);margin:3px 0}
+.patriotic .tag-hi{font-size:13px;color:rgba(255,255,255,.75)}
+.patriotic .flag-emoji{font-size:18px}
+
+.card{background:white;border-radius:20px;width:100%;max-width:400px;
+  overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.logo-bar{background:linear-gradient(135deg,#1a6b2e,#0d4d1f);
+  padding:20px 20px 16px;text-align:center}
+.logo-icon{font-size:38px;margin-bottom:4px}
+.logo-title{color:white;font-size:22px;font-weight:800;letter-spacing:.5px}
+.logo-sub{color:rgba(255,255,255,.75);font-size:11px;margin-top:3px}
+
+.form-area{padding:20px 18px 24px}
+.section-title{font-size:11px;font-weight:700;color:#aaa;letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:12px;text-align:center}
+
+/* User login section */
+.user-section{background:#f9fdf9;border:1.5px solid #c8e6c9;border-radius:14px;
+  padding:16px;margin-bottom:10px}
+.user-section-title{font-size:14px;font-weight:700;color:#1b5e20;margin-bottom:12px;
+  display:flex;align-items:center;gap:6px}
+.form-label{font-size:12px;font-weight:600;color:#555;margin-bottom:5px;display:block}
+.form-input{width:100%;padding:11px 13px;border:1.5px solid #e0e0e0;border-radius:11px;
+  font-size:15px;background:white;outline:none;transition:border-color .2s;margin-bottom:10px}
+.form-input:focus{border-color:#1a6b2e;background:white}
+.email-note{font-size:11px;color:#aaa;margin-top:-7px;margin-bottom:10px}
+
+/* OTP Button with countdown */
+.btn-otp{width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;
+  font-weight:700;cursor:pointer;background:linear-gradient(135deg,#1a6b2e,#2e7d32);
+  color:white;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-otp:disabled{background:#aaa;cursor:not-allowed}
+.btn-otp.counting{background:#e65100}
+
+/* Role buttons — Big prominent */
+.role-btn{width:100%;display:flex;align-items:center;gap:12px;padding:13px 15px;
+  border:2px solid transparent;border-radius:14px;cursor:pointer;text-align:left;
+  margin-bottom:8px;transition:all .2s;font-family:inherit}
+.role-pump{background:#fff3e0;border-color:#ffcc80;color:#e65100}
+.role-pump:hover{background:#ffe0b2;border-color:#e65100}
+.role-govt{background:#e3f2fd;border-color:#90caf9;color:#1565c0}
+.role-govt:hover{background:#bbdefb;border-color:#1565c0}
+.role-icon{font-size:26px;flex-shrink:0}
+.role-text-title{font-size:14px;font-weight:700;display:block}
+.role-text-sub{font-size:11px;opacity:.8;display:block;margin-top:1px}
+.role-arrow{margin-left:auto;font-size:14px;transition:transform .2s}
+.role-expand{display:none;background:white;border:1.5px solid #e0e0e0;
+  border-radius:0 0 12px 12px;padding:12px 14px;margin-top:-8px;
+  border-top:none}
+.role-input{width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;
+  border-radius:10px;font-size:13px;margin-bottom:8px;outline:none;
+  box-sizing:border-box;font-family:inherit}
+.role-login-btn{width:100%;padding:10px;border:none;border-radius:10px;
+  font-size:13px;font-weight:700;cursor:pointer;color:white}
+.role-err{color:#b71c1c;font-size:12px;margin-top:6px;display:none}
+
+/* OTP step */
+.step{display:none}.step.active{display:block}
+.err-box{background:#ffebee;color:#b71c1c;padding:10px 12px;border-radius:10px;
+  font-size:13px;margin-bottom:12px;display:none}
+.info-box{background:#e8f5e9;color:#1b5e20;padding:10px 12px;border-radius:10px;
+  font-size:13px;margin-bottom:12px}
+.otp-inputs{display:flex;gap:8px;margin-bottom:10px;justify-content:center}
+.otp-d{width:42px;height:52px;padding:0;border:1.5px solid #e0e0e0;border-radius:12px;
+  font-size:22px;font-weight:700;text-align:center;background:#f9f9f9;outline:none}
+.otp-d:focus{border-color:#1a6b2e;background:white}
+.timer{text-align:center;font-size:13px;color:#888;margin-bottom:8px}
+.test-badge{background:#fff3e0;border:1px solid #ffb300;border-radius:10px;
+  padding:10px;margin-bottom:12px;font-size:12px;color:#e65100;text-align:center}
+.test-otp{font-size:26px;font-weight:700;color:#e65100;letter-spacing:6px;margin-top:4px}
+.btn-verify{width:100%;padding:13px;border:none;border-radius:12px;font-size:14px;
+  font-weight:700;cursor:pointer;background:#1a6b2e;color:white;margin-bottom:8px}
+.btn-back{width:100%;padding:11px;border:none;border-radius:12px;font-size:13px;
+  font-weight:600;cursor:pointer;background:#f5f5f5;color:#888}
+.resend-btn{background:none;border:none;color:#1a6b2e;font-size:13px;font-weight:700;
+  cursor:pointer;text-decoration:underline;display:block;margin:0 auto 10px}
+</style>
+</head>
+<body>
+
+<!-- Patriotic tagline outside card -->
+<div style="width:100%;max-width:400px">
+  <div class="patriotic">
+    <div class="tag-mr">जनतेसाठी, जनतेकडून <span class="flag-emoji">🇮🇳</span></div>
+    <div class="tag-en">By the people, for the people</div>
+    <div class="tag-hi">जनता के लिए, जनता द्वारा</div>
+  </div>
+
+  <div class="card">
+    <div class="logo-bar">
+      <div class="logo-icon">⛽</div>
+      <div class="logo-title">IndhanShodhak</div>
+      <div class="logo-sub">इंधन उपलब्धता शोधा · India's Fuel Finder</div>
+    </div>
+
+    <div class="form-area">
+
+      <!-- STEP 1 — Login options -->
+      <div class="step active" id="step1">
+
+        <div class="section-title">Regular User Login</div>
+
+        <!-- User OTP Section -->
+        <div class="user-section">
+          <div class="user-section-title">👤 Login / Register with OTP</div>
+          <div class="err-box" id="err1"></div>
+          <label class="form-label">Mobile Number *</label>
+          <input class="form-input" type="tel" id="mobile" inputmode="numeric"
+            placeholder="10-digit mobile" maxlength="10"
+            oninput="this.value=this.value.replace(/\D/g,'')"
+            onkeypress="if(event.key==='Enter')document.getElementById('email').focus()">
+          <label class="form-label">Email Address <span style="color:#aaa;font-weight:400">(optional)</span></label>
+          <input class="form-input" type="email" id="email"
+            placeholder="yourname@email.com"
+            onkeypress="if(event.key==='Enter')sendOTP()">
+          <div class="email-note">📧 OTP will be sent to this email</div>
+          <button class="btn-otp" id="otpBtn" onclick="sendOTP()">
+            <span>📲</span><span id="otpBtnTxt">Send OTP</span>
+          </button>
+        </div>
+
+        <div style="text-align:center;font-size:11px;color:#bbb;margin:10px 0">
+          OTHER ROLES
+        </div>
+
+        <!-- Pump Owner / Verifier — Big Button -->
+        <button class="role-btn role-pump" onclick="toggleRole('pump')">
+          <span class="role-icon">⛽</span>
+          <div style="flex:1">
+            <span class="role-text-title">Pump Owner / Verifier</span>
+            <span class="role-text-sub">Update fuel stock · Verify documents</span>
+          </div>
+          <span class="role-arrow" id="arr-pump">▼</span>
+        </button>
+        <div class="role-expand" id="expand-pump" style="border-color:#ffcc80">
+          <input class="role-input" id="pump-id" type="text" placeholder="Login ID"
+            onfocus="this.style.borderColor='#e65100'" onblur="this.style.borderColor='#e0e0e0'">
+          <input class="role-input" id="pump-pwd" type="password" placeholder="Password"
+            onfocus="this.style.borderColor='#e65100'" onblur="this.style.borderColor='#e0e0e0'"
+            onkeypress="if(event.key==='Enter')roleLogin('pump')">
+          <button class="role-login-btn" style="background:#e65100" onclick="roleLogin('pump')">
+            ⛽ Login
+          </button>
+          <div class="role-err" id="pump-err"></div>
+          <div style="text-align:center;margin-top:10px;padding-top:10px;border-top:1px solid #ffe0b2">
+            <a href="/pump-signup" style="font-size:12px;font-weight:700;color:#e65100;text-decoration:none">
+              📝 Register New Pump →
+            </a>
+          </div>
+        </div>
+
+        <!-- Government Official — Big Button -->
+        <button class="role-btn role-govt" onclick="toggleRole('govt')">
+          <span class="role-icon">🏛️</span>
+          <div style="flex:1">
+            <span class="role-text-title">Government Official</span>
+            <span class="role-text-sub">District dashboard · Govt monitored ✓</span>
+          </div>
+          <span class="role-arrow" id="arr-govt">▼</span>
+        </button>
+        <div class="role-expand" id="expand-govt" style="border-color:#90caf9">
+          <input class="role-input" id="govt-id" type="text" placeholder="Govt Login ID"
+            onfocus="this.style.borderColor='#1565c0'" onblur="this.style.borderColor='#e0e0e0'">
+          <input class="role-input" id="govt-pwd" type="password" placeholder="Password"
+            onfocus="this.style.borderColor='#1565c0'" onblur="this.style.borderColor='#e0e0e0'"
+            onkeypress="if(event.key==='Enter')roleLogin('govt')">
+          <button class="role-login-btn" style="background:#1565c0" onclick="roleLogin('govt')">
+            🏛️ Govt Login
+          </button>
+          <div class="role-err" id="govt-err"></div>
+        </div>
+
+      </div><!-- end step1 -->
+
+      <!-- STEP 2 — OTP verify -->
+      <div class="step" id="step2">
+        <div class="info-box" id="otp-info">OTP sent!</div>
+        <div class="test-badge" id="testBadge" style="display:none">
+          🧪 Test Mode — Your OTP:
+          <div class="test-otp" id="testOTP">------</div>
+        </div>
+        <div class="err-box" id="err2"></div>
+        <label class="form-label" style="text-align:center;display:block">Enter 6-digit OTP</label>
+        <div class="otp-inputs">
+          <input class="otp-d" type="tel" maxlength="1" id="o1" oninput="nextOtp(this,'o2')">
+          <input class="otp-d" type="tel" maxlength="1" id="o2" oninput="nextOtp(this,'o3')" onkeydown="prevOtp(event,'o1')">
+          <input class="otp-d" type="tel" maxlength="1" id="o3" oninput="nextOtp(this,'o4')" onkeydown="prevOtp(event,'o2')">
+          <input class="otp-d" type="tel" maxlength="1" id="o4" oninput="nextOtp(this,'o5')" onkeydown="prevOtp(event,'o3')">
+          <input class="otp-d" type="tel" maxlength="1" id="o5" oninput="nextOtp(this,'o6')" onkeydown="prevOtp(event,'o4')">
+          <input class="otp-d" type="tel" maxlength="1" id="o6" oninput="autoVerify()" onkeydown="prevOtp(event,'o5')">
+        </div>
+        <div class="timer" id="timerDiv">Expires in <span id="timerTxt">10:00</span></div>
+        <button class="resend-btn" id="resendBtn" style="display:none" onclick="sendOTP()">Resend OTP</button>
+        <button class="btn-verify" onclick="verifyOTP()" id="verifyBtn">✅ Verify & Login</button>
+        <button class="btn-back" onclick="goBack()">← Change Mobile</button>
+      </div>
+
+      <!-- STEP 3 — New user name -->
+      <div class="step" id="step3">
+        <div class="user-section-title" style="justify-content:center;margin-bottom:12px">
+          👤 Welcome! One last step
+        </div>
+        <div class="err-box" id="err3"></div>
+        <label class="form-label">Your Full Name *</label>
+        <input class="form-input" type="text" id="fullname" placeholder="Enter your full name"
+          onkeypress="if(event.key==='Enter')completeReg()">
+        <div class="info-box" style="margin-bottom:12px">
+          ℹ️ Real name required for QR verification during fuel crisis
+        </div>
+        <button class="btn-verify" onclick="completeReg()">🚀 Start Using IndhanShodhak</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let mob='', emailId='', timerInt=null, timerSec=600, savedToken='';
+let otpCooldown=null;
+
+// Redirect if already logged in
+const tok=localStorage.getItem('indhan_token');
+const role=localStorage.getItem('indhan_role');
+if(tok){
+  if(role==='super_admin') window.location.replace('/admin');
+  else if(role==='pump_owner') window.location.replace('/pump-owner');
+  else if(role==='doc_verifier') window.location.replace('/verify');
+  else window.location.replace('/');
+}
+
+function showErr(id,msg){const e=document.getElementById(id);e.textContent=msg;e.style.display='block';}
+function hideErr(id){document.getElementById(id).style.display='none';}
+
+// Toggle role expand
+function toggleRole(r){
+  ['pump','govt'].forEach(x=>{
+    const exp=document.getElementById('expand-'+x);
+    const arr=document.getElementById('arr-'+x);
+    if(x===r){
+      const open=exp.style.display==='block';
+      exp.style.display=open?'none':'block';
+      arr.style.transform=open?'':'rotate(180deg)';
+      if(!open) document.getElementById(x+'-id').focus();
+    } else {
+      exp.style.display='none';
+      arr.style.transform='';
+    }
+  });
+}
+
+// Role login (pump/govt/verify)
+async function roleLogin(r){
+  const id=document.getElementById(r+'-id').value.trim();
+  const pwd=document.getElementById(r+'-pwd').value.trim();
+  const errEl=document.getElementById(r+'-err');
+  errEl.style.display='none';
+  if(!id||!pwd){errEl.textContent='Enter Login ID and password';errEl.style.display='block';return;}
+  try{
+    const res=await fetch('/api/auth/login',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mobile:id,password:pwd})
+    });
+    const d=await res.json();
+    if(d.token){
+      localStorage.setItem('indhan_token',d.token);
+      localStorage.setItem('indhan_role',d.role);
+      localStorage.setItem('indhan_name',d.name||'');
+      if(d.role==='pump_owner') window.location.replace('/pump-owner');
+      else if(d.role==='govt_official') window.location.replace('/govt');
+      else if(d.role==='doc_verifier') window.location.replace('/verify');
+      else if(d.role==='super_admin') window.location.replace('/admin');
+      else window.location.replace('/');
+    } else {
+      errEl.textContent=d.error||'Wrong credentials';
+      errEl.style.display='block';
+    }
+  } catch(e){errEl.textContent='Server error';errEl.style.display='block';}
+}
+
+// OTP send with 60s cooldown
+async function sendOTP(){
+  mob=document.getElementById('mobile').value.trim();
+  emailId=document.getElementById('email').value.trim();
+  hideErr('err1');
+  if(mob.length!==10||isNaN(mob)){showErr('err1','Enter valid 10-digit mobile');return;}
+
+  const btn=document.getElementById('otpBtn');
+  const btnTxt=document.getElementById('otpBtnTxt');
+
+  // Disable button + start 60s countdown immediately
+  btn.disabled=true;
+  btn.classList.add('counting');
+  let secs=60;
+  btnTxt.textContent=`Resend in ${secs}s`;
+  if(otpCooldown) clearInterval(otpCooldown);
+  otpCooldown=setInterval(()=>{
+    secs--;
+    btnTxt.textContent=`Resend in ${secs}s`;
+    if(secs<=0){
+      clearInterval(otpCooldown);
+      btn.disabled=false;
+      btn.classList.remove('counting');
+      btnTxt.textContent='Send OTP';
+    }
+  },1000);
+
+  try{
+    const r=await fetch('/api/auth/send-otp',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mobile:mob,email:emailId})
+    });
+    const d=await r.json();
+    if(d.success){
+      document.getElementById('otp-info').textContent=
+        `OTP sent to ${mob.slice(0,2)}XXXXXX${mob.slice(-2)} via email`;
+      if(d.otp_for_testing){
+        document.getElementById('testBadge').style.display='block';
+        document.getElementById('testOTP').textContent=d.otp_for_testing;
+        String(d.otp_for_testing).split('').forEach((digit,i)=>{
+          const el=document.getElementById('o'+(i+1));
+          if(el) el.value=digit;
+        });
+        setTimeout(verifyOTP,800);
+      }
+      document.getElementById('step1').classList.remove('active');
+      document.getElementById('step2').classList.add('active');
+      startTimer();
+      document.getElementById('o1').focus();
+    } else {
+      // Server rejected — reset button immediately
+      clearInterval(otpCooldown);
+      btn.disabled=false;
+      btn.classList.remove('counting');
+      btnTxt.textContent='Send OTP';
+      showErr('err1',d.error||'Failed to send OTP');
+    }
+  } catch(e){
+    clearInterval(otpCooldown);
+    btn.disabled=false;
+    btn.classList.remove('counting');
+    btnTxt.textContent='Send OTP';
+    showErr('err1','Server error. Try again.');
+  }
+}
+
+function nextOtp(el,nextId){if(el.value&&nextId)document.getElementById(nextId).focus();}
+function prevOtp(e,prevId){if(e.key==='Backspace'&&!e.target.value&&prevId)document.getElementById(prevId).focus();}
+function autoVerify(){
+  const otp=['o1','o2','o3','o4','o5','o6'].map(id=>document.getElementById(id).value).join('');
+  if(otp.length===6) setTimeout(verifyOTP,300);
+}
+
+async function verifyOTP(){
+  const otp=['o1','o2','o3','o4','o5','o6'].map(id=>document.getElementById(id).value).join('');
+  hideErr('err2');
+  if(otp.length!==6){showErr('err2','Enter complete 6-digit OTP');return;}
+  const btn=document.getElementById('verifyBtn');
+  btn.disabled=true;btn.textContent='Verifying...';
+  try{
+    const r=await fetch('/api/auth/verify-otp',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mobile:mob,otp,email:emailId})
+    });
+    const d=await r.json();
+    if(d.success){
+      savedToken=d.token;
+      localStorage.setItem('indhan_token',d.token);
+      localStorage.setItem('indhan_role',d.role);
+      localStorage.setItem('indhan_name',d.name||'');
+      clearInterval(timerInt);
+      if(d.is_new){
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step3').classList.add('active');
+      } else {
+        window.location.href='/';
+      }
+    } else {
+      showErr('err2',d.error||'Wrong OTP');
+      btn.disabled=false;btn.textContent='✅ Verify & Login';
+    }
+  } catch(e){showErr('err2','Server error');btn.disabled=false;btn.textContent='✅ Verify & Login';}
+}
+
+async function completeReg(){
+  const name=document.getElementById('fullname').value.trim();
+  hideErr('err3');
+  if(!name){showErr('err3','Please enter your name');return;}
+  try{
+    await fetch('/api/user/update-name',{
+      method:'POST',headers:{'x-auth-token':savedToken,'Content-Type':'application/json'},
+      body:JSON.stringify({name})
+    });
+  } catch(e){}
+  localStorage.setItem('indhan_name',name);
+  window.location.href='/profile_setup';
+}
+
+function startTimer(){
+  timerSec=600;clearInterval(timerInt);
+  document.getElementById('resendBtn').style.display='none';
+  timerInt=setInterval(()=>{
+    timerSec--;
+    const m=Math.floor(timerSec/60),s=timerSec%60;
+    document.getElementById('timerTxt').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+    if(timerSec<=0){
+      clearInterval(timerInt);
+      document.getElementById('timerTxt').textContent='Expired';
+      document.getElementById('resendBtn').style.display='block';
+    }
+  },1000);
+}
+
+function goBack(){
+  clearInterval(timerInt);
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step1').classList.add('active');
+  ['o1','o2','o3','o4','o5','o6'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('testBadge').style.display='none';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IndhanShodhak — Govt Fuel Monitoring</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;max-width:1100px;margin:0 auto}
+.emblem-bar{background:#f5f5dc;padding:10px 20px;display:flex;align-items:center;gap:12px;border-bottom:3px solid #ff9933}
+.emblem-icon{width:50px;height:50px;background:#1a237e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.emblem-text{font-size:13px;font-weight:600;color:#1a237e;line-height:1.4}
+.emblem-text span{font-size:11px;font-weight:400;color:#555;display:block}
+/* LIVE flashing indicator */
+.live-indicator{margin-left:auto;display:flex;align-items:center;gap:8px}
+.live-dot-flash{width:12px;height:12px;border-radius:50%;background:#e53935;animation:flash 1s infinite}
+@keyframes flash{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(229,57,53,.4)}50%{opacity:.5;box-shadow:0 0 0 8px rgba(229,57,53,0)}}
+.live-text{font-size:13px;font-weight:700;color:#e53935;letter-spacing:.5px;animation:textFlash 1s infinite}
+@keyframes textFlash{0%,100%{opacity:1}50%{opacity:.6}}
+.tricolor{height:4px;background:linear-gradient(to right,#ff9933 33%,white 33%,white 66%,#138808 66%)}
+.header-main{background:linear-gradient(135deg,#1a237e,#283593);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header-left h1{color:white;font-size:17px;font-weight:700}
+.header-left p{color:rgba(255,255,255,.8);font-size:12px}
+.badges{display:flex;gap:8px;align-items:center}
+.ro-badge{background:#ff6f00;color:white;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px}
+.logout-btn{background:rgba(255,255,255,.2);color:white;border:none;padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer}
+.no-edit{background:#ff6f00;color:white;padding:8px 20px;font-size:12px;font-weight:500;text-align:center}
+/* Controls */
+.controls{background:white;padding:12px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #e0e0e0}
+.ctrl-select{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#f9f9f9;color:#333;min-width:140px}
+.ctrl-date{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;background:#f9f9f9;color:#333}
+.date-label{font-size:11px;color:#888;font-weight:500}
+.refresh-btn{background:#1a237e;color:white;border:none;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer}
+.export-btn{background:#2e7d32;color:white;border:none;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;margin-left:auto}
+.date-range-row{background:#e8eaf6;padding:8px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #c5cae9}
+.date-range-label{font-size:12px;font-weight:600;color:#1a237e}
+.apply-btn{background:#1a237e;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer}
+.clear-btn{background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer}
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 20px}
+@media(min-width:600px){.stats-grid{grid-template-columns:repeat(6,1fr)}}
+.stat{background:white;border-radius:12px;padding:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.stat-val{font-size:22px;font-weight:700;margin-bottom:3px}
+.stat-lbl{font-size:11px;color:#888}
+/* Charts */
+.chart-section{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 14px}
+@media(max-width:600px){.chart-section{grid-template-columns:1fr}}
+.chart-card{background:white;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.chart-title{font-size:13px;font-weight:600;color:#333;margin-bottom:10px}
+.bar-item{margin-bottom:8px}
+.bar-label{display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:3px}
+.bar-track{height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s}
+/* Alert */
+.alert-section{padding:0 20px 14px}
+.alert-card{background:white;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.alert-title{font-size:13px;font-weight:600;margin-bottom:10px;color:#e65100}
+.alert-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:12px}
+.alert-item:last-child{border-bottom:none}
+/* Table */
+.table-section{padding:0 20px 16px}
+.table-card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.table-header{padding:12px 14px;background:#f5f5f5;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;flex-wrap:wrap;gap:8px}
+.table-title{font-size:13px;font-weight:600;color:#333}
+.search-input{padding:6px 12px;border:1px solid #ddd;border-radius:8px;font-size:12px}
+table{width:100%;border-collapse:collapse}
+th{background:#f9f9f9;padding:9px 10px;font-size:11px;font-weight:600;color:#888;text-align:left;text-transform:uppercase;border-bottom:1px solid #eee;white-space:nowrap}
+td{padding:9px 10px;font-size:12px;color:#333;border-bottom:1px solid #f5f5f5}
+tr:hover td{background:#fafafa}
+.fuel-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px}
+.dot-g{background:#1a6b2e}.dot-r{background:#b71c1c}.dot-a{background:#e65100}
+.sb{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.sb-g{background:#e8f5e9;color:#1b5e20}.sb-r{background:#ffebee;color:#b71c1c}
+.sb-a{background:#fff3e0;color:#e65100}.sb-grey{background:#f5f5f5;color:#888}
+/* Visitor bar */
+.visitor-bar{background:#1a1a2e;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.visitor-item{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.8);font-size:12px}
+.visitor-val{color:white;font-weight:700;font-size:15px}
+.last-refresh{font-size:11px;color:rgba(255,255,255,.5)}
+</style>
+</head>
+<body>
+
+<!-- National Emblem -->
+<div class="emblem-bar">
+  <div class="emblem-icon">🇮🇳</div>
+  <div class="emblem-text">
+    भारत सरकार · Government of India
+    <span>Ministry of Petroleum & Natural Gas — IndhanShodhak Fuel Monitoring System</span>
+  </div>
+  <div class="live-indicator">
+    <div class="live-dot-flash"></div>
+    <div class="live-text">● LIVE</div>
+  </div>
+</div>
+<div class="tricolor"></div>
+
+<div class="header-main">
+  <div class="header-left">
+    <h1>🇮🇳 IndhanShodhak — Fuel Monitoring Dashboard</h1>
+    <p id="officialName">Loading...</p>
+  </div>
+  <div class="badges">
+    <div class="ro-badge">👁 VIEW ONLY</div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+<div class="tricolor"></div>
+<div class="no-edit">⚠️ READ-ONLY Dashboard — No edits allowed — All data is live from field reports</div>
+
+<!-- Filters -->
+<div class="controls">
+  <select class="ctrl-select" id="stateFilter" onchange="loadDistricts()">
+    <option value="">— Select State/UT —</option>
+  </select>
+  <select class="ctrl-select" id="districtFilter" onchange="loadData()">
+    <option value="">All Districts</option>
+  </select>
+  <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+  <button class="export-btn" onclick="exportCSV()">📥 Export CSV</button>
+</div>
+<div style="text-align:right;margin-top:4px;padding-right:2px">
+  <span style="font-size:11px;color:#888">📊 To view CSV: </span>
+  <a href="https://csviewer.com/" target="_blank"
+     style="font-size:11px;color:#1a6b2e;font-weight:600;text-decoration:none">
+    Download CSV Viewer ↗
+  </a>
+  &nbsp;·&nbsp;
+  <span style="font-size:11px;color:#888">or open with Excel / Google Sheets</span>
+</div>
+
+<!-- Date Range Filter -->
+<!-- Sample data notice for new officials -->
+<div id="sampleNotice" style="background:#e8f5e9;border:1px solid #1a6b2e;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+  <div style="font-size:12px;color:#1b5e20">
+    🆕 <b>First time?</b> Click "Load Sample Data" to see how this dashboard works with demo pump data.
+  </div>
+  <button onclick="loadSampleData()" style="background:#1a6b2e;color:white;border:none;border-radius:8px;padding:7px 16px;font-size:12px;cursor:pointer;white-space:nowrap">
+    📋 Load Sample Data
+  </button>
+</div>
+<div class="date-range-row">
+  <span class="date-range-label">📅 Date Range Filter:</span>
+  <span class="date-label">From:</span>
+  <input type="date" class="ctrl-date" id="dateFrom">
+  <span class="date-label">To:</span>
+  <input type="date" class="ctrl-date" id="dateTo">
+  <button class="apply-btn" onclick="loadData()">Apply Filter</button>
+  <button class="clear-btn" onclick="clearDates()">Clear Dates</button>
+  <span style="font-size:11px;color:#666;margin-left:4px">Leave blank for live data · Select dates for historical view</span>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat"><div class="stat-val" id="s-total" style="color:#1a237e">—</div><div class="stat-lbl">Total Pumps</div></div>
+  <div class="stat"><div class="stat-val" id="s-reporting" style="color:#1a6b2e">—</div><div class="stat-lbl">Reporting</div></div>
+  <div class="stat"><div class="stat-val" id="s-petrol" style="color:#1a6b2e">—%</div><div class="stat-lbl">Petrol Available</div></div>
+  <div class="stat"><div class="stat-val" id="s-diesel" style="color:#1565c0">—%</div><div class="stat-lbl">Diesel Available</div></div>
+  <div class="stat"><div class="stat-val" id="s-stale" style="color:#b71c1c">—</div><div class="stat-lbl">Stale 6+ hrs</div></div>
+  <div class="stat"><div class="stat-val" id="s-verified" style="color:#6a1b9a">—</div><div class="stat-lbl">Owner Verified</div></div>
+</div>
+
+<!-- Charts -->
+<div class="chart-section">
+  <div class="chart-card">
+    <div class="chart-title">📊 Fuel Availability by Type</div>
+    <div class="bar-item"><div class="bar-label"><span>⛽ Petrol</span><span id="c-petrol">0%</span></div><div class="bar-track"><div class="bar-fill" id="b-petrol" style="width:0%;background:#1a6b2e"></div></div></div>
+    <div class="bar-item"><div class="bar-label"><span>🛢 Diesel</span><span id="c-diesel">0%</span></div><div class="bar-track"><div class="bar-fill" id="b-diesel" style="width:0%;background:#1565c0"></div></div></div>
+    <div class="bar-item"><div class="bar-label"><span>🔥 CNG</span><span id="c-cng">0%</span></div><div class="bar-track"><div class="bar-fill" id="b-cng" style="width:0%;background:#e65100"></div></div></div>
+    <div class="bar-item"><div class="bar-label"><span>⚡ EV Charging</span><span id="c-ev">0%</span></div><div class="bar-track"><div class="bar-fill" id="b-ev" style="width:0%;background:#6a1b9a"></div></div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">📋 District-wise Summary</div>
+    <div id="districtChart" style="font-size:12px;color:#aaa;padding:10px">Select a state to see district data</div>
+  </div>
+</div>
+
+<!-- Alerts -->
+<div class="alert-section">
+  <div class="alert-card">
+    <div class="alert-title" id="alertTitle">⚠️ Pumps with No Update in 6+ Hours</div>
+    <div id="alertList"><div style="color:#aaa;font-size:12px;padding:8px">Loading...</div></div>
+  </div>
+</div>
+
+<!-- Pump Table -->
+<div class="table-section">
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title" id="tableTitle">All Petrol Pumps — Live Status</div>
+      <input class="search-input" type="text" placeholder="Search pump..." oninput="filterTable(this.value)">
+    </div>
+    <div style="overflow-x:auto">
+      <table id="pumpTable">
+        <thead>
+          <tr>
+            <th>Pump Name · Mobile</th><th>Tehsil</th><th>District</th><th>Company</th>
+            <th>Verified</th><th>⛽ Petrol</th><th>🛢 Diesel</th><th>🔥 CNG</th><th>⚡ EV</th>
+            <th>Last Update</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="pumpTableBody">
+          <tr><td colspan="11" style="text-align:center;padding:30px;color:#aaa">Select state to load pumps</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Visitor count bar at bottom -->
+<div class="visitor-bar">
+  <div class="visitor-item">👥 Today's Visitors: <span class="visitor-val" id="v-today">—</span></div>
+  <div class="visitor-item">📅 This Week: <span class="visitor-val" id="v-week">—</span></div>
+  <div class="visitor-item">🌐 Total: <span class="visitor-val" id="v-total">—</span></div>
+  <div class="last-refresh" id="lastRefresh">Last refreshed: just now</div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('indhan_token');
+const ROLE = localStorage.getItem('indhan_role');
+// Super admin can access directly, govt officials use govt_login
+ 
+
+const name = localStorage.getItem('indhan_name')||'Govt Official';
+document.getElementById('officialName').textContent = `Logged in as: ${name} · Read Only Access`;
+
+// All 28 states + 8 UTs with districts
+const ALL_STATES = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman & Nicobar Islands","Chandigarh","Dadra & Nagar Haveli and Daman & Diu","Delhi","Jammu & Kashmir","Ladakh","Lakshadweep","Puducherry"];
+
+const ALL_DISTRICTS = {
+  "Maharashtra":["Ahilyanagar","Pune","Nagpur","Nashik","Aurangabad","Solapur","Kolhapur","Satara","Sangli","Raigad","Thane","Mumbai","Palghar","Ratnagiri","Sindhudurg","Dhule","Nandurbar","Jalgaon","Akola","Amravati","Yavatmal","Wardha","Chandrapur","Gadchiroli","Gondia","Bhandara","Washim","Buldhana","Osmanabad","Latur","Nanded","Hingoli","Parbhani","Jalna","Beed"],
+  "Karnataka":["Bangalore","Mysore","Hubli","Mangalore","Belgaum","Gulbarga","Dharwad","Tumkur","Shimoga","Bidar","Raichur","Bellary","Hassan","Mandya","Udupi","Chikkamagaluru","Kodagu","Bagalkot","Bijapur","Koppal","Davangere","Chitradurga"],
+  "Gujarat":["Ahmedabad","Surat","Vadodara","Rajkot","Gandhinagar","Jamnagar","Bhavnagar","Junagadh","Anand","Mehsana","Morbi","Nadiad","Bharuch","Kutch","Surendranagar","Amreli","Botad","Dahod","Patan","Banaskantha"],
+  "Punjab":["Ludhiana","Amritsar","Jalandhar","Patiala","Bathinda","Mohali","Gurdaspur","Hoshiarpur","Ropar","Moga","Ferozepur","Faridkot","Muktsar","Fatehgarh Sahib","Nawanshahr","Barnala","Mansa","Sangrur","Kapurthala","Pathankot","Tarn Taran"],
+  "Rajasthan":["Jaipur","Jodhpur","Udaipur","Kota","Ajmer","Bikaner","Alwar","Bharatpur","Sikar","Pali","Sri Ganganagar","Hanumangarh","Tonk","Bundi","Chittorgarh","Nagaur","Barmer","Jaisalmer","Jhunjhunu","Bhilwara","Churu","Dausa","Dholpur","Dungarpur","Pratapgarh","Sawai Madhopur","Sirohi","Banswara","Jalore","Baran","Rajsamand","Karauli","Jhalawar"],
+  "Uttar Pradesh":["Lucknow","Kanpur","Agra","Varanasi","Allahabad","Meerut","Ghaziabad","Noida","Bareilly","Aligarh","Moradabad","Saharanpur","Gorakhpur","Faizabad","Jhansi","Mathura","Muzaffarnagar","Firozabad","Rampur","Shahjahanpur","Lakhimpur Kheri","Etawah","Mainpuri","Budaun","Unnao","Rae Bareli","Sultanpur","Gonda","Sitapur","Hardoi"],
+  "Madhya Pradesh":["Bhopal","Indore","Gwalior","Jabalpur","Ujjain","Sagar","Rewa","Satna","Dewas","Ratlam","Chhindwara","Katni","Burhanpur","Khandwa","Bhind","Morena","Guna","Shivpuri","Mandsaur","Neemuch","Vidisha","Balaghat"],
+  "Tamil Nadu":["Chennai","Coimbatore","Madurai","Tiruchirappalli","Salem","Tirunelveli","Vellore","Erode","Thoothukkudi","Tiruppur","Dindigul","Thanjavur","Ranipet","Kancheepuram","Cuddalore","Villupuram","Nagapattinam","Ariyalur","Kallakurichi","Karur","Krishnagiri","Namakkal","Nilgiris","Perambalur","Pudukkottai","Ramanathapuram","Sivaganga","Tenkasi","Tirupattur","Tiruvannamalai","Virudhunagar"],
+  "Andhra Pradesh":["Visakhapatnam","Vijayawada","Guntur","Nellore","Kurnool","Tirupati","Rajahmundry","Eluru","Ongole","Kadapa","Anantapur","Chittoor","Srikakulam","Vizianagaram"],
+  "Telangana":["Hyderabad","Warangal","Nizamabad","Karimnagar","Khammam","Ramagundam","Nalgonda","Adilabad","Mahbubnagar","Medak","Rangareddy","Siddipet","Suryapet","Yadadri Bhuvanagiri"],
+  "West Bengal":["Kolkata","Howrah","Durgapur","Asansol","Siliguri","Malda","Bardhaman","Kharagpur","Haldia","Raiganj","Jalpaiguri","Cooch Behar","Darjeeling","Murshidabad","Nadia","North 24 Parganas","South 24 Parganas"],
+  "Bihar":["Patna","Gaya","Bhagalpur","Muzaffarpur","Darbhanga","Purnia","Arrah","Begusarai","Katihar","Munger","Samastipur","Chapra","Hajipur","Sitamarhi","Saharsa","Madhubani"],
+  "Odisha":["Bhubaneswar","Cuttack","Rourkela","Berhampur","Sambalpur","Puri","Balasore","Bhadrak","Koraput","Mayurbhanj","Sundargarh","Kendrapara","Dhenkanal","Bargarh","Jharsuguda"],
+  "Kerala":["Thiruvananthapuram","Kochi","Kozhikode","Thrissur","Kollam","Alappuzha","Palakkad","Malappuram","Kottayam","Idukki","Wayanad","Kannur","Kasaragod","Pathanamthitta"],
+  "Haryana":["Gurugram","Faridabad","Panipat","Ambala","Yamunanagar","Rohtak","Hisar","Karnal","Sonipat","Panchkula","Bhiwani","Sirsa","Rewari","Jhajjar","Mahendragarh","Nuh","Palwal","Kurukshetra"],
+  "Delhi":["New Delhi","North Delhi","South Delhi","East Delhi","West Delhi","North East Delhi","North West Delhi","South East Delhi","South West Delhi","Shahdara","Central Delhi"],
+  "Jammu & Kashmir":["Srinagar","Jammu","Anantnag","Baramulla","Sopore","Udhampur","Kathua","Pulwama","Kupwara","Ganderbal","Bandipora","Budgam","Kulgam","Ramban","Reasi","Samba","Rajouri","Poonch"],
+  "Uttarakhand":["Dehradun","Haridwar","Roorkee","Haldwani","Rudrapur","Rishikesh","Almora","Pithoragarh","Nainital","Chamoli","Champawat","Bageshwar","Pauri Garhwal","Tehri Garhwal"],
+  "Himachal Pradesh":["Shimla","Dharamsala","Manali","Solan","Mandi","Hamirpur","Kullu","Una","Bilaspur","Chamba","Kangra","Kinnaur","Sirmaur"],
+  "Jharkhand":["Ranchi","Jamshedpur","Dhanbad","Bokaro","Deoghar","Hazaribagh","Giridih","Dumka","Chaibasa","Lohardaga"],
+  "Chhattisgarh":["Raipur","Bhilai","Bilaspur","Korba","Durg","Rajnandgaon","Jagdalpur","Ambikapur","Raigarh","Dhamtari"],
+  "Assam":["Guwahati","Dispur","Dibrugarh","Jorhat","Silchar","Nagaon","Tinsukia","Bongaigaon","Dhubri","Karimganj","Lakhimpur"],
+  "Goa":["Panaji","Margao","Vasco","Mapusa","Ponda","Bicholim"],
+  "Sikkim":["Gangtok","Namchi","Gyalshing","Mangan"],
+  "Tripura":["Agartala","Udaipur","Dharmanagar","Kailashahar","Belonia"],
+  "Manipur":["Imphal","Churachandpur","Thoubal","Bishnupur","Senapati"],
+  "Meghalaya":["Shillong","Tura","Jowai","Baghmara"],
+  "Nagaland":["Kohima","Dimapur","Mokokchung","Tuensang"],
+  "Arunachal Pradesh":["Itanagar","Naharlagun","Pasighat","Tawang","Ziro"],
+  "Mizoram":["Aizawl","Lunglei","Saiha","Champhai"],
+  "Puducherry":["Puducherry","Karaikal","Mahe","Yanam"],
+  "Chandigarh":["Chandigarh"],
+  "Ladakh":["Leh","Kargil"],
+  "Andaman & Nicobar Islands":["Port Blair","Diglipur","Rangat"],
+  "Lakshadweep":["Kavaratti","Agatti","Amini"],
+  "Dadra & Nagar Haveli and Daman & Diu":["Silvassa","Daman","Diu"],
+};
+
+// Populate state dropdown
+const stateSelect = document.getElementById('stateFilter');
+ALL_STATES.forEach(s => {
+  const opt = document.createElement('option');
+  opt.value = s; opt.textContent = s;
+  stateSelect.appendChild(opt);
+});
+
+async function api(url){
+  const r = await fetch(url,{headers:{'x-auth-token':TOKEN}});
+  if(r.status===401||r.status===403){ console.warn('Auth needed'); return null; }
+  if(!r.ok) return null;
+  const ct = r.headers.get('content-type')||'';
+  if(!ct.includes('application/json')) return null; // prevent HTML parse error
+  return r.json();
+}
+function logout(){ localStorage.clear(); window.location.href='/govt_login.html'; }
+
+async function loadDistricts(){
+  const state = document.getElementById('stateFilter').value;
+  const dSel  = document.getElementById('districtFilter');
+  dSel.innerHTML = '<option value="">All Districts</option>';
+  
+  // Step 1: Always show ALL standard districts from hardcoded list
+  const hardcoded = ALL_DISTRICTS[state] || [];
+  const hardcodedSet = new Set(hardcoded.map(d=>d.toLowerCase()));
+  hardcoded.forEach(d=>{
+    const o=document.createElement('option'); o.value=d; o.textContent=d; dSel.appendChild(o);
+  });
+  
+  // Step 2: Add any extra districts from DB not in hardcoded list
+  // (e.g. "Pune Division" before cleanup — shows as extra so filter still works)
+  try {
+    const r = await api(`/api/govt/districts?state=${encodeURIComponent(state)}`);
+    if(r && r.districts){
+      r.districts.forEach(d=>{
+        if(d && !hardcodedSet.has(d.toLowerCase())){
+          const o=document.createElement('option');
+          o.value=d; o.textContent=d+' *'; // * marks non-standard name
+          dSel.appendChild(o);
+        }
+      });
+    }
+  } catch(e){} // Silent — hardcoded list is sufficient
+  
+  loadData();
+}
+
+function clearDates(){
+  document.getElementById('dateFrom').value='';
+  document.getElementById('dateTo').value='';
+  loadData();
+}
+
+async function loadData(){
+  const state    = document.getElementById('stateFilter').value||'Maharashtra';
+  const district = document.getElementById('districtFilter').value;
+  const dateFrom = document.getElementById('dateFrom').value;
+  const dateTo   = document.getElementById('dateTo').value;
+
+  // Update table title
+  const isHistory = !!(dateFrom && dateTo); // Both dates needed for historical view
+  document.getElementById('tableTitle').textContent = isHistory
+    ? `Historical Data${dateFrom?' from '+dateFrom:''}${dateTo?' to '+dateTo:''}`
+    : 'All Petrol Pumps — Live Status 🔴';
+
+  // Live view → dashboard API | Date range → history API
+  let url;
+  if(dateFrom && dateTo){ // Both dates required for historical view
+    url = `/api/govt/history?state=${encodeURIComponent(state)}&days=365`;
+    if(district) url += `&district=${encodeURIComponent(district)}`;
+    if(dateFrom) url += `&date_from=${dateFrom}`;
+    if(dateTo)   url += `&date_to=${dateTo}`;
+  } else {
+    url = `/api/govt/dashboard?state=${encodeURIComponent(state)}`;
+    if(district) url += `&district=${encodeURIComponent(district)}`;
+  }
+
+  const d = await api(url);
+  if(!d) return;
+  // Dashboard returns {summary:{...}, pumps:[...]}
+  // History returns {reports:[...], count:N}
+  const s = isHistory
+    ? { total_pumps: d.count||0, reporting: d.count||0,
+        petrol_pct: 0, diesel_pct: 0, stale_count: 0, verified_count: 0 }
+    : d.summary;
+  if(!s) return;
+
+  // Stats
+  document.getElementById('s-total').textContent     = s.total_pumps||0;
+  document.getElementById('s-reporting').textContent = s.reporting||0;
+  document.getElementById('s-petrol').textContent    = (s.petrol_pct||0)+'%';
+  document.getElementById('s-diesel').textContent    = (s.diesel_pct||0)+'%';
+  document.getElementById('s-stale').textContent     = s.stale_6hrs||0;
+  document.getElementById('s-verified').textContent  = s.verified_owners||0;
+
+  // Charts
+  const tot = s.total_pumps||1;
+  const sets = [
+    ['petrol','#1a6b2e',s.petrol_available],
+    ['diesel','#1565c0',s.diesel_available],
+    ['cng','#e65100',s.cng_available||0],
+    ['ev','#6a1b9a',s.ev_available||0],
+  ];
+  sets.forEach(([k,col,v])=>{
+    const pct=Math.round((v||0)/tot*100);
+    document.getElementById('c-'+k).textContent=pct+'%';
+    document.getElementById('b-'+k).style.width=pct+'%';
+    document.getElementById('b-'+k).style.background=col;
+  });
+
+  // District chart
+  const dc = document.getElementById('districtChart');
+  if(d.by_district&&Object.keys(d.by_district).length>0){
+    dc.innerHTML = Object.entries(d.by_district).map(([dist,info])=>`
+      <div style="padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-weight:500">${dist}</span>
+          <span style="color:#888;font-size:11px">${info.total||0} pumps total</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="color:#1a6b2e;font-size:11px">⛽ Petrol: ${info.petrol||0}</span>
+          <span style="color:#1565c0;font-size:11px">🛢 Diesel: ${info.diesel||0}</span>
+          <span style="color:#e65100;font-size:11px">🔥 CNG: ${info.cng||0}</span>
+          <span style="color:#6a1b9a;font-size:11px">⚡ EV: ${info.ev||0}</span>
+          <span style="color:#b71c1c;font-size:11px">⚠️ Stale: ${info.stale||0}</span>
+        </div>
+      </div>`).join('');
+  } else {
+    dc.innerHTML='<div style="color:#aaa;font-size:12px;padding:10px;text-align:center">No district data — select a state first</div>';
+  }
+
+  // Alerts
+  const stale = (d.pumps||[]).filter(p=>!p.report_time||(Date.now()-new Date(p.report_time||0).getTime())>6*3600000);
+  document.getElementById('alertTitle').textContent=`⚠️ Pumps with No Update in 6+ Hours (${stale.length})`;
+  document.getElementById('alertList').innerHTML = stale.length>0
+    ? stale.slice(0,8).map(p=>`
+        <div class="alert-item">
+          <div>
+            <div style="font-weight:500;font-size:12px">${p.name}</div>
+            ${p.owner_mobile
+              ? `<div style="font-size:11px;color:#1565c0;margin-top:2px">📱 ${p.owner_mobile} — <a href="tel:${p.owner_mobile}" style="color:#1565c0">Call owner</a></div>`
+              : `<div style="font-size:11px;color:#aaa;margin-top:2px">No owner registered</div>`}
+          </div>
+          <span style="color:#b71c1c;font-weight:600;font-size:12px;white-space:nowrap">${p.district||''} · No report</span>
+        </div>`).join('')
+      +(stale.length>8?`<div style="padding:8px;font-size:12px;color:#888">+${stale.length-8} more...</div>`:'')
+    : '<div style="padding:10px;font-size:12px;color:#1a6b2e">✅ All pumps recently updated!</div>';
+
+  // Table
+  const tbody = document.getElementById('pumpTableBody');
+  if(!d.pumps||d.pumps.length===0){tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:#aaa">No pumps found</td></tr>';return;}
+  tbody.innerHTML = d.pumps.map(p=>{
+    const hrs = p.report_time ? Math.floor((Date.now()-new Date(p.report_time).getTime())/3600000) : 999;
+    const status = !p.report_time?'No Report':hrs>6?'Stale':p.petrol||p.diesel?'Active':'Empty';
+    const sbCls  = status==='Active'?'sb-g':status==='Stale'?'sb-a':status==='Empty'?'sb-r':'sb-grey';
+    const fDot   = v => v ? '<span class="fuel-dot dot-g"></span>Yes' : '<span class="fuel-dot dot-r"></span>No';
+    const fDash  = v => v ? '<span class="fuel-dot dot-g"></span>Yes' : '—';
+    return `<tr>
+      <td>
+        <b>${p.name}</b>
+        ${p.owner_mobile?`<div style="font-size:10px;color:#1565c0;margin-top:2px">📱 ${p.owner_mobile}</div>`:'<div style="font-size:10px;color:#aaa;margin-top:2px">No owner registered</div>'}
+      </td>
+      <td>${p.tehsil||'—'}</td>
+      <td>${p.district||'—'}</td>
+      <td>${p.oil_company||'—'}</td>
+      <td>${p.is_verified?'✅':'—'}</td>
+      <td>${fDot(p.petrol)}</td>
+      <td>${fDot(p.diesel)}</td>
+      <td>${fDash(p.cng)}</td>
+      <td>${fDash(p.ev)}</td>
+      <td style="font-size:11px">${p.report_time?new Date(p.report_time.replace(' ','T')+'Z').toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}):'Never'}</td>
+      <td><span class="sb ${sbCls}">${status}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('lastRefresh').textContent='Last refreshed: '+new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'});
+}
+
+function filterTable(q){
+  document.querySelectorAll('#pumpTableBody tr').forEach(r=>{
+    r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';
+  });
+}
+
+async function exportCSV(){
+  const state    = document.getElementById('stateFilter').value||'Maharashtra';
+  const district = document.getElementById('districtFilter').value;
+  const dateFrom = document.getElementById('dateFrom').value;
+  const dateTo   = document.getElementById('dateTo').value;
+  let url=`/api/govt/export-csv?state=${encodeURIComponent(state)}`;
+  if(district) url+=`&district=${encodeURIComponent(district)}`;
+  if(dateFrom) url+=`&date_from=${dateFrom}`;
+  if(dateTo)   url+=`&date_to=${dateTo}`;
+  try {
+    const resp = await fetch(url, { headers:{ 'x-auth-token': TOKEN } });
+    if(resp.status===401||resp.status===403){
+      alert('❌ Session expired. Please login again.');
+      window.location.href='/login';
+      return;
+    }
+    if(!resp.ok){ alert('❌ Export failed. Try again.'); return; }
+    const blob = await resp.blob();
+    const burl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = burl;
+    a.download = `IndhanShodhak_${state}${district?'_'+district:''}_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(burl);
+  } catch(e){
+    alert('❌ Network error. Check connection.');
+  }
+}
+
+async function loadVisitors(){
+  try {
+    const d = await fetch('/api/stats/visitors').then(r=>r.json());
+    document.getElementById('v-today').textContent = d.today||0;
+    document.getElementById('v-week').textContent  = d.week||0;
+    document.getElementById('v-total').textContent = d.total||0;
+  } catch(e){}
+}
+
+// Set default dates — today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('dateTo').value = today;
+
+// Load Maharashtra by default
+document.getElementById('stateFilter').value='Maharashtra';
+loadDistricts();
+loadVisitors();
+setInterval(loadData, 300000); // Refresh every 5 min
+
+function loadSampleData(){
+  document.getElementById('sampleNotice').style.display='none';
+  // Fill stats with sample values
+  document.getElementById('s-total').textContent     = '147';
+  document.getElementById('s-reporting').textContent = '89';
+  document.getElementById('s-petrol').textContent    = '71%';
+  document.getElementById('s-diesel').textContent    = '54%';
+  document.getElementById('s-stale').textContent     = '23';
+  document.getElementById('s-verified').textContent  = '34';
+  // Fill charts
+  [['petrol','#1a6b2e',71],['diesel','#1565c0',54],['cng','#e65100',28],['ev','#6a1b9a',12]].forEach(([k,col,pct])=>{
+    document.getElementById('c-'+k).textContent=pct+'%';
+    document.getElementById('b-'+k).style.width=pct+'%';
+    document.getElementById('b-'+k).style.background=col;
+  });
+  // District chart
+  document.getElementById('districtChart').innerHTML = `
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:12px">
+      <span style="font-weight:500">Ahilyanagar</span><span><span style="color:#1a6b2e">⛽36</span><span style="color:#1565c0;margin-left:6px">🛢28</span><span style="color:#888;margin-left:6px">/52</span></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:12px">
+      <span style="font-weight:500">Pune</span><span><span style="color:#1a6b2e">⛽48</span><span style="color:#1565c0;margin-left:6px">🛢35</span><span style="color:#888;margin-left:6px">/60</span></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px">
+      <span style="font-weight:500">Nagpur</span><span><span style="color:#1a6b2e">⛽22</span><span style="color:#1565c0;margin-left:6px">🛢18</span><span style="color:#888;margin-left:6px">/35</span></span>
+    </div>`;
+  // Alerts
+  document.getElementById('alertTitle').textContent='⚠️ Sample: Pumps with No Update in 6+ Hours (3)';
+  document.getElementById('alertList').innerHTML=`
+    <div class="alert-item">
+      <div><div style="font-weight:500;font-size:12px">IOC Pump Newasa Phata</div><div style="font-size:11px;color:#1565c0">📱 9876543210 — <a href="tel:9876543210" style="color:#1565c0">Call owner</a></div></div>
+      <span style="color:#b71c1c;font-weight:600;font-size:12px">Ahilyanagar · 8 hrs silent</span>
+    </div>
+    <div class="alert-item">
+      <div><div style="font-weight:500;font-size:12px">BPCL Sangamner Road</div><div style="font-size:11px;color:#aaa">No owner registered</div></div>
+      <span style="color:#b71c1c;font-weight:600;font-size:12px">Ahilyanagar · 11 hrs silent</span>
+    </div>
+    <div class="alert-item">
+      <div><div style="font-weight:500;font-size:12px">HP Kopargaon East</div><div style="font-size:11px;color:#1565c0">📱 9812345678 — <a href="tel:9812345678" style="color:#1565c0">Call owner</a></div></div>
+      <span style="color:#e65100;font-weight:600;font-size:12px">Ahilyanagar · 6.5 hrs silent</span>
+    </div>`;
+  // Table
+  document.getElementById('tableTitle').textContent='Sample — All Petrol Pumps Live Status';
+  document.getElementById('pumpTableBody').innerHTML = [
+    {name:'HP Petrol Pump Newasa',mob:'9876543210',tehsil:'Newasa',dist:'Ahilyanagar',co:'HP',ver:true,p:true,d:true,c:false,e:false,t:'10 min ago',s:'Active'},
+    {name:'BPCL Rahata Road',mob:'9765432100',tehsil:'Rahata',dist:'Ahilyanagar',co:'BPCL',ver:false,p:true,d:false,c:false,e:false,t:'45 min ago',s:'Low Stock'},
+    {name:'IOC Pump Newasa Phata',mob:'',tehsil:'Newasa',dist:'Ahilyanagar',co:'IOC',ver:false,p:false,d:false,c:false,e:false,t:'8 hrs ago',s:'Stale'},
+    {name:'HP Kopargaon',mob:'9812345678',tehsil:'Kopargaon',dist:'Ahilyanagar',co:'HP',ver:true,p:true,d:true,c:true,e:false,t:'1 hr ago',s:'Active'},
+    {name:'BPCL Sangamner',mob:'9823456789',tehsil:'Sangamner',dist:'Ahilyanagar',co:'BPCL',ver:false,p:false,d:false,c:false,e:false,t:'11 hrs ago',s:'No Report'},
+  ].map(p=>{
+    const sbCls=p.s==='Active'?'sb-g':p.s==='Stale'||p.s==='No Report'?'sb-grey':'sb-a';
+    const fDot=v=>v?'<span class="fuel-dot dot-g"></span>Yes':'<span class="fuel-dot dot-r"></span>No';
+    const fDash=v=>v?'<span class="fuel-dot dot-g"></span>Yes':'—';
+    return `<tr>
+      <td><b>${p.name}</b>${p.mob?`<div style="font-size:10px;color:#1565c0;margin-top:2px">📱 ${p.mob}</div>`:'<div style="font-size:10px;color:#aaa">No owner</div>'}</td>
+      <td>${p.tehsil}</td><td>${p.dist}</td><td>${p.co}</td>
+      <td>${p.ver?'✅':'—'}</td>
+      <td>${fDot(p.p)}</td><td>${fDot(p.d)}</td><td>${fDash(p.c)}</td><td>${fDash(p.e)}</td>
+      <td style="font-size:11px">${p.t}</td>
+      <td><span class="sb ${sbCls}">${p.s}</span></td>
+    </tr>`;
+  }).join('');
+  // Visitors sample
+  document.getElementById('v-today').textContent='47';
+  document.getElementById('v-week').textContent='284';
+  document.getElementById('v-total').textContent='1,247';
+  alert('✅ Sample data loaded!\n\nThis shows how the dashboard looks with real pump data.\nSelect Maharashtra → Ahilyanagar to see your actual pumps.');
+}
+setInterval(loadVisitors, 60000); // Visitors every 1 min
+</script>
+</body>
+</html>

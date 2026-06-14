@@ -1,0 +1,24 @@
+# Environment — NEVER commit secrets!
+.env
+*.env
+
+# Database — generated at runtime
+*.db
+*.sqlite
+indhan.db
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+HMS_BACKUP/
+*_old.*
+*_backup.*

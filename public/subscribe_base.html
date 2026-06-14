@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Support the Mission</title>
+<!-- Razorpay Checkout SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#1a6b2e,#0d3d1a);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:white;border-radius:20px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.top-bar{background:#1a6b2e;padding:20px;text-align:center}
+.logo{font-size:36px;margin-bottom:8px}
+.title{color:white;font-size:18px;font-weight:700;margin-bottom:4px}
+.sub{color:rgba(255,255,255,.8);font-size:13px}
+.body{padding:22px 20px 28px}
+/* Benefits */
+.benefits{background:#f0f9f0;border-radius:12px;padding:14px;margin-bottom:18px}
+.benefit-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:#2e7d32}
+.benefit-row:first-child{padding-top:0}
+/* Price */
+.price-card{display:flex;justify-content:space-between;align-items:center;background:#1a6b2e;border-radius:12px;padding:14px 18px;margin-bottom:16px;color:white}
+.price-label{font-size:13px;opacity:.9}
+.price-amount{font-size:28px;font-weight:700}
+.price-per{font-size:12px;opacity:.8}
+/* Samosa comparison */
+.samosa-note{background:#fff8e1;border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:13px;color:#e65100;text-align:center;line-height:1.6}
+/* Pay button */
+.pay-btn{width:100%;padding:15px;background:#1a6b2e;color:white;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px}
+.pay-btn:hover{background:#145723}
+.pay-btn:disabled{background:#aaa;cursor:not-allowed}
+.upi-logos{display:flex;justify-content:center;gap:14px;margin-bottom:14px;align-items:center}
+.upi-logo{font-size:22px}
+.upi-text{font-size:11px;color:#aaa;text-align:center;margin-bottom:14px}
+.skip-btn{width:100%;padding:11px;background:#f5f5f5;color:#888;border:none;border-radius:12px;font-size:13px;cursor:pointer}
+/* What you support */
+.support-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.support-item{background:#f9f9f9;border-radius:10px;padding:10px;text-align:center;font-size:12px;color:#555}
+.support-icon{font-size:20px;margin-bottom:4px}
+/* Already paid */
+.paid-card{background:#e8f5e9;border-radius:14px;padding:16px;text-align:center;margin-bottom:16px}
+.paid-icon{font-size:40px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top-bar">
+    <div class="logo">⛽</div>
+    <div class="title">Support IndhanShodhak</div>
+    <div class="sub">Help us serve lakhs of Indians during fuel crisis</div>
+  </div>
+  <div class="body">
+
+    <!-- Status card — shown based on subscription_status -->
+    <div id="statusCard" style="display:block">
+
+      <!-- Loading state -->
+      <div id="loadingCard" style="background:#f5f5f5;border-radius:14px;padding:20px;text-align:center;margin-bottom:16px">
+        <div style="font-size:24px;margin-bottom:8px">⏳</div>
+        <div style="font-size:13px;color:#888">Loading your subscription status...</div>
+      </div>
+
+      <!-- Trial active -->
+      <div id="trialCard" style="display:none;background:#fff8e1;border-radius:14px;padding:16px;text-align:center;margin-bottom:16px;border:1.5px solid #ffcc02">
+        <div style="font-size:36px;margin-bottom:8px">⏳</div>
+        <div style="font-size:16px;font-weight:600;color:#e65100;margin-bottom:4px">Free Trial Active</div>
+        <div style="font-size:13px;color:#888;margin-bottom:12px" id="trialDaysText">Loading...</div>
+        <div style="background:#fff3e0;border-radius:10px;padding:10px;font-size:12px;color:#e65100;margin-bottom:12px;line-height:1.7">
+          ⚡ After trial ends → contribute to keep full access<br>
+          🎫 Priority QR · Real-time pump updates · Fuel alerts
+        </div>
+        <button onclick="document.getElementById('trialCard').style.display='none';document.getElementById('expiredCard').style.display='none';document.getElementById('paySection').style.display='block'"
+          style="padding:10px 24px;background:#e65100;color:white;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;width:100%">
+          💚 Contribute Early — Keep Full Access
+        </button>
+        <button onclick="window.location.href='/'" style="margin-top:8px;padding:8px 24px;background:transparent;color:#888;border:none;font-size:12px;cursor:pointer;width:100%">
+          ← Back to App
+        </button>
+      </div>
+
+      <!-- Paid/Active — full details -->
+      <div id="paidCard" style="display:none">
+        <!-- Thank you banner -->
+        <div style="background:#e8f5e9;border-radius:14px;padding:14px;text-align:center;margin-bottom:12px;border:1.5px solid #a5d6a7">
+          <div style="font-size:32px;margin-bottom:6px">✅</div>
+          <div style="font-size:15px;font-weight:700;color:#1b5e20;margin-bottom:2px">You are a Supporter!</div>
+          <div style="font-size:12px;color:#555">धन्यवाद · Thank you for keeping IndhanShodhak alive</div>
+        </div>
+        <!-- Subscription details -->
+        <div style="background:white;border-radius:12px;padding:14px;margin-bottom:12px;border:0.5px solid #e0e0e0">
+          <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Subscription Details · सदस्यता माहिती</div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #f0f0f0">
+            <span style="font-size:13px;color:#555">Status · स्थिती</span>
+            <span style="font-size:13px;font-weight:600;color:#1b5e20">✅ Active</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #f0f0f0">
+            <span style="font-size:13px;color:#555">Monthly · मासिक</span>
+            <span style="font-size:13px;font-weight:700;color:#1a6b2e" id="paidAmount">₹14.99</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0">
+            <span style="font-size:13px;color:#555">Next renewal · नूतनीकरण</span>
+            <span style="font-size:13px;font-weight:600" id="renewalDate">—</span>
+          </div>
+        </div>
+        <!-- What you support -->
+        <div style="background:#f0f9f0;border-radius:12px;padding:12px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:600;color:#2e7d32;margin-bottom:8px">Your contribution supports · तुमचे योगदान</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:white;border-radius:8px;padding:8px;text-align:center;font-size:12px;color:#555">
+              <div style="font-size:20px;margin-bottom:3px">☁️</div>24×7 Servers
+            </div>
+            <div style="background:white;border-radius:8px;padding:8px;text-align:center;font-size:12px;color:#555">
+              <div style="font-size:20px;margin-bottom:3px">🔔</div>SMS Alerts
+            </div>
+            <div style="background:white;border-radius:8px;padding:8px;text-align:center;font-size:12px;color:#555">
+              <div style="font-size:20px;margin-bottom:3px">👥</div>Verifier Team
+            </div>
+            <div style="background:white;border-radius:8px;padding:8px;text-align:center;font-size:12px;color:#555">
+              <div style="font-size:20px;margin-bottom:3px">🗺️</div>Map Services
+            </div>
+          </div>
+        </div>
+        <!-- Samosa note -->
+        <div style="background:#fff8e1;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#e65100;text-align:center;line-height:1.7;border:0.5px solid #ffe082">
+          🥟 एका <b>समोसा</b> पेक्षाही कमी दरात!<br>
+          Less than the price of <b>one samosa &amp; chai</b> — <span id="samosaPrice">₹14.99</span>/month<br>
+          <span style="font-size:11px;color:#888">Serving lakhs of Indians during fuel crisis 🇮🇳</span>
+        </div>
+        <!-- Razorpay badge -->
+        <div style="text-align:center;margin-bottom:10px">
+          <div style="display:inline-flex;align-items:center;gap:8px;background:#f5f5f5;border-radius:20px;padding:6px 14px">
+            <span style="font-size:18px">📱</span><span style="font-size:11px;color:#888">GPay</span>
+            <span style="font-size:18px">📱</span><span style="font-size:11px;color:#888">PhonePe</span>
+            <span style="font-size:18px">💳</span><span style="font-size:11px;color:#888">Card</span>
+            <span style="font-size:18px">🏦</span><span style="font-size:11px;color:#888">NetBanking</span>
+          </div>
+          <div style="font-size:10px;color:#aaa;margin-top:4px">Powered by Razorpay · 256-bit SSL · PCI DSS compliant</div>
+        </div>
+        <button onclick="window.location.href='/'"
+          style="width:100%;padding:12px;background:#1a6b2e;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">
+          ← Back to App · परत जा
+        </button>
+      </div>
+
+      <!-- Trial expired -->
+      <div id="expiredCard" style="display:none;background:#ffebee;border-radius:14px;padding:16px;text-align:center;margin-bottom:16px;border:1.5px solid #ffcdd2">
+        <div style="font-size:36px;margin-bottom:8px">⚠️</div>
+        <div style="font-size:16px;font-weight:600;color:#b71c1c;margin-bottom:4px">Free Trial Ended</div>
+        <div style="font-size:13px;color:#888;margin-bottom:12px">Your free trial has expired. Contribute to restore full access.</div>
+        <button onclick="document.getElementById('trialCard').style.display='none';document.getElementById('expiredCard').style.display='none';document.getElementById('paySection').style.display='block'"
+          style="padding:10px 24px;background:#b71c1c;color:white;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;width:100%">
+          💚 Contribute <span id="contributePrice">₹14.99</span>/month
+        </button>
+        <button onclick="window.location.href='/'" style="margin-top:8px;padding:8px;background:transparent;color:#888;border:none;font-size:12px;cursor:pointer;width:100%">
+          ← Continue with limited access
+        </button>
+      </div>
+
+    </div>
+
+    <div id="paySection" style="display:none">
+      <!-- Benefits -->
+      <div class="benefits">
+        <div class="benefit-row">✅ Real-time fuel updates from 1000+ pumps</div>
+        <div class="benefit-row">🔔 Instant alerts when fuel arrives near you</div>
+        <div class="benefit-row">🎫 Fuel ID QR — priority access during crisis</div>
+        <div class="benefit-row">🗺️ Live map — verified pump locations</div>
+        <div class="benefit-row">📱 Works on any phone — no app install needed</div>
+      </div>
+
+      <!-- Price -->
+      <div class="price-card">
+        <div>
+          <div class="price-label">Monthly contribution</div>
+          <div class="price-per">Auto-renews · Cancel anytime</div>
+        </div>
+        <div style="text-align:right">
+          <div class="price-amount" id="displayPrice">₹14.99</div>
+          <div class="price-per">per month</div>
+        </div>
+      </div>
+
+      <div class="samosa-note">
+        🥟 Less than the price of <b>one samosa</b> per month!<br>
+        This keeps our servers running for <b>lakhs of Indians</b>.
+      </div>
+
+      <!-- Points Discount Card -->
+      <div id="points-discount-card" style="display:none;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);
+        border:1.5px solid #1a6b2e;border-radius:14px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:700;color:#1a6b2e">⭐ Your Points Discount</div>
+          <div style="font-size:11px;color:#555" id="disc-pts-count">0 pts</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div style="font-size:12px;color:#555">Original price</div>
+          <div style="font-size:12px;color:#555" id="disc-original">₹14.99</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:12px;color:#1a6b2e;font-weight:600">Points discount</div>
+          <div style="font-size:12px;color:#1a6b2e;font-weight:600" id="disc-amount">-₹0.00</div>
+        </div>
+        <div style="border-top:1px solid #c8e6c9;padding-top:8px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:14px;font-weight:700;color:#1a6b2e">You Pay</div>
+          <div style="font-size:18px;font-weight:700;color:#1a6b2e" id="disc-final">₹14.99</div>
+        </div>
+      </div>
+
+      <!-- What you support -->
+      <div class="support-grid">
+        <div class="support-item"><div class="support-icon">☁️</div>24×7 Servers</div>
+        <div class="support-item"><div class="support-icon">🔔</div>SMS Alerts</div>
+        <div class="support-item"><div class="support-icon">👥</div>Verifier Team</div>
+        <div class="support-item"><div class="support-icon">🗺️</div>Map Services</div>
+      </div>
+
+      <!-- Pay button -->
+      <button class="pay-btn" id="payBtn" onclick="startPayment()">
+        🔒 Pay <span id="btnPrice">₹14.99</span> — Activate Full Access
+      </button>
+
+      <!-- UPI logos -->
+      <div class="upi-logos">
+        <div class="upi-logo">📱</div>
+        <span style="font-size:12px;color:#888">GPay</span>
+        <div class="upi-logo">📱</div>
+        <span style="font-size:12px;color:#888">PhonePe</span>
+        <div class="upi-logo">💳</div>
+        <span style="font-size:12px;color:#888">Card</span>
+        <div class="upi-logo">🏦</div>
+        <span style="font-size:12px;color:#888">NetBanking</span>
+      </div>
+      <div class="upi-text">Powered by Razorpay · 256-bit SSL · PCI DSS compliant</div>
+
+      <button class="skip-btn" onclick="window.location.href='/'">
+        Not now — continue with limited access
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('indhan_token');
+const NAME  = localStorage.getItem('indhan_name')||'User';
+
+let PRICE_PAISE   = 1499;
+let PRICE_DISPLAY = '₹14.99';
+
+async function loadConfig(){
+  try {
+    const cfg = await fetch('/api/payment/config').then(r=>r.json());
+    if(cfg.price){
+      PRICE_PAISE   = cfg.price_paise || Math.round(cfg.price * 100);
+      PRICE_DISPLAY = '₹' + parseFloat(cfg.price).toFixed(2);
+      // Update ALL price elements
+      ['displayPrice','btnPrice','paidAmount','samosaPrice','contributePrice','contributePrice2'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.textContent = PRICE_DISPLAY;
+      });
+      // Fix button texts that have price inline
+      const payBtn = document.getElementById('payBtn');
+      if(payBtn && !payBtn.querySelector('#btnPrice')){
+        payBtn.textContent = '🔒 Pay ' + PRICE_DISPLAY + ' — Activate Full Access';
+      }
+    }
+    // IMPORTANT: Also fix amount in startPayment
+    window._PRICE_PAISE = PRICE_PAISE;
+  } catch(e){ console.log('Config load error:', e.message); }
+  // Load points discount
+  await loadPointsDiscount();
+}
+
+let _pointsDiscount = 0;
+async function loadPointsDiscount() {
+  if(!TOKEN) return;
+  try {
+    const pts = await fetch('/api/points/balance', {headers:{'x-auth-token':TOKEN}}).then(r=>r.json());
+    const total = pts.total || 0;
+    if(total <= 0) return;
+    const discRs   = Math.min(parseFloat(pts.discount_rs||0), (window._PRICE_PAISE||1499)/100 - 1); // min pay ₹1
+    const discPaise = Math.round(discRs * 100);
+    _pointsDiscount = discPaise;
+    // Show discount card
+    const card = document.getElementById('points-discount-card');
+    if(card) card.style.display = 'block';
+    const origRs    = ((window._PRICE_PAISE||1499)/100).toFixed(2);
+    const finalRs   = Math.max(1, (window._PRICE_PAISE||1499)/100 - discRs).toFixed(2);
+    const el = (id) => document.getElementById(id);
+    if(el('disc-pts-count')) el('disc-pts-count').textContent = total + ' pts';
+    if(el('disc-original'))  el('disc-original').textContent  = '₹' + origRs;
+    if(el('disc-amount'))    el('disc-amount').textContent    = '-₹' + discRs.toFixed(2);
+    if(el('disc-final'))     el('disc-final').textContent     = '₹' + finalRs;
+    if(el('displayPrice'))   el('displayPrice').textContent   = '₹' + finalRs;
+    // Adjust PRICE_PAISE for Razorpay
+    window._PRICE_PAISE = Math.max(100, (window._PRICE_PAISE||1499) - discPaise); // min ₹1
+  } catch(e) { console.log('Points discount error:', e.message); }
+}
+
+// Check subscription status
+async function checkStatus(){
+  if(!TOKEN){ window.location.href='/otp_login.html'; return; }
+  try {
+    const r = await fetch('/api/user/profile',{headers:{'x-auth-token':TOKEN}});
+    const d = await r.json();
+    if(!d.user) return;
+    const status  = d.user.subscription_status;
+    const created = new Date(d.user.created_at || Date.now());
+    const elapsed = Math.floor((Date.now()-created)/86400000);
+    const trialDays = parseInt((await fetch('/api/payment/config').then(r=>r.json()).catch(()=>({trial_days:10}))).trial_days||10);
+    const remaining = Math.max(0, trialDays - elapsed);
+
+    // Hide loading, show status
+    const loadingEl = document.getElementById('loadingCard');
+    if(loadingEl) loadingEl.style.display = 'none';
+
+    if(status === 'active'){
+      document.getElementById('paidCard').style.display  = 'block';
+      document.getElementById('paidAmount').textContent  = PRICE_DISPLAY;
+      // Next renewal = 30 days from today
+      const renewal = new Date(Date.now() + 30*86400000);
+      document.getElementById('renewalDate').textContent =
+        renewal.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+
+    } else if(status === 'trial' && remaining > 0){
+      document.getElementById('trialCard').style.display = 'block';
+      const exp = new Date(created.getTime() + trialDays*86400000);
+      document.getElementById('trialDaysText').textContent =
+        `${remaining} day${remaining===1?'':'s'} left — Trial ends on ${exp.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+      // Update contribute button price
+      const contribBtn = document.querySelector('#trialCard button');
+      if(contribBtn) contribBtn.textContent = '💚 Contribute Early — Keep Full Access';
+
+    } else {
+      // Trial expired
+      document.getElementById('expiredCard').style.display = 'block';
+      document.getElementById('paySection').style.display  = 'none';
+    }
+  } catch(e){
+    console.error('checkStatus error:', e);
+    // Show payment section as fallback
+    const loadingEl = document.getElementById('loadingCard');
+    if(loadingEl) loadingEl.style.display = 'none';
+    document.getElementById('paySection').style.display = 'block';
+  }
+}
+
+async function startPayment(){
+  const btn = document.getElementById('payBtn');
+  btn.disabled=true; btn.textContent='Loading...';
+
+  try {
+    // Get Razorpay key from server
+    const cfg = await fetch('/api/payment/config').then(r=>r.json());
+    if(!cfg.key_id||cfg.key_id==='NOT_SET'){
+      // Demo mode - show what would happen
+      alert('💳 Payment demo mode:\n\nIn production:\n→ Razorpay payment window opens\n→ Pay via GPay / PhonePe / Card\n→ Account activates instantly\n\nTo activate: Add Razorpay keys in Admin → Settings');
+      btn.disabled=false; btn.textContent='🔒 Pay ' + PRICE_DISPLAY + ' — Activate Full Access';
+      return;
+    }
+
+    // Create order
+    const order = await fetch('/api/payment/create-order',{
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({amount: PRICE_PAISE}) // dynamic from admin settings
+    }).then(r=>r.json());
+
+    if(!order.id){ throw new Error(order.error||'Order creation failed'); }
+
+    // Open Razorpay checkout
+    const options = {
+      key:         cfg.key_id,
+      amount:      order.amount,
+      currency:    'INR',
+      name:        'IndhanShodhak',
+      description: 'Monthly Fuel Finder Subscription',
+      order_id:    order.id,
+      prefill: {
+        name:    NAME,
+        contact: localStorage.getItem('indhan_mobile')||'',
+      },
+      theme: { color: '#1a6b2e' },
+      handler: async function(response){
+        // Payment successful - verify on server
+        const verify = await fetch('/api/payment/verify',{
+          method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+          body: JSON.stringify({
+            razorpay_order_id:    response.razorpay_order_id,
+            razorpay_payment_id:  response.razorpay_payment_id,
+            razorpay_signature:   response.razorpay_signature,
+          })
+        }).then(r=>r.json());
+
+        if(verify.success){
+          alert('✅ Payment successful!\n\nYour account is now active.\nFull access unlocked!');
+          window.location.href='/';
+        } else {
+          alert('Payment received but verification pending.\nContact support if issue persists.');
+        }
+      },
+      modal: {
+        ondismiss: function(){
+          btn.disabled=false;
+          btn.textContent='🔒 Pay ' + PRICE_DISPLAY + ' — Activate Full Access';
+        }
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function(resp){
+      alert('Payment failed: ' + resp.error.description);
+      btn.disabled=false;
+      btn.textContent='🔒 Pay ' + PRICE_DISPLAY + ' — Try Again';
+    });
+    rzp.open();
+
+  } catch(e){
+    alert('Error: '+e.message);
+    btn.disabled=false;
+    btn.textContent='🔒 Pay ' + PRICE_DISPLAY + ' — Activate Full Access';
+  }
+}
+
+loadConfig();
+checkStatus();
+</script>
+</body>
+</html>

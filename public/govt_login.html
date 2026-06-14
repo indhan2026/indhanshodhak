@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Govt Access</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#1a237e,#0d1b5e);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:white;border-radius:20px;padding:0;width:100%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.emblem-bar{background:#f5f5dc;padding:14px 20px;display:flex;align-items:center;gap:12px;border-bottom:3px solid #ff9933}
+.emblem-icon{width:52px;height:52px;background:#1a237e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.emblem-text{font-size:13px;font-weight:600;color:#1a237e;line-height:1.4}
+.emblem-text span{font-size:11px;font-weight:400;color:#555;display:block}
+.tricolor{height:4px;background:linear-gradient(to right,#ff9933 33%,white 33%,white 66%,#138808 66%)}
+.form-area{padding:28px 22px 30px}
+.title{font-size:18px;font-weight:700;color:#1a237e;margin-bottom:4px}
+.sub{font-size:12px;color:#888;margin-bottom:22px}
+.form-label{font-size:12px;font-weight:600;color:#555;margin-bottom:5px;display:block}
+.form-input{width:100%;padding:13px 14px;border:1.5px solid #e0e0e0;border-radius:12px;font-size:15px;background:#f9f9f9;outline:none;transition:border-color .2s;margin-bottom:14px}
+.form-input:focus{border-color:#1a237e;background:white}
+.login-btn{width:100%;padding:14px;background:#1a237e;color:white;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}
+.login-btn:hover{background:#0d1b5e}
+.error-msg{background:#ffebee;color:#b71c1c;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px}
+.info-box{background:#e8eaf6;border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#283593;line-height:1.6}
+.single-click{text-align:center;margin-bottom:16px}
+.single-click p{font-size:12px;color:#888;margin-bottom:8px}
+.quick-btn{background:#1a237e;color:white;border:none;border-radius:20px;padding:8px 20px;font-size:13px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="emblem-bar">
+    <div class="emblem-icon">🇮🇳</div>
+    <div class="emblem-text">
+      भारत सरकार · Government of India
+      <span>Ministry of Petroleum & Natural Gas</span>
+    </div>
+  </div>
+  <div class="tricolor"></div>
+  <div class="form-area">
+    <div class="title">🏛️ Govt Officials Access</div>
+    <div class="sub">Fuel Monitoring Dashboard — Read Only</div>
+
+    <div class="info-box">
+      ℹ️ <b>Single shared login for all govt officials.</b><br>
+      No mobile OTP required. Use the shared Govt ID and Password provided by your department. Anyone with these credentials can monitor fuel data from anywhere, anytime.
+    </div>
+
+    <div class="error-msg" id="errMsg"></div>
+
+    <label class="form-label">🏛️ Govt Access ID</label>
+    <input class="form-input" type="text" id="govtId"
+           placeholder="e.g. INDHAN_GOVT_2026"
+           onkeypress="if(event.key==='Enter')document.getElementById('govtPwd').focus()">
+
+    <label class="form-label">🔐 Access Password</label>
+    <input class="form-input" type="password" id="govtPwd"
+           placeholder="Shared department password"
+           onkeypress="if(event.key==='Enter')doLogin()">
+
+    <button class="login-btn" onclick="doLogin()">🏛️ Access Fuel Dashboard</button>
+  </div>
+</div>
+
+<script>
+// Check if already logged in as govt
+
+
+async function doLogin(){
+  const govt_id  = document.getElementById('govtId').value.trim();
+  const password = document.getElementById('govtPwd').value.trim();
+  const err = document.getElementById('errMsg');
+  err.style.display='none';
+  if(!govt_id||!password){ err.textContent='Enter both Govt ID and Password'; err.style.display='block'; return; }
+  try {
+    const r = await fetch('/api/auth/govt-login',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({govt_id, password})
+    });
+    const d = await r.json();
+    if(d.success){
+      // Store govt token separately — does not expire with normal user token
+      localStorage.setItem('indhan_govt_token', d.token);
+      localStorage.setItem('indhan_token', d.token);
+      localStorage.setItem('indhan_role', 'govt_official');
+      localStorage.setItem('indhan_name', 'Govt Official');
+      window.location.href='/govt';
+    } else {
+      err.textContent = d.error||'Login failed. Check credentials.';
+      err.style.display='block';
+    }
+  } catch(e){ err.textContent='Server error. Try again.'; err.style.display='block'; }
+}
+</script>
+</body>
+</html>

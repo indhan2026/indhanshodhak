@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Find Fuel Near You</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f0;min-height:100vh;max-width:480px;margin:0 auto}
+.header{background:#1a6b2e;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.header-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.header-text h1{color:white;font-size:16px;font-weight:600}
+.header-text p{color:rgba(255,255,255,.8);font-size:11px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#69f0ae;animation:pulse 2s infinite;margin-left:4px;display:inline-block}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.header-right{margin-left:auto;display:flex;gap:6px;align-items:center}
+.hbtn{background:rgba(255,255,255,.15);border:none;color:white;font-size:11px;padding:5px 9px;border-radius:20px;cursor:pointer}
+.notif-bar{background:#155724;padding:8px 14px;display:flex;align-items:center;gap:8px}
+.notif-bar span{color:rgba(255,255,255,.9);font-size:12px}
+/* Trial banner - only shows when trial ending */
+.trial-banner{background:#e65100;padding:10px 14px;display:none;align-items:center;gap:8px;justify-content:space-between}
+.trial-banner span{color:white;font-size:12px;font-weight:500}
+.trial-btn{background:white;color:#e65100;border:none;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer}
+/* Search */
+.search-section{background:white;padding:12px 14px 10px;border-bottom:1px solid #e0e0e0}
+.search-label{font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+.search-row{display:flex;gap:8px;align-items:stretch}
+.pin-wrap{flex:1;position:relative}
+.pin-wrap em{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;font-style:normal}
+.pin-input{width:100%;padding:11px 12px 11px 34px;border-radius:12px;border:1.5px solid #ddd;font-size:15px;background:#f9f9f9;outline:none}
+.pin-input:focus{border-color:#1a6b2e;background:white}
+.gps-btn{background:#1a6b2e;color:white;border:none;border-radius:12px;padding:10px 12px;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px}
+/* Filter chips */
+.filter-row{display:flex;gap:7px;padding:10px 14px;background:white;border-bottom:1px solid #e0e0e0;overflow-x:auto;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.chip{border:1.5px solid #ddd;border-radius:20px;padding:5px 13px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;background:#f9f9f9;color:#555}
+.chip.active{background:#1a6b2e;color:white;border-color:#1a6b2e}
+/* Map */
+.map-wrap{height:220px;position:relative;overflow:hidden;border-radius:0;z-index:1}
+#leaflet-map{height:220px;width:100%;z-index:1}
+
+.road-h{position:absolute;left:0;right:0;height:5px;background:#bbb;top:50%;transform:translateY(-50%)}
+.road-v{position:absolute;top:0;bottom:0;width:5px;background:#bbb;left:40%}
+.map-pin{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:pointer;transform:translateX(-50%)}
+.pin-dot{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.pin-dot em{transform:rotate(45deg);font-style:normal;font-size:12px}
+.pin-lbl{font-size:9px;font-weight:600;background:white;padding:2px 5px;border-radius:4px;margin-top:3px;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.15);white-space:nowrap}
+.you-dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#1565c0;border:3px solid white;box-shadow:0 0 0 4px rgba(21,101,192,.25)}
+.map-zoom{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}
+.zoom-btn{width:28px;height:28px;background:white;border:1px solid #ddd;border-radius:6px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+/* Pump list */
+.section-lbl{font-size:11px;font-weight:600;color:#888;padding:10px 14px 6px;text-transform:uppercase;letter-spacing:.4px;background:#f0f4f0}
+.pump-card{background:white;margin:0 10px 8px;border-radius:14px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:pointer;border:1px solid #eee}
+.pump-card.verified{border-color:#1a6b2e;border-width:1.5px}
+.pump-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px}
+.pump-name{font-size:13px;font-weight:600;color:#222}
+.pump-status{font-size:11px;font-weight:600}
+.pump-addr{font-size:11px;color:#888;margin-bottom:7px}
+.verified-badge{display:inline-flex;align-items:center;gap:3px;background:#1a6b2e;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:7px;letter-spacing:.3px}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.tag{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.tag-yes{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7}
+.tag-no{background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a}
+.tag-unk{background:#f5f5f5;color:#999;border:1px solid #ddd}
+.pump-footer{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #f0f0f0}
+.pump-time{font-size:11px;color:#aaa}
+.report-btn{font-size:12px;color:#1a6b2e;font-weight:600;border:1.5px solid #1a6b2e;border-radius:20px;padding:4px 12px;background:none;cursor:pointer}
+/* Fuel ID card */
+.fuelid-card{margin:4px 10px 8px;border-radius:14px;padding:12px 14px;border:1.5px solid #1a6b2e;background:#e8f5e9}
+.fuelid-card.pre-crisis{background:#fff8e1;border-color:#f9a825}
+.fuelid-card.pre-crisis .fuelid-title{color:#e65100}
+.fuelid-card.pre-crisis .fuelid-sub{color:#bf360c}
+.fuelid-card.emergency{background:#fff3e0;border-color:#e64a19}
+.fuelid-card.emergency .fuelid-title{color:#bf360c}
+.fuelid-card.emergency .fuelid-sub{color:#b71c1c}
+.fuelid-card.full-crisis{background:#ffebee;border-color:#c62828;border-width:2px}
+.fuelid-card.full-crisis .fuelid-title{color:#b71c1c;font-size:14px}
+.fuelid-card.full-crisis .fuelid-sub{color:#b71c1c;font-weight:600}
+.fuelid-card.full-crisis .fuelid-btn{background:#c62828}
+.fuelid-title{font-size:13px;font-weight:600;color:#1b5e20;margin-bottom:4px}
+.fuelid-sub{font-size:12px;color:#2e7d32;margin-bottom:8px;line-height:1.5}
+.fuelid-btn{background:#1a6b2e;color:white;border:none;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer}
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;background:white;border-top:1px solid #e0e0e0;z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px;cursor:pointer;text-decoration:none}
+.nav-item span:first-child{font-size:20px}
+.nav-item span:last-child{font-size:10px;color:#aaa;margin-top:2px}
+.nav-item.active span:last-child{color:#1a6b2e}
+.content-wrap{padding-bottom:70px}
+/* Modals */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:white;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 16px 32px;max-height:90vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.modal-sub{font-size:13px;color:#888;margin-bottom:16px}
+.modal-close{float:right;background:#f0f0f0;border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;color:#666}
+/* Report form */
+.fuel-opt{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.fuel-opt:last-of-type{border-bottom:none}
+.tog-group{display:flex;gap:6px}
+.tog{padding:7px 16px;border-radius:20px;border:1.5px solid #ddd;font-size:13px;font-weight:600;cursor:pointer;background:#f5f5f5;color:#666;transition:all 0.2s}
+.tog:hover{border-color:#1a6b2e;color:#1a6b2e;background:#f1f8e9}
+.tog.yes{background:#1a6b2e!important;color:#fff!important;border-color:#1a6b2e!important;font-weight:700}
+.tog.no{background:#ffebee!important;color:#b71c1c!important;border-color:#ef9a9a!important}
+
+.submit-btn{margin-top:16px;width:100%;padding:13px;background:#1a6b2e;color:white;border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer}
+/* Language */
+.lang-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.lang-opt{background:#f9f9f9;border:1.5px solid #eee;border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer}
+.lang-opt.active{background:#e8f5e9;border-color:#1a6b2e}
+.lang-opt .lname{font-size:12px;font-weight:600;color:#333}
+.lang-opt .lnative{font-size:11px;color:#888}
+/* Trial expired modal */
+.trial-modal{background:white;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 16px 32px;text-align:center}
+.trial-icon{font-size:48px;margin-bottom:10px}
+.trial-title{font-size:18px;font-weight:700;color:#333;margin-bottom:6px}
+.trial-desc{font-size:13px;color:#666;margin-bottom:16px;line-height:1.6}
+.pay-btn{width:100%;padding:14px;background:#1a6b2e;color:white;border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:8px}
+.skip-btn{width:100%;padding:11px;background:#f5f5f5;color:#888;border:none;border-radius:14px;font-size:13px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">⛽</div>
+  <div class="header-text">
+    <h1>IndhanShodhak <span class="live-dot"></span></h1>
+    <p id="header-sub">जनतेसाठी, जनतेकडून · By the people, for the people</p>
+  </div>
+  <div class="header-right">
+    <button class="hbtn" onclick="openModal('langModal')" id="btn-lang">🌐 Lang</button>
+    <button class="hbtn" onclick="goToFuelId()" id="btn-myqr">🎫 My QR</button>
+    <button class="hbtn" onclick="userLogout()" id="btn-logout" style="background:rgba(255,255,255,.15)">🚪</button>
+  </div>
+</div>
+
+<!-- Trial ending banner — only shows last 2 days -->
+<div class="trial-banner" id="trialBanner">
+  <span id="trialMsg">⏳ Trial expires in 2 days</span>
+  <button class="trial-btn" id="trialContributeBtn" onclick="window.location.href='/subscribe'">Contribute ₹14.99</button>
+</div>
+
+<div id="tierDowngradeWarn" style="display:none;background:#fff3e0;padding:7px 12px;font-size:12px;color:#e65100;text-align:center;border-bottom:0.5px solid #ffe0b2"></div>
+<div class="notif-bar">
+  <span class="live-dot"></span>
+  <span id="notif-text">HP Petrol Pump, Newasa — Petrol available! 18 min ago</span>
+</div>
+
+<div class="content-wrap">
+  <div class="search-section" style="padding:10px 12px">
+    <div class="search-label" id="lbl-search" style="text-align:center;margin-bottom:8px;font-size:13px;color:#555" id="lbl-tagline">📍 Tap below to find pumps near you</div>
+    <button class="gps-btn" onclick="useGPS()" id="btn-gps-main"
+      style="width:100%;padding:14px;font-size:16px;font-weight:700;border-radius:14px;flex-direction:row;gap:8px;justify-content:center;background:linear-gradient(135deg,#1a6b2e,#2e7d32)">
+      <span style="font-size:22px">📡</span>
+      <span id="lbl-gps">Find Pumps Near Me</span>
+    </button>
+    <input type="hidden" id="pinInput" value=""/>
+  </div>
+
+  <div class="filter-row">
+    <div class="chip active" onclick="setFilter(this,'all')" id="f-all">All</div>
+    <div class="chip" onclick="setFilter(this,'petrol')" id="f-petrol">⛽ Petrol</div>
+    <div class="chip" onclick="setFilter(this,'diesel')" id="f-diesel">🛢 Diesel</div>
+    <div class="chip" onclick="setFilter(this,'cng')" id="f-cng">🔥 CNG</div>
+    <div class="chip" onclick="setFilter(this,'ev')" id="f-ev">⚡ EV</div>
+  </div>
+
+  <div class="map-wrap">
+    <div id="leaflet-map"></div>
+  </div>
+
+  <div class="section-lbl" id="pump-section-lbl">Nearby Petrol Pumps</div>
+
+  <!-- Fuel ID Registration Card — always visible, Aadhaar optional with benefits msg -->
+  <div class="fuelid-card" id="fuelIdCard">
+    <div class="fuelid-title" id="fuelid-title">🎫 Get Your Fuel ID — Be Crisis Ready!</div>
+    <div class="fuelid-sub" id="fuelid-msg">Register now to get a QR code. During fuel crisis — QR holders get priority fuel access. Aadhaar users get higher fuel limits!</div>
+    <button class="fuelid-btn" onclick="goToFuelId()">Register for Fuel ID →</button>
+  </div>
+
+  <div id="pumpList">
+    <div style="padding:20px;text-align:center;color:#888;font-size:13px">
+      🔍 Enter PIN code above or Use GPS to find pumps near you
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <a class="nav-item active" href="/">
+    <span>🗺️</span><span id="nav-find">Find</span>
+  </a>
+  <a class="nav-item" href="/profile_setup" onclick="return goToFuelId()">
+    <span>🎫</span><span id="nav-qr">My QR</span>
+  </a>
+  <a class="nav-item" href="#" onclick="openReport('',0)">
+    <span>📝</span><span id="nav-report">Report</span>
+  </a>
+  <a class="nav-item" href="#" onclick="openModal('profileModal')">
+    <span>👤</span><span id="nav-profile">Profile</span>
+  </a>
+</div>
+
+<!-- Report Modal — ANY user can report -->
+<div class="modal-bg" id="reportModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('reportModal')">✕</button>
+    <div class="modal-title" id="report-pump-name">Report Fuel Availability</div>
+    <div class="modal-sub" id="report-sub">तुम्ही इंधन स्थिती सांगू शकता · Help the community — what fuel is available RIGHT NOW at this pump?</div>
+    <div class="fuel-opt">
+      <span>⛽ Petrol</span>
+      <div class="tog-group">
+        <button class="tog" onclick="setTog(this,'yes')">✓ Yes</button>
+        <button class="tog" onclick="setTog(this,'no')">✗ No</button>
+      </div>
+    </div>
+    <div class="fuel-opt">
+      <span>🛢 Diesel</span>
+      <div class="tog-group">
+        <button class="tog" onclick="setTog(this,'yes')">✓ Yes</button>
+        <button class="tog" onclick="setTog(this,'no')">✗ No</button>
+      </div>
+    </div>
+    <div class="fuel-opt">
+      <span>🔥 CNG</span>
+      <div class="tog-group">
+        <button class="tog" onclick="setTog(this,'yes')">✓ Yes</button>
+        <button class="tog" onclick="setTog(this,'no')">✗ No</button>
+      </div>
+    </div>
+    <div class="fuel-opt">
+      <span>⚡ EV Charging</span>
+      <div class="tog-group">
+        <button class="tog" onclick="setTog(this,'yes')">✓ Yes</button>
+        <button class="tog" onclick="setTog(this,'no')">✗ No</button>
+      </div>
+    </div>
+    <div class="fuel-opt">
+      <span>👥 Queue Length</span>
+      <div class="tog-group">
+        <button class="tog" onclick="setTog(this,'yes')">Short</button>
+        <button class="tog" onclick="setTog(this,'no')">Long</button>
+      </div>
+    </div>
+    <div style="background:#e8f5e9;border-radius:10px;padding:10px;font-size:12px;color:#1b5e20;margin-top:10px">
+      ℹ️ Your report helps lakhs of people find fuel. Thank you for contributing!
+    </div>
+    <button class="submit-btn" onclick="submitReport()">📤 Submit Report — Notify Nearby Users</button>
+  </div>
+</div>
+
+<!-- Language Modal -->
+<div class="modal-bg" id="langModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('langModal')">✕</button>
+    <div class="modal-title">🌐 Select Language / भाषा निवडा</div>
+    <div class="lang-grid">
+      <div class="lang-opt" onclick="setLang('en',this)"><div class="lname">English</div><div class="lnative">English</div></div>
+      <div class="lang-opt" onclick="setLang('hi',this)"><div class="lname">Hindi</div><div class="lnative">हिंदी</div></div>
+      <div class="lang-opt" onclick="setLang('mr',this)"><div class="lname">Marathi</div><div class="lnative">मराठी</div></div>
+      <div class="lang-opt" onclick="setLang('gu',this)"><div class="lname">Gujarati</div><div class="lnative">ગુજરાતી</div></div>
+      <div class="lang-opt" onclick="setLang('pa',this)"><div class="lname">Punjabi</div><div class="lnative">ਪੰਜਾਬੀ</div></div>
+      <div class="lang-opt" onclick="setLang('ta',this)"><div class="lname">Tamil</div><div class="lnative">தமிழ்</div></div>
+      <div class="lang-opt" onclick="setLang('te',this)"><div class="lname">Telugu</div><div class="lnative">తెలుగు</div></div>
+      <div class="lang-opt" onclick="setLang('kn',this)"><div class="lname">Kannada</div><div class="lnative">ಕನ್ನಡ</div></div>
+      <div class="lang-opt" onclick="setLang('bn',this)"><div class="lname">Bengali</div><div class="lnative">বাংলা</div></div>
+      <div class="lang-opt" onclick="setLang('ml',this)"><div class="lname">Malayalam</div><div class="lnative">മലയാളം</div></div>
+      <div class="lang-opt" onclick="setLang('or',this)"><div class="lname">Odia</div><div class="lnative">ଓଡ଼ିଆ</div></div>
+      <div class="lang-opt" onclick="setLang('ur',this)"><div class="lname">Urdu</div><div class="lnative">اردو</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Trial expired modal — only shows AFTER trial ends -->
+<div class="modal-bg" id="trialModal">
+  <div class="trial-modal">
+    <div class="trial-icon">⏰</div>
+    <div class="trial-title" id="trial-modal-title">Your Free Trial Has Ended</div>
+    <div class="trial-desc" id="trial-modal-desc">
+      Your 10-day free trial is over. Contribute ₹14.99/month — less than the price of one samosa — to keep using IndhanShodhak and help us serve lakhs of Indians during the fuel crisis.
+    </div>
+    <div style="background:#f9f9f9;border-radius:12px;padding:12px;margin-bottom:14px;font-size:12px;color:#555;line-height:1.8;text-align:left">
+      ☁️ Server running 24×7 for lakhs of users<br>
+      🔔 Real-time notifications across India<br>
+      🗺️ Map services and live data<br>
+      👥 Verifier team maintaining data quality
+    </div>
+    <button class="pay-btn" onclick="window.location.href='/subscribe'">💚 Contribute ₹14.99/month</button>
+    <button class="skip-btn" onclick="closeModal('trialModal')">Not now — limited access</button>
+  </div>
+</div>
+
+<!-- Pay Modal -->
+<div class="modal-bg" id="payModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('payModal')">✕</button>
+    <div class="modal-title">❤️ Support IndhanShodhak</div>
+    <div class="modal-sub">Less than one samosa — help us serve all of India</div>
+    <div style="background:#e8f5e9;border-radius:12px;padding:14px;margin-bottom:14px;font-size:12px;color:#1b5e20;line-height:1.8">
+      ☁️ Server costs · 🔔 Notifications · 🗺️ Maps · 👥 Verifier team
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#f9f9f9;border-radius:12px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:600">Monthly contribution</div>
+      <div style="font-size:22px;font-weight:700;color:#1a6b2e">₹14.99</div>
+    </div>
+    <button style="width:100%;padding:13px;background:#1a6b2e;color:white;border:none;border-radius:14px;font-size:14px;font-weight:600;cursor:pointer" onclick="alert('Razorpay payment opens here')">🔒 Pay via GPay / UPI / Card</button>
+    <div style="font-size:11px;color:#aaa;text-align:center;margin-top:8px">Secure · Cancel anytime · Razorpay</div>
+  </div>
+</div>
+<!-- Profile Modal -->
+<div class="modal-bg" id="profileModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('profileModal')">✕</button>
+    <div class="modal-title">👤 My Profile</div>
+    <div style="padding:0 4px">
+      <!-- User info -->
+      <div style="background:#f0f9f0;border-radius:12px;padding:14px;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:700;color:#1a6b2e" id="prof-name">—</div>
+        <div style="font-size:13px;color:#888;margin-top:2px" id="prof-mobile">—</div>
+        <div style="font-size:12px;color:#1a6b2e;margin-top:6px;font-weight:600" id="prof-tier">P5 — General Public</div>
+      </div>
+      <!-- Actions -->
+      <a href="/profile_setup" style="display:flex;align-items:center;gap:10px;padding:12px 14px;
+        background:#f5f5f5;border-radius:12px;text-decoration:none;color:#333;margin-bottom:8px">
+        <span style="font-size:20px">🎫</span>
+        <div>
+          <div style="font-size:13px;font-weight:600">My Fuel ID & QR</div>
+          <div style="font-size:11px;color:#888">View QR · Apply for priority tier</div>
+        </div>
+        <span style="margin-left:auto">→</span>
+      </a>
+      <a href="/subscribe.html" style="display:flex;align-items:center;gap:10px;padding:12px 14px;
+        background:#fff8e1;border-radius:12px;text-decoration:none;color:#e65100;margin-bottom:8px">
+        <span style="font-size:20px">⭐</span>
+        <div>
+          <div style="font-size:13px;font-weight:600">Subscription</div>
+          <div style="font-size:11px;color:#888" id="prof-sub-status">Free trial active</div>
+        </div>
+        <span style="margin-left:auto">→</span>
+      </a>
+      <!-- Logout -->
+      <button onclick="userLogout()"
+        style="width:100%;padding:12px;background:#ffebee;color:#b71c1c;border:none;
+        border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;
+        display:flex;align-items:center;justify-content:center;gap:8px">
+        🚪 Logout
+      </button>
+      <div style="font-size:11px;color:#aaa;text-align:center;margin-top:8px">
+        You'll need OTP to login again
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ── All translations ──────────────────────────────────────────
+const T = {
+  en: {
+    header_sub:   'By the people, for the people',
+    lbl_search:   'Tap below to find pumps near you',
+    lbl_gps:      'Find Pumps Near Me',
+    pump_section: 'Nearby Petrol Pumps',
+    fuelid_msg:   'Register now to get a QR code. During fuel crisis — QR holders get priority fuel access. Aadhaar users get higher fuel limits!',
+    fuelid_title_pre:'⚠️ Register Now — Verification Mode Active!',
+    fuelid_msg_pre:'⚠️ Pre-Crisis Alert — Verification required soon. Apply for Fuel ID NOW to ensure you get fuel when crisis hits!',
+    fuelid_title_emergency:'🚨 Fuel Rationing Active!',
+    fuelid_msg_emergency:'🚨 Fuel Rationing Active — Limits enforced at every pump. No Fuel ID = 10 litres only. Register now for your full allocation!',
+    fuelid_title_full:'🚨 FUEL CRISIS — Fuel ID Required!',
+    fuelid_msg_full:'🚨 FUEL CRISIS — ONLY Fuel ID (QR) holders get fuel. NO QR = NO FUEL at pump. Register immediately!',
+    report_sub:   'Help others — What fuel is available RIGHT NOW?',
+    report_hint:  'You can report fuel status · Help community',
+    nav_find:     'Find', nav_qr:'My QR', nav_report:'Report', nav_profile:'Profile',
+    btn_lang:     '🌐 Lang', btn_myqr:'🎫 My QR',
+    f_all:'All', f_petrol:'⛽ Petrol', f_diesel:'🛢 Diesel', f_cng:'🔥 CNG', f_ev:'⚡ EV',
+  },
+  hi: {
+    header_sub:   'जनता के लिए, जनता द्वारा',
+    lbl_search:   'नीचे टैप करें',
+    lbl_gps:      'मेरे पास पंप खोजें',
+    pump_section: 'नजदीकी पेट्रोल पंप',
+    fuelid_msg:   'अभी रजिस्टर करें और QR कोड पाएं। ईंधन संकट में — QR धारकों को पहले ईंधन मिलेगा!',
+    fuelid_title_pre:'⚠️ अभी नोंदणी करें — सत्यापन मोड चालू!',
+    fuelid_msg_pre:'⚠️ सावधान — जल्द सत्यापन जरूरी। अभी Fuel ID के लिए आवेदन करें! संकट में QR धारकों को पहले ईंधन मिलेगा।',
+    fuelid_title_emergency:'🚨 ईंधन राशनिंग चालू!',
+    fuelid_msg_emergency:'🚨 ईंधन राशनिंग चालू — हर पंप पर सीमा लागू। Fuel ID नहीं = केवल 10 लीटर। अभी रजिस्टर करें!',
+    fuelid_title_full:'🚨 ईंधन संकट — Fuel ID अनिवार्य!',
+    fuelid_msg_full:'🚨 ईंधन संकट — केवल Fuel ID (QR) धारकों को ईंधन मिलेगा। QR नहीं = ईंधन नहीं। तुरंत रजिस्टर करें!',
+    report_sub:   'दूसरों की मदद करें — अभी कौन सा ईंधन उपलब्ध है?',
+    report_hint:  'ईंधन स्थिति बताएं · समुदाय की मदद करें',
+    nav_find:     'खोजें', nav_qr:'मेरा QR', nav_report:'रिपोर्ट', nav_profile:'प्रोफाइल',
+    btn_lang:     '🌐 भाषा', btn_myqr:'🎫 मेरा QR',
+    f_all:'सभी', f_petrol:'⛽ पेट्रोल', f_diesel:'🛢 डीज़ल', f_cng:'🔥 CNG', f_ev:'⚡ EV',
+  },
+  mr: {
+    header_sub:   'जनतेसाठी, जनतेकडून',
+    lbl_search:   'खाली टॅप करा',
+    lbl_gps:      'जवळचे पंप शोधा',
+    pump_section: 'जवळचे पेट्रोल पंप',
+    fuelid_msg:   'आत्ता नोंदणी करा आणि QR कोड मिळवा. इंधन संकटात — QR धारकांना आधी इंधन मिळेल!',
+    fuelid_title_pre:'⚠️ आत्ताच नोंदणी करा — पडताळणी मोड सुरू!',
+    fuelid_msg_pre:'⚠️ सावधान — लवकरच पडताळणी आवश्यक. आत्ताच Fuel ID साठी नोंदणी करा! संकटात QR धारकांना आधी इंधन मिळेल.',
+    fuelid_title_emergency:'🚨 इंधन नियंत्रण सुरू!',
+    fuelid_msg_emergency:'🚨 इंधन नियंत्रण सुरू — प्रत्येक पंपावर मर्यादा लागू. Fuel ID नाही = फक्त 10 लिटर. आत्ताच नोंदणी करा!',
+    fuelid_title_full:'🚨 इंधन संकट — Fuel ID अनिवार्य!',
+    fuelid_msg_full:'🚨 इंधन संकट — फक्त Fuel ID (QR) धारकांना इंधन मिळेल. QR नाही = इंधन नाही. ताबडतोब नोंदणी करा!',
+    report_sub:   'इतरांना मदत करा — आत्ता कोणते इंधन उपलब्ध आहे?',
+    report_hint:  'तुम्ही इंधन स्थिती सांगू शकता · समाजाला मदत करा',
+    nav_find:     'शोधा', nav_qr:'माझा QR', nav_report:'अहवाल', nav_profile:'प्रोफाइल',
+    btn_lang:     '🌐 भाषा', btn_myqr:'🎫 माझा QR',
+    f_all:'सर्व', f_petrol:'⛽ पेट्रोल', f_diesel:'🛢 डिझेल', f_cng:'🔥 CNG', f_ev:'⚡ EV',
+  },
+  gu: {
+    header_sub:'ઇંધણ ઉપલબ્ધતા શોધો',lbl_search:'નજીકના પેટ્રોલ પંપ શોધો',lbl_gps:'GPS વાપરો',
+    pump_section:'નજીકના પેટ્રોલ પંપ',fuelid_msg:'QR કોડ મેળવવા નોંધણી કરો.',report_sub:'અત્યારે ક્યું ઇંધણ ઉપલબ્ધ છે?',
+    fuelid_title_pre:'⚠️ હવે નોંધણી કરો — ચકાસણી મોડ ચાલુ!',
+    fuelid_msg_pre:'⚠️ ચેતવણી — જલ્દી ચકાસણી જરૂરી. હમણાં Fuel ID માટે નોંધણી કરો! સંકટ સમયે QR ધારકોને પ્રથમ ઇંધણ મળશે.',
+    fuelid_title_emergency:'🚨 ઇંધણ રેશનિંગ ચાલુ!',
+    fuelid_msg_emergency:'🚨 ઇંધણ રેશનિંગ ચાલુ — દરેક પંપ પર મર્યાદા. Fuel ID નહીં = ફક્ત 10 લીટર. અત્યારે નોંધણી કરો!',
+    fuelid_title_full:'🚨 ઇંધણ સંકટ — Fuel ID ફરજિયાત!',
+    fuelid_msg_full:'🚨 ઇંધણ સંકટ — ફક્ત Fuel ID (QR) ધારકોને ઇંધણ. QR નહીં = ઇંધણ નહીં. તાત્કાલિક નોંધણી કરો!',
+    report_hint:  'ઇંધણ સ્થિતિ જણાવો · સમુદાયને મદદ કરો',
+    nav_find:'શોધો',nav_qr:'મારો QR',nav_report:'રિપોર્ટ',nav_profile:'પ્રોફાઇલ',btn_lang:'🌐 ભાષા',btn_myqr:'🎫 QR',
+    f_all:'બધા',f_petrol:'⛽ પેટ્રોલ',f_diesel:'🛢 ડીઝલ',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  },
+  pa: {
+    header_sub:'ਬਾਲਣ ਦੀ ਉਪਲਬਧਤਾ ਲੱਭੋ',lbl_search:'ਨਜ਼ਦੀਕੀ ਪੈਟਰੋਲ ਪੰਪ ਲੱਭੋ',lbl_gps:'GPS ਵਰਤੋ',
+    pump_section:'ਨਜ਼ਦੀਕੀ ਪੈਟਰੋਲ ਪੰਪ',fuelid_msg:'QR ਕੋਡ ਲਈ ਰਜਿਸਟਰ ਕਰੋ।',report_sub:'ਹੁਣ ਕਿਹੜਾ ਬਾਲਣ ਉਪਲਬਧ ਹੈ?',
+    fuelid_title_pre:'⚠️ ਹੁਣੇ ਰਜਿਸਟਰ ਕਰੋ — ਤਸਦੀਕ ਮੋਡ ਚਾਲੂ!',
+    fuelid_msg_pre:'⚠️ ਚੇਤਾਵਨੀ — ਜਲਦੀ ਤਸਦੀਕ ਜ਼ਰੂਰੀ. ਹੁਣੇ Fuel ID ਲਈ ਰਜਿਸਟਰ ਕਰੋ! ਸੰਕਟ ਵਿੱਚ QR ਧਾਰਕਾਂ ਨੂੰ ਪਹਿਲਾਂ ਈਂਧਨ ਮਿਲੇਗਾ।',
+    fuelid_title_emergency:'🚨 ਈਂਧਨ ਰਾਸ਼ਨਿੰਗ ਚਾਲੂ!',
+    fuelid_msg_emergency:'🚨 ਈਂਧਨ ਰਾਸ਼ਨਿੰਗ ਚਾਲੂ — ਹਰ ਪੰਪ ਤੇ ਸੀਮਾ. Fuel ID ਨਹੀਂ = ਸਿਰਫ਼ 10 ਲੀਟਰ. ਹੁਣੇ ਰਜਿਸਟਰ ਕਰੋ!',
+    fuelid_title_full:'🚨 ਈਂਧਨ ਸੰਕਟ — Fuel ID ਲਾਜ਼ਮੀ!',
+    fuelid_msg_full:'🚨 ਈਂਧਨ ਸੰਕਟ — ਸਿਰਫ਼ Fuel ID (QR) ਧਾਰਕਾਂ ਨੂੰ ਈਂਧਨ ਮਿਲੇਗਾ. QR ਨਹੀਂ = ਈਂਧਨ ਨਹੀਂ. ਤੁਰੰਤ ਰਜਿਸਟਰ ਕਰੋ!',
+    report_hint:  'ਬਾਲਣ ਸਥਿਤੀ ਦੱਸੋ · ਭਾਈਚਾਰੇ ਦੀ ਮਦਦ ਕਰੋ',
+    nav_find:'ਲੱਭੋ',nav_qr:'ਮੇਰਾ QR',nav_report:'ਰਿਪੋਰਟ',nav_profile:'ਪ੍ਰੋਫਾਈਲ',btn_lang:'🌐 ਭਾਸ਼ਾ',btn_myqr:'🎫 QR',
+    f_all:'ਸਾਰੇ',f_petrol:'⛽ ਪੈਟਰੋਲ',f_diesel:'🛢 ਡੀਜ਼ਲ',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  },
+  ta: {
+    header_sub:'எரிபொருள் கிடைக்கும் இடம் கண்டறியுங்கள்',lbl_search:'அருகிலுள்ள பெட்ரோல் பம்ப்',lbl_gps:'GPS பயன்படுத்து',
+    pump_section:'அருகிலுள்ள பெட்ரோல் பம்ப்',fuelid_msg:'QR குறியீட்டிற்கு பதிவு செய்யுங்கள்.',report_sub:'இப்போது எந்த எரிபொருள் கிடைக்கிறது?',
+    fuelid_title_pre:'⚠️ இப்போதே பதிவு செய்யுங்கள் — சரிபார்ப்பு முறை செயலில்!',
+    fuelid_msg_pre:'⚠️ எச்சரிக்கை — விரைவில் சரிபார்ப்பு தேவை. இப்போதே Fuel ID க்கு பதிவு செய்யுங்கள்! நெருக்கடியில் QR உடையவர்களுக்கு முதலில் எரிபொருள்.',
+    fuelid_title_emergency:'🚨 எரிபொருள் ரேஷன் செயலில்!',
+    fuelid_msg_emergency:'🚨 எரிபொருள் ரேஷன் செயலில் — ஒவ்வொரு பம்பிலும் வரம்பு. Fuel ID இல்லை = 10 லிட்டர் மட்டும். இப்போதே பதிவு செய்யுங்கள்!',
+    fuelid_title_full:'🚨 எரிபொருள் நெருக்கடி — Fuel ID கட்டாயம்!',
+    fuelid_msg_full:'🚨 எரிபொருள் நெருக்கடி — Fuel ID (QR) உடையவர்களுக்கு மட்டும் எரிபொருள். QR இல்லை = எரிபொருள் இல்லை. உடனே பதிவு செய்யுங்கள்!',
+    report_hint:  'எரிபொருள் நிலையைத் தெரிவியுங்கள் · சமூகத்திற்கு உதவுங்கள்',
+    nav_find:'தேடு',nav_qr:'என் QR',nav_report:'அறிக்கை',nav_profile:'சுயவிவரம்',btn_lang:'🌐 மொழி',btn_myqr:'🎫 QR',
+    f_all:'அனைத்தும்',f_petrol:'⛽ பெட்ரோல்',f_diesel:'🛢 டீசல்',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  },
+  te: {header_sub:'ఇంధన లభ్యత వెతకండి',lbl_search:'దగ్గరలో పెట్రోల్ పంపులు',lbl_gps:'GPS వాడండి',pump_section:'దగ్గరలో పెట్రోల్ పంపులు',fuelid_msg:'QR కోడ్ కోసం నమోదు చేయండి.',report_sub:'ఇప్పుడు ఏ ఇంధనం అందుబాటులో ఉంది?',nav_find:'వెతకు',nav_qr:'నా QR',nav_report:'నివేదిక',nav_profile:'ప్రొఫైల్',btn_lang:'🌐 భాష',btn_myqr:'🎫 QR',f_all:'అన్నీ',f_petrol:'⛽ పెట్రోల్',f_diesel:'🛢 డీజిల్',f_cng:'🔥 CNG',f_ev:'⚡ EV'},
+    fuelid_title_pre:'⚠️ ఇప్పుడే నమోదు చేయండి — ధృవీకరణ మోడ్ యాక్టివ్!',
+    fuelid_msg_pre:'⚠️ హెచ్చరిక — త్వరలో ధృవీకరణ అవసరం. ఇప్పుడే Fuel ID కోసం నమోదు చేయండి! సంక్షోభంలో QR ఉన్నవారికి ముందు ఇంధనం.',
+    fuelid_title_emergency:'🚨 ఇంధన రేషనింగ్ చురుగ్గా!',
+    fuelid_msg_emergency:'🚨 ఇంధన రేషనింగ్ చురుగ్గా — ప్రతి పంప్‌లో పరిమితి. Fuel ID లేదు = 10 లీటర్లు మాత్రమే. ఇప్పుడే నమోదు చేయండి!',
+    fuelid_title_full:'🚨 ఇంధన సంక్షోభం — Fuel ID తప్పనిసరి!',
+    fuelid_msg_full:'🚨 ఇంధన సంక్షోభం — Fuel ID (QR) ఉన్నవారికి మాత్రమే ఇంధనం. QR లేదు = ఇంధనం లేదు. వెంటనే నమోదు చేయండి!',
+    report_hint:  'ఇంధన స్థితిని తెలియజేయండి · సమాజానికి సహాయం చేయండి',
+  kn: {header_sub:'ಇಂಧನ ಲಭ್ಯತೆ ಹುಡುಕಿ',lbl_search:'ಹತ್ತಿರದ ಪೆಟ್ರೋಲ್ ಪಂಪ್',lbl_gps:'GPS ಬಳಸಿ',pump_section:'ಹತ್ತಿರದ ಪೆಟ್ರೋಲ್ ಪಂಪ್',fuelid_msg:'QR ಕೋಡ್‌ಗೆ ನೋಂದಾಯಿಸಿ.',report_sub:'ಈಗ ಯಾವ ಇಂಧನ ಲಭ್ಯವಿದೆ?',nav_find:'ಹುಡುಕು',nav_qr:'ನನ್ನ QR',nav_report:'ವರದಿ',nav_profile:'ಪ್ರೊಫೈಲ್',btn_lang:'🌐 ಭಾಷೆ',btn_myqr:'🎫 QR',f_all:'ಎಲ್ಲಾ',f_petrol:'⛽ ಪೆಟ್ರೋಲ್',f_diesel:'🛢 ಡೀಸೆಲ್',f_cng:'🔥 CNG',f_ev:'⚡ EV'},
+    fuelid_title_pre:'⚠️ ಈಗಲೇ ನೋಂದಾಯಿಸಿ — ಪರಿಶೀಲನೆ ಮೋಡ್ ಸಕ್ರಿಯ!',
+    fuelid_msg_pre:'⚠️ ಎಚ್ಚರಿಕೆ — ಶೀಘ್ರದಲ್ಲೇ ಪರಿಶೀಲನೆ ಅಗತ್ಯ. ಈಗಲೇ Fuel ID ಗಾಗಿ ನೋಂದಾಯಿಸಿ! ಬಿಕ್ಕಟ್ಟಿನಲ್ಲಿ QR ಉಳ್ಳವರಿಗೆ ಮೊದಲು ಇಂಧನ.',
+    fuelid_title_emergency:'🚨 ಇಂಧನ ರೇಷನಿಂಗ್ ಸಕ್ರಿಯ!',
+    fuelid_msg_emergency:'🚨 ಇಂಧನ ರೇಷನಿಂಗ್ ಸಕ್ರಿಯ — ಪ್ರತಿ ಪಂಪ್‌ನಲ್ಲಿ ಮಿತಿ. Fuel ID ಇಲ್ಲ = 10 ಲೀಟರ್ ಮಾತ್ರ. ಈಗಲೇ ನೋಂದಾಯಿಸಿ!',
+    fuelid_title_full:'🚨 ಇಂಧನ ಬಿಕ್ಕಟ್ಟು — Fuel ID ಕಡ್ಡಾಯ!',
+    fuelid_msg_full:'🚨 ಇಂಧನ ಬಿಕ್ಕಟ್ಟು — Fuel ID (QR) ಉಳ್ಳವರಿಗೆ ಮಾತ್ರ ಇಂಧನ. QR ಇಲ್ಲ = ಇಂಧನ ಇಲ್ಲ. ತಕ್ಷಣ ನೋಂದಾಯಿಸಿ!',
+    report_hint:  'ಇಂಧನ ಸ್ಥಿತಿ ತಿಳಿಸಿ · ಸಮುದಾಯಕ್ಕೆ ಸಹಾಯ ಮಾಡಿ',
+  bn: {header_sub:'জ্বালানি প্রাপ্যতা খুঁজুন',lbl_search:'কাছের পেট্রোল পাম্প',lbl_gps:'GPS ব্যবহার করুন',pump_section:'কাছের পেট্রোল পাম্প',fuelid_msg:'QR কোডের জন্য নিবন্ধন করুন।',report_sub:'এখন কোন জ্বালানি পাওয়া যাচ্ছে?',nav_find:'খুঁজুন',nav_qr:'আমার QR',nav_report:'রিপোর্ট',nav_profile:'প্রোফাইল',btn_lang:'🌐 ভাষা',btn_myqr:'🎫 QR',f_all:'সব',f_petrol:'⛽ পেট্রোল',f_diesel:'🛢 ডিজেল',f_cng:'🔥 CNG',f_ev:'⚡ EV'},
+    fuelid_title_pre:'⚠️ এখনই নিবন্ধন করুন — যাচাই মোড চালু!',
+    fuelid_msg_pre:'⚠️ সতর্কতা — শীঘ্রই যাচাই প্রয়োজন। এখনই Fuel ID এর জন্য নিবন্ধন করুন! সংকটে QR ধারকরা প্রথমে জ্বালানি পাবেন।',
+    fuelid_title_emergency:'🚨 জ্বালানি রেশনিং চালু!',
+    fuelid_msg_emergency:'🚨 জ্বালানি রেশনিং চালু — প্রতিটি পাম্পে সীমা। Fuel ID নেই = মাত্র 10 লিটার। এখনই নিবন্ধন করুন!',
+    fuelid_title_full:'🚨 জ্বালানি সংকট — Fuel ID বাধ্যতামূলক!',
+    fuelid_msg_full:'🚨 জ্বালানি সংকট — শুধুমাত্র Fuel ID (QR) ধারকরা জ্বালানি পাবেন। QR নেই = জ্বালানি নেই। তাৎক্ষণিক নিবন্ধন করুন!',
+    report_hint:  'জ্বালানির অবস্থা জানান · সম্প্রদায়কে সাহায্য করুন',
+  ml: {header_sub:'ഇന്ധനം ലഭ്യത കണ്ടെത്തുക',lbl_search:'അടുത്ത പെട്രോൾ പമ്പ്',lbl_gps:'GPS ഉപയോഗിക്കുക',pump_section:'അടുത്ത പെട്രോൾ പമ്പ്',fuelid_msg:'QR കോഡിനായി രജിസ്റ്റർ ചെയ്യുക.',report_sub:'ഇപ്പോൾ ഏത് ഇന്ധനം ലഭ്യമാണ്?',nav_find:'കണ്ടെത്തുക',nav_qr:'എൻ്റെ QR',nav_report:'റിപ്പോർട്ട്',nav_profile:'പ്രൊഫൈൽ',btn_lang:'🌐 ഭാഷ',btn_myqr:'🎫 QR',f_all:'എല്ലാം',f_petrol:'⛽ പെട്രോൾ',f_diesel:'🛢 ഡീസൽ',f_cng:'🔥 CNG',f_ev:'⚡ EV'},
+    fuelid_title_pre:'⚠️ ഇപ്പോൾ രജിസ്റ്റർ ചെയ്യൂ — പരിശോധന മോഡ് സജീവം!',
+    fuelid_msg_pre:'⚠️ മുന്നറിയിപ്പ് — ഉടൻ പരിശോധന ആവശ്യം. ഇപ്പോൾ Fuel ID ക്ക് രജിസ്റ്റർ ചെയ്യൂ! പ്രതിസന്ധിയിൽ QR ഉള്ളവർക്ക് ആദ്യം ഇന്ധനം.',
+    fuelid_title_emergency:'🚨 ഇന്ധന റേഷനിങ് സജീവം!',
+    fuelid_msg_emergency:'🚨 ഇന്ധന റേഷനിങ് സജീവം — ഓരോ പമ്പിലും പരിധി. Fuel ID ഇല്ല = 10 ലിറ്റർ മാത്രം. ഇപ്പോൾ രജിസ്റ്റർ ചെയ്യൂ!',
+    fuelid_title_full:'🚨 ഇന്ധന പ്രതിസന്ധി — Fuel ID നിർബന്ധം!',
+    fuelid_msg_full:'🚨 ഇന്ധന പ്രതിസന്ധി — Fuel ID (QR) ഉള്ളവർക്ക് മാത്രം ഇന്ധനം. QR ഇല്ല = ഇന്ധനം ഇല്ല. ഉടൻ രജിസ്റ്റർ ചെയ്യൂ!',
+    report_hint:  'ഇന്ധന നില അറിയിക്കൂ · സമൂഹത്തെ സഹായിക്കൂ',
+  or: {header_sub:'ଇନ୍ଧନ ଉପଲବ୍ଧତା ଖୋଜନ୍ତୁ',lbl_search:'ନଜଦୀକ ପେଟ୍ରୋଲ ପମ୍ପ',lbl_gps:'GPS ବ୍ୟବହାର କରନ୍ତୁ',pump_section:'ନଜଦୀକ ପେଟ୍ରୋଲ ପମ୍ପ',fuelid_msg:'QR କୋଡ ପାଇଁ ପଞ୍ଜୀକରଣ କରନ୍ତୁ।',report_sub:'ବର୍ତ୍ତମାନ କେଉଁ ଇନ୍ଧନ ଉପଲବ୍ଧ?',nav_find:'ଖୋଜ',nav_qr:'ମୋ QR',nav_report:'ରିପୋର୍ଟ',nav_profile:'ପ୍ରୋଫାଇଲ',btn_lang:'🌐 ଭାଷା',btn_myqr:'🎫 QR',f_all:'ସମସ୍ତ',f_petrol:'⛽ ପେଟ୍ରୋଲ',f_diesel:'🛢 ଡିଜେଲ',f_cng:'🔥 CNG',f_ev:'⚡ EV'},
+    fuelid_title_pre:'⚠️ ଏବେ ପଞ୍ଜୀକରଣ କରନ୍ତୁ — ଯାଞ୍ଚ ମୋଡ ଚାଲୁ!',
+    fuelid_msg_pre:'⚠️ ସତର୍କତା — ଶୀଘ୍ର ଯାଞ୍ଚ ଆବଶ୍ୟକ. ଏବେ Fuel ID ପାଇଁ ପଞ୍ଜୀକରଣ କରନ୍ତୁ! ସଂକଟରେ QR ଧାରକଙ୍କୁ ପ୍ରଥମ ଇନ୍ଧନ.',
+    fuelid_title_emergency:'🚨 ଇନ୍ଧନ ରେଶନ ଚଳୁଛି!',
+    fuelid_msg_emergency:'🚨 ଇନ୍ଧନ ରେଶନ ଚଳୁଛି — ପ୍ରତ୍ୟେକ ପମ୍ପରେ ସୀମା. Fuel ID ନାହିଁ = ମାତ୍ର 10 ଲିଟର. ଏବେ ପଞ୍ଜୀକରଣ କରନ୍ତୁ!',
+    fuelid_title_full:'🚨 ଇନ୍ଧନ ସଂକଟ — Fuel ID ଆବଶ୍ୟକ!',
+    fuelid_msg_full:'🚨 ଇନ୍ଧନ ସଂକଟ — କେବଳ Fuel ID (QR) ଧାରକଙ୍କୁ ଇନ୍ଧନ. QR ନାହିଁ = ଇନ୍ଧନ ନାହିଁ. ତୁରନ୍ତ ପଞ୍ଜୀକରଣ କରନ୍ତୁ!',
+    report_hint:  'ଇନ୍ଧନ ସ୍ଥିତି ଜଣାନ୍ତୁ · ସମୁଦାୟକୁ ସାହାଯ୍ୟ କରନ୍ତୁ',
+  ur: {header_sub:'ایندھن کی دستیابی تلاش کریں',lbl_search:'قریبی پیٹرول پمپ تلاش کریں',lbl_gps:'GPS استعمال کریں',pump_section:'قریبی پیٹرول پمپ',fuelid_msg:'QR کوڈ کے لیے رجسٹر کریں۔',report_sub:'ابھی کون سا ایندھن دستیاب ہے؟',nav_find:'تلاش',nav_qr:'میرا QR',nav_report:'رپورٹ',nav_profile:'پروفائل',btn_lang:'🌐 زبان',btn_myqr:'🎫 QR',f_all:'سب',f_petrol:'⛽ پیٹرول',f_diesel:'🛢 ڈیزل',f_cng:'🔥 CNG',f_ev:'⚡ EV'},
+    fuelid_title_pre:'⚠️ ابھی رجسٹر کریں — تصدیق موڈ فعال!',
+    fuelid_msg_pre:'⚠️ خبردار — جلد تصدیق ضروری. ابھی Fuel ID کے لیے رجسٹر کریں! بحران میں QR والوں کو پہلے ایندھن ملے گا۔',
+    fuelid_title_emergency:'🚨 ایندھن راشننگ چالو!',
+    fuelid_msg_emergency:'🚨 ایندھن راشننگ چالو — ہر پمپ پر حد. Fuel ID نہیں = صرف 10 لیٹر. ابھی رجسٹر کریں!',
+    fuelid_title_full:'🚨 ایندھن بحران — Fuel ID لازمی!',
+    fuelid_msg_full:'🚨 ایندھن بحران — صرف Fuel ID (QR) والوں کو ایندھن. QR نہیں = ایندھن نہیں. فوری رجسٹر کریں!',
+    report_hint:  'ایندھن کی حالت بتائیں · کمیونٹی کی مدد کریں',
+};
+
+// ── Auth check ────────────────────────────────────────────────
+const TOKEN = localStorage.getItem('indhan_token');
+if(!TOKEN){ window.location.href='/otp_login.html'; }
+
+// ── Language ──────────────────────────────────────────────────
+let LANG = localStorage.getItem('indhan_lang') || 'en';
+
+// ── Crisis Mode Banner ────────────────────────────────────────────────────
+// Checks server mode once on load; updates fuelid card text + color
+async function checkCrisisMode() {
+  try {
+    const r = await fetch('/api/public/crisis-status');
+    if(!r.ok) return;
+    const { mode } = await r.json();
+    window._crisisMode = mode;
+
+    const card  = document.getElementById('fuelIdCard');
+    const title = document.getElementById('fuelid-title');
+    if(!card) return;
+
+    // Remove all mode classes first
+    card.classList.remove('pre-crisis','emergency','full-crisis');
+
+    if(mode === 'pre-crisis') {
+      card.classList.add('pre-crisis');
+    } else if(mode === 'emergency') {
+      card.classList.add('emergency');
+    } else if(mode === 'full-crisis') {
+      card.classList.add('full-crisis');
+    }
+
+    // Re-apply language with crisis-aware strings
+    const lang = localStorage.getItem('indhan_lang') || 'en';
+    applyLang(lang);
+
+  } catch(e) { /* silent fail — card stays in normal state */ }
+}
+
+
+function applyLang(code) {
+  const t = T[code] || T.en;
+  LANG = code;
+  localStorage.setItem('indhan_lang', code);
+  // Apply all translations
+  const setTxt = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  setTxt('header-sub',    t.header_sub);
+  setTxt('lbl-search',    t.lbl_search);
+  setTxt('lbl-gps',       t.lbl_gps);
+  setTxt('pump-section-lbl', t.pump_section);
+  // Crisis-aware fuelid card update
+  const _mode = window._crisisMode || 'normal';
+  const _titleKey = _mode==='full-crisis' ? 'fuelid_title_full'
+                  : _mode==='emergency'   ? 'fuelid_title_emergency'
+                  : _mode==='pre-crisis'  ? 'fuelid_title_pre'
+                  : null;
+  const _msgKey   = _mode==='full-crisis' ? 'fuelid_msg_full'
+                  : _mode==='emergency'   ? 'fuelid_msg_emergency'
+                  : _mode==='pre-crisis'  ? 'fuelid_msg_pre'
+                  : null;
+  if(_titleKey && t[_titleKey]) setTxt('fuelid-title', t[_titleKey]);
+  setTxt('fuelid-msg', _msgKey && t[_msgKey] ? t[_msgKey] : t.fuelid_msg);
+  setTxt('report-sub',    t.report_sub);
+  // Update all report hint elements
+  document.querySelectorAll('.report-hint-txt').forEach(el => {
+    el.textContent = t.report_hint || 'You can report fuel status';
+  });
+  setTxt('nav-find',      t.nav_find);
+  setTxt('nav-qr',        t.nav_qr);
+  setTxt('nav-report',    t.nav_report);
+  setTxt('nav-profile',   t.nav_profile);
+  setTxt('btn-lang',      t.btn_lang);
+  setTxt('btn-myqr',      t.btn_myqr);
+  setTxt('f-all',         t.f_all);
+  setTxt('f-petrol',      t.f_petrol);
+  setTxt('f-diesel',      t.f_diesel);
+  setTxt('f-cng',         t.f_cng);
+  setTxt('f-ev',          t.f_ev);
+  // Mark active lang
+  document.querySelectorAll('.lang-opt').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.lang-opt').forEach(el => {
+    if(el.getAttribute('data-lang')===code) el.classList.add('active');
+  });
+}
+
+// Set data-lang attributes
+document.querySelectorAll('.lang-opt').forEach((el,i) => {
+  const langs=['en','hi','mr','gu','pa','ta','te','kn','bn','ml','or','ur'];
+  el.setAttribute('data-lang', langs[i]||'en');
+});
+
+// Apply saved language on load
+applyLang(LANG);
+checkCrisisMode(); // Update fuelid card for current mode
+
+// ── Trial status check — show banner only last 2 days ─────────
+async function checkTrialStatus() {
+  try {
+    if(!TOKEN) return; // No token - skip silently
+    const r = await fetch('/api/user/profile', {headers:{'x-auth-token':TOKEN}});
+    if(!r.ok) return;
+    const ct = r.headers.get('content-type')||'';
+    if(!ct.includes('application/json')) return;
+    const d = await r.json();
+    if(!d||!d.user) return;
+    const status = d.user.subscription_status;
+    if(status === 'active') {
+      // Paid user — hide all trial UI
+      const _fc=document.getElementById('fuelIdCard');if(_fc)_fc.style.display='none';
+      return;
+    }
+    if(status === 'trial') {
+      // Calculate days remaining
+      const trialStart = new Date(d.user.created_at || Date.now());
+      const trialDays  = d.trial_days || 10; // from server DB settings
+      const elapsed    = Math.floor((Date.now() - trialStart) / 86400000);
+      const remaining  = trialDays - elapsed;
+      if(remaining <= 0) {
+        // Trial expired — show modal ONCE per session
+        if(!sessionStorage.getItem('trial_modal_shown')){
+          sessionStorage.setItem('trial_modal_shown', '1');
+          // Update modal text
+          document.getElementById('trial-modal-title').textContent = '⏰ Your Free Trial Has Ended';
+          // Fetch price dynamically
+          fetch('/api/payment/config').then(r=>r.json()).then(cfg=>{
+            const price = cfg.price ? '₹'+parseFloat(cfg.price).toFixed(2) : '₹14.99';
+            document.getElementById('trial-modal-desc').textContent =
+              `Your ${d.trial_days||10}-day free trial is over. Contribute ${price}/month — less than one samosa & chai — to keep using IndhanShodhak and restore your fuel priority access!`;
+            // Update contribute button text in banner
+            const cb = document.getElementById('trialContributeBtn');
+            if(cb) cb.textContent = `Subscribe ${price}/month`;
+          }).catch(()=>{
+            document.getElementById('trial-modal-desc').textContent =
+              `Your free trial is over. Subscribe to restore full access & your fuel priority tier!`;
+          });
+          // Show after 2 seconds
+          setTimeout(() => openModal('trialModal'), 2000);
+        }
+        // Also show expired banner
+        const banner = document.getElementById('trialBanner');
+        banner.style.display = 'flex';
+        banner.style.background = '#b71c1c';
+        document.getElementById('trialMsg').textContent = '⚠️ Trial expired · Pump data limited';
+        // Show tier downgrade notice
+        if(d.show_upgrade_prompt){
+          const tw = document.getElementById('tierDowngradeWarn');
+          if(tw){
+            tw.style.display = 'block';
+            tw.innerHTML = `⬇️ Your <b>${d.original_category}</b> tier is paused — showing P5 only.
+              <a href="/subscribe.html" style="color:#e65100;font-weight:700;margin-left:6px">Subscribe to restore →</a>`;
+          }
+        }
+      } else if(remaining <= 2) {
+        // Last 2 days — show banner only
+        const banner = document.getElementById('trialBanner');
+        banner.style.display = 'flex';
+        document.getElementById('trialMsg').textContent =
+          `⏳ Trial expires in ${remaining} day${remaining===1?'':'s'}`;
+      }
+      // If >2 days remaining — NO popup, NO banner — user browses freely
+    }
+  } catch(e) { console.error('Trial check error:', e); }
+}
+
+// ── Fuel ID redirect — go to profile setup not pump scanner ──
+function goToFuelId(e) {
+  if(e) e.preventDefault();
+  window.location.href = '/profile_setup';
+  return false;
+}
+
+// ── Report modal ──────────────────────────────────────────────
+let currentPumpId   = 0;
+let currentPumpName = '';
+let currentPumpAddress = '';
+let currentPumpLat  = 0;
+let currentPumpLng  = 0;
+let currentPumpOil  = '';
+let currentPumpDist = '';
+let currentPumpState= 'Maharashtra';
+let currentPumpPin  = '';
+function openReport(name, pumpId, address, lat, lng, oilCo, district, state, pin) {
+  currentPumpId      = pumpId;
+  currentPumpName    = name    || '';
+  currentPumpAddress = address || '';
+  currentPumpLat     = lat     || 0;
+  currentPumpLng     = lng     || 0;
+  currentPumpOil     = oilCo   || 'Other';
+  currentPumpDist    = district|| '';
+  currentPumpState   = state   || 'Maharashtra';
+  currentPumpPin     = pin     || '';
+
+  // Update modal title with pump name + address
+  const nameEl = document.getElementById('report-pump-name');
+  nameEl.innerHTML = '<span style="font-size:15px;font-weight:700">' + (name||'Report Fuel') + '</span>' +
+    (address ? '<div style="font-size:11px;color:#888;font-weight:400;margin-top:2px">📍 ' + address + '</div>' : '');
+
+  // Reset ALL toggle buttons — pre-select "No" so user sees clear state
+  document.querySelectorAll('#reportModal .tog-group').forEach((grp, idx) => {
+    const btns = grp.querySelectorAll('.tog');
+    btns.forEach(b => b.classList.remove('yes','no'));
+    // Pre-select "No" for fuel (idx 0-3), leave Queue blank
+    if(idx < 4 && btns[1]) btns[1].classList.add('no');
+  });
+
+  openModal('reportModal');
+}
+
+async function submitReport() {
+  // Use querySelectorAll — nth-child fails when fuel-opts are not 1st children!
+  const fuelOpts = document.querySelectorAll('#reportModal .fuel-opt');
+  const petrol = fuelOpts[0]?.querySelector('.tog.yes') !== null;
+  const diesel = fuelOpts[1]?.querySelector('.tog.yes') !== null;
+  const cng    = fuelOpts[2]?.querySelector('.tog.yes') !== null;
+  const ev     = fuelOpts[3]?.querySelector('.tog.yes') !== null;
+  const queueBtn = fuelOpts[4]?.querySelector('.tog.yes');
+  const queue_length = queueBtn ? (queueBtn.textContent.trim()==='Short' ? 'short' : 'long') : 'none';
+  const pid = String(currentPumpId || '');
+  const isExt = pid.startsWith('gpl_') || pid.startsWith('osm_') || pid.startsWith('mmi_');
+
+  // Loading state
+  const btn = document.querySelector('#reportModal .submit-btn');
+  if(btn){ btn.textContent = '⏳ Submitting...'; btn.disabled = true; }
+
+  // Check token first — no point trying if not logged in
+  if(!TOKEN) {
+    closeModal('reportModal');
+    if(btn){ btn.textContent = '📤 Submit Report — Notify Nearby Users'; btn.disabled = false; }
+    document.getElementById('notif-text').textContent = '⚠️ Please login to submit fuel reports.';
+    document.getElementById('notif-text').style.color = '#c62828';
+    setTimeout(()=>{ document.getElementById('notif-text').style.color=''; }, 4000);
+    return;
+  }
+
+  let reportOk = false;
+  try {
+    let resp;
+    if(pid && !isExt) {
+      resp = await fetch('/api/reports/submit', {
+        method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+        body: JSON.stringify({pump_id: parseInt(pid), petrol, diesel, cng, ev, queue_length})
+      });
+    } else if(pid && isExt) {
+      resp = await fetch('/api/reports/submit-external', {
+        method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+        body: JSON.stringify({
+          external_id:      pid,
+          petrol, diesel, cng, ev, queue_length,
+          pump_name:        currentPumpName,
+          pump_address:     currentPumpAddress,
+          pump_lat:         currentPumpLat,
+          pump_lng:         currentPumpLng,
+          pump_oil_company: currentPumpOil,
+          pump_district:    currentPumpDist,
+          pump_state:       currentPumpState,
+          pump_pin:         currentPumpPin,
+        })
+      });
+    }
+    if(resp && resp.ok) {
+      reportOk = true;
+    } else if(resp && resp.status === 401) {
+      // Session expired — token stale after server restart
+      closeModal('reportModal');
+      if(btn){ btn.textContent = '📤 Submit Report — Notify Nearby Users'; btn.disabled = false; }
+      document.getElementById('notif-text').textContent = '⚠️ Session expired. Please reload and login again.';
+      document.getElementById('notif-text').style.color = '#c62828';
+      setTimeout(()=>{ document.getElementById('notif-text').style.color=''; }, 5000);
+      return;
+    } else {
+      throw new Error('Server error: ' + (resp?.status || 'unknown'));
+    }
+  } catch(e){
+    console.error('Report error:', e);
+    closeModal('reportModal');
+    if(btn){ btn.textContent = '📤 Submit Report — Notify Nearby Users'; btn.disabled = false; }
+    document.getElementById('notif-text').textContent = '❌ Report failed. Check connection and try again.';
+    document.getElementById('notif-text').style.color = '#c62828';
+    setTimeout(()=>{ document.getElementById('notif-text').style.color=''; }, 4000);
+    return;
+  }
+
+  closeModal('reportModal');
+  document.getElementById('notif-text').textContent = '✅ Thank you! Report sent. Nearby users notified.';
+  if(btn){ btn.textContent = '📤 Submit Report — Notify Nearby Users'; btn.disabled = false; }
+
+  // Update card instantly — ONLY after server confirms save ✅
+  const card = document.querySelector('.pump-card[data-pump-id="' + pid + '"]');
+  if(card){
+    // Update tags
+    card.querySelectorAll('.tag[data-fuel]').forEach(tag => {
+      const fuel = tag.getAttribute('data-fuel');
+      const val = fuel==='petrol'?petrol : fuel==='diesel'?diesel : fuel==='cng'?cng : fuel==='ev'?ev : false;
+      tag.classList.remove('tag-yes','tag-no');
+      tag.classList.add(val ? 'tag-yes' : 'tag-no');
+      tag.textContent = (val ? '✓' : '✗') + ' ' + fuel.charAt(0).toUpperCase()+fuel.slice(1);
+      tag.style.background = val ? '#e8f5e9' : '#ffebee';
+      tag.style.color      = val ? '#1b5e20' : '#b71c1c';
+      tag.style.border     = val ? '1px solid #a5d6a7' : '1px solid #ef9a9a';
+      tag.style.fontWeight = '600';
+    });
+    // Update status
+    const open = petrol||diesel||cng||ev;
+    const statusEl = card.querySelector('.pump-status');
+    if(statusEl){ statusEl.textContent = open ? '● OPEN' : '⚫ NO STOCK'; statusEl.style.color = open ? '#2e7d32' : '#888'; }
+    // Update time
+    const timeEl = card.querySelector('.pump-time');
+    if(timeEl){ timeEl.textContent = '👤 Community · Just now'; timeEl.style.color = '#1a6b2e'; }
+    // Highlight card
+    card.style.transition = 'all 0.3s';
+    card.style.boxShadow = open ? '0 0 0 3px #4caf50' : '0 0 0 3px #ef5350';
+    card.style.border = open ? '1.5px solid #4caf50' : '';
+    setTimeout(() => { card.style.boxShadow = ''; card.style.border = ''; }, 2000);
+    card.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+}
+
+// ── Other helpers ─────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m =>
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+function setFilter(el,fuel){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+function setTog(btn,val){
+  const grp=btn.closest('.tog-group');
+  grp.querySelectorAll('.tog').forEach(t=>{t.classList.remove('yes','no');});
+  btn.classList.add(val);
+}
+function setLang(code,el){
+  applyLang(code);
+  setTimeout(()=>closeModal('langModal'),300);
+}
+async function useGPS(){
+  if(!navigator.geolocation){ alert('GPS not available'); return; }
+  document.getElementById('pump-section-lbl').textContent='📡 Getting location...';
+  document.getElementById('pumpList').innerHTML=
+    '<div style="padding:16px;text-align:center;color:#888">📡 Getting your location...</div>';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude, lng=pos.coords.longitude;
+    document.getElementById('pinInput').value='';
+    document.getElementById('pinInput').placeholder='GPS: '+lat.toFixed(4)+', '+lng.toFixed(4);
+    document.getElementById('pump-section-lbl').textContent='Pumps near your location 📍';
+    // Move map to user location
+    if(window.indhanMap){
+      window.indhanMap.setView([lat,lng], 13);
+      if(window.userMarker) window.userMarker.remove();
+      window.userMarker = L.circleMarker([lat,lng],{
+        radius:8, fillColor:'#2196F3', color:'#fff',
+        weight:2, fillOpacity:1
+      }).addTo(window.indhanMap).bindPopup('📍 You are here').openPopup();
+    }
+    try{
+      const r=await fetch('/api/pumps/locations?v='+Math.floor(Date.now()/7200000)+'&lat='+lat+'&lng='+lng,{
+        headers:TOKEN?{'x-auth-token':TOKEN}:{}
+      });
+      const d=await r.json();
+      if(d.pumps&&d.pumps.length>0){
+        await loadAndRender(d.pumps);
+        updateMapMarkers(d.pumps);
+      } else {
+        document.getElementById('pumpList').innerHTML=
+          '<div style="padding:16px;text-align:center;color:#888">No pumps found nearby</div>';
+      }
+    }catch(e){
+      document.getElementById('pumpList').innerHTML=
+        '<div style="padding:16px;text-align:center;color:#c62828">Error. Try PIN search.</div>';
+    }
+  },()=>alert('Could not get location'));
+}
+async function searchPumps(){
+  const pin=document.getElementById('pinInput').value.trim();
+  if(pin.length!==6){ alert('Enter 6-digit PIN'); return; }
+  document.getElementById('pump-section-lbl').textContent='Pumps near PIN '+pin;
+  document.getElementById('pumpList').innerHTML=
+    '<div style="padding:16px;text-align:center;color:#888">🔍 Searching...</div>';
+  try{
+    const r=await fetch('/api/pumps/locations?v='+Math.floor(Date.now()/7200000)+'&pin='+pin,{
+      headers:TOKEN?{'x-auth-token':TOKEN}:{}
+    });
+    const d=await r.json();
+    if(!d.pumps||d.pumps.length===0){
+      document.getElementById('pumpList').innerHTML=
+        '<div style="padding:16px;text-align:center;color:#888">No pumps found for PIN '+pin+'</div>';
+      return;
+    }
+    document.getElementById('pump-section-lbl').textContent=
+      'Pumps near PIN '+pin+(d.from_cache?' · cached':'');
+    await loadAndRender(d.pumps);
+    updateMapMarkers(d.pumps);
+  }catch(e){
+    document.getElementById('pumpList').innerHTML=
+      '<div style="padding:16px;text-align:center;color:#c62828">Error loading pumps. Try again.</div>';
+  }
+}
+
+// ── loadAndRender: 2-call system ──────────────────────────
+// Call 1: /api/pumps/locations (server cached 3000-4000 hrs)
+// Call 2: /api/pumps/fuel-data (always live from DB)
+async function loadAndRender(pumps) {
+  // Get premium status
+  let isPremium = false, price = '14.99';
+  try {
+    if(TOKEN) {
+      const pr = await fetch('/api/user/profile',{headers:{'x-auth-token':TOKEN}});
+      if(pr.ok){ const pd=await pr.json(); isPremium=pd.is_premium||false; }
+    }
+  } catch(e){}
+
+  // Get DB pump IDs only (MMI pumps have 'mmi_' prefix)
+  const dbIds = pumps
+    .filter(p => String(p.id).match(/^\d+$/))
+    .map(p => p.id);
+
+  // Fetch LIVE fuel data from our DB
+  let fuelMap = {};
+  if(dbIds.length > 0) {
+    try {
+      const fr = await fetch('/api/pumps/fuel-data?ids='+dbIds.join(','),{
+        headers:TOKEN?{'x-auth-token':TOKEN}:{}
+      });
+      if(fr.ok){ const fd=await fr.json(); fuelMap=fd.fuel||{}; }
+    } catch(e){}
+  }
+
+  // Attach live fuel data to pump locations
+  // is_verified: use fuel-data's live value to UPGRADE only (never downgrade)
+  // Fixes: browser cache has stale is_verified=0 after approval → green badge missing
+  const enriched = pumps.map(p => {
+    const liveFuel = fuelMap[p.id] || p.fuel || null;
+    const liveVerified = liveFuel?.is_verified;
+    return {
+      ...p,
+      fuel: liveFuel,
+      // Bidirectional: fuel-data is authoritative (handles approve AND deregister)
+      is_verified: liveFuel !== null ? (liveFuel.is_verified ? 1 : 0) : p.is_verified,
+    };
+  });
+
+  // Deduplicate: if DB verified pump exists, hide nearby Google Places duplicate
+  const dbVerified = enriched.filter(p => String(p.id).match(/^\d+$/) && p.is_verified);
+  const deduped = enriched.filter(p => {
+    const isExternal = String(p.id).match(/^(gpl_|osm_|mmi_)/);
+    if(!isExternal) return true; // always keep DB pumps
+    // Hide external pump if a verified DB pump is within ~200m
+    const nearby = dbVerified.some(v => {
+      if(!v.lat || !v.lng || !p.lat || !p.lng) return false;
+      const dLat = Math.abs(parseFloat(v.lat) - parseFloat(p.lat));
+      const dLng = Math.abs(parseFloat(v.lng) - parseFloat(p.lng));
+      return dLat < 0.002 && dLng < 0.002; // ~200m
+    });
+    return !nearby; // hide if duplicate DB verified pump found
+  });
+
+  // Sort: verified DB pumps first, then others
+  deduped.sort((a,b) => {
+    const aV = String(a.id).match(/^\d+$/) && a.is_verified ? 1 : 0;
+    const bV = String(b.id).match(/^\d+$/) && b.is_verified ? 1 : 0;
+    return bV - aV;
+  });
+
+  // Get subscription price for locked pump display
+  let priceDisplay = price;
+  try {
+    const cfg = await fetch('/api/payment/config').then(r=>r.json()).catch(()=>({}));
+    if(cfg.price) priceDisplay = cfg.price;
+  } catch(e){}
+
+  renderPumps(deduped, isPremium, priceDisplay);
+}
+
+function renderPumps(pumps, isPremium, price){
+  const list = document.getElementById('pumpList');
+  if(!pumps || pumps.length === 0){
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:#888">No pumps found. Try another PIN.</div>';
+    return;
+  }
+  list.innerHTML = pumps.map(p => {
+    // Locked verified pump — show name/address, hide fuel data
+    if(p._locked){
+      return `<div class="pump-card verified" style="border:1.5px solid #c8e6c9">
+        <div class="pump-top">
+          <div class="pump-name">🟢 ${p.name}</div>
+          <div class="pump-status" style="color:#1a6b2e;font-size:11px">✅ Verified Pump</div>
+        </div>
+        <div class="pump-addr">📍 ${p.address||''} · ${p.pin_code||''}</div>
+        <div style="background:#f1f8e9;border-radius:8px;padding:10px 12px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div>
+            <div style="font-size:12px;color:#558b2f;font-weight:600">🔒 Fuel data hidden</div>
+            <div style="font-size:11px;color:#888">Subscribe to see live fuel status</div>
+          </div>
+          <button onclick="window.location.href='/subscribe.html'"
+            style="padding:6px 12px;background:#1a6b2e;color:white;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0">
+            Subscribe
+          </button>
+        </div>
+      </div>`;
+    }
+    // Normal pump — show all data
+    const f    = p.fuel || {};
+    const open = f.petrol || f.diesel || f.cng || f.ev;
+    const isV  = p.is_verified;
+    const rType= f.reporter === 'pump_owner' ? '✅ Owner' : '👤 Community';
+    const tAgo = (() => {
+      if(!f.updated_at) return 'No recent data';
+      const mins = Math.floor((Date.now()-new Date(f.updated_at.replace(' ','T')+'Z'))/60000);
+      if(mins < 1)  return 'Just now';
+      if(mins < 60) return mins + ' min ago';
+      const hrs = Math.floor(mins/60);
+      const rem = mins % 60;
+      return rem > 0 ? hrs+'h '+rem+'min ago' : hrs+'h ago';
+    })();
+    const pName = (p.name||'').replace(/'/g,"\'").replace(/"/g,'&quot;');
+    const pAddr = (p.address||'').replace(/'/g,"\'").replace(/"/g,'&quot;');
+    const pId   = p.id || 0;
+    return `<div class="pump-card${isV?' verified':''}" data-pump-id="${pId}">
+      ${isV ? `<div class="verified-badge">✅ IndhanShodhak Verified Pump</div>` : ''}
+      <div class="pump-top">
+        <div class="pump-name">${isV?'🟢':'⚫'} ${p.name||'Unknown Pump'}</div>
+        <div class="pump-status" style="color:${open?'#2e7d32':'#888'}">${open?'● OPEN':'⚫ NO STOCK'}</div>
+      </div>
+      <div class="pump-addr">📍 ${p.address||''} ${p.district?'· '+p.district:''} ${p.pin_code?'· '+p.pin_code:''}</div>
+      <div class="tags" style="cursor:pointer" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')" title="Tap to update">
+        <div class="tag ${f.petrol?'tag-yes':'tag-no'}" data-fuel="petrol">${f.petrol?'✓':'✗'} Petrol</div>
+        <div class="tag ${f.diesel?'tag-yes':'tag-no'}" data-fuel="diesel">${f.diesel?'✓':'✗'} Diesel</div>
+        <div class="tag ${f.cng?'tag-yes':'tag-no'}" data-fuel="cng">${f.cng?'✓':'✗'} CNG</div>
+        <div class="tag ${f.ev?'tag-yes':'tag-no'}" data-fuel="ev">${f.ev?'✓':'✗'} EV</div>
+        <div class="tag" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-size:10px">✏️ Update</div>
+      </div>
+      <div class="pump-footer">
+        <div class="pump-time">${rType} · ${tAgo}</div>
+        <button class="report-btn" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')" >📝 Report ↗</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+checkTrialStatus();
+
+// ── Logout ─────────────────────────────────────────────────────
+function userLogout(){
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.href = '/otp_login.html';
+}
+
+// Fill profile modal with user info
+function fillProfileModal(){
+  const name   = localStorage.getItem('indhan_name')   || '—';
+  const mobile = localStorage.getItem('indhan_mobile') || '—';
+  if(document.getElementById('prof-name'))
+    document.getElementById('prof-name').textContent   = name;
+  if(document.getElementById('prof-mobile'))
+    document.getElementById('prof-mobile').textContent = mobile;
+}
+document.addEventListener('DOMContentLoaded', fillProfileModal);
+
+// Auto-load nearby pumps on page open
+// ── Leaflet Map Init ──────────────────────────────────────────
+function initMap(lat=19.5226,lng=74.9602,zoom=12){
+  if(window.indhanMap) return;
+  window.indhanMap=L.map('leaflet-map',{zoomControl:true,attributionControl:false}).setView([lat,lng],zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(window.indhanMap);
+  window.pumpMarkers=[];
+}
+
+function updateMapMarkers(pumps){
+  if(!window.indhanMap) return;
+  (window.pumpMarkers||[]).forEach(m=>m.remove());
+  window.pumpMarkers=[];
+  const colors={'HP':'#2e7d32','BPCL':'#e65100','IOC':'#b71c1c','Shell':'#f9a825','Reliance':'#1565c0','Other':'#555'};
+  pumps.forEach(p=>{
+    if(!p.lat||!p.lng) return;
+    const col=colors[p.oil_company]||colors['Other'];
+    const icon=L.divIcon({className:'',
+      html:'<div style="background:'+col+';color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.3)">⛽</div>',
+      iconSize:[28,28],iconAnchor:[14,14]});
+    const m=L.marker([p.lat,p.lng],{icon}).addTo(window.indhanMap)
+      .bindPopup('<b>'+p.name+'</b><br>'+(p.oil_company||'')+'<br><small>'+(p.address||'')+'</small>');
+    window.pumpMarkers.push(m);
+  });
+  if(window.pumpMarkers.length>0){
+    const grp=L.featureGroup(window.pumpMarkers);
+    window.indhanMap.fitBounds(grp.getBounds().pad(0.2));
+  }
+}
+
+async function autoLoadPumps(){
+  initMap(19.5226,74.9602,12);
+  document.getElementById('pumpList').innerHTML=
+    '<div style="padding:24px;text-align:center;color:#888;font-size:14px">📡 Tap <b>Find Pumps Near Me</b> to get started</div>';
+  document.getElementById('pump-section-lbl').textContent='Pumps Near You';
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      const lat=pos.coords.latitude,lng=pos.coords.longitude;
+      try{
+        const r=await fetch('/api/pumps/locations?v='+Math.floor(Date.now()/7200000)+'&lat='+lat+'&lng='+lng,{
+          headers:TOKEN?{'x-auth-token':TOKEN}:{}
+        });
+        const d=await r.json();
+        if(d.pumps&&d.pumps.length>0){
+          document.getElementById('pump-section-lbl').textContent='Pumps near your location 📍';
+          document.getElementById('pinInput').placeholder='GPS: '+lat.toFixed(3)+','+lng.toFixed(3);
+          await loadAndRender(d.pumps);
+          updateMapMarkers(d.pumps);
+          if(window.userMarker) window.userMarker.remove();
+          window.userMarker=L.circleMarker([lat,lng],{radius:8,fillColor:'#2196F3',color:'#fff',weight:2,fillOpacity:1})
+            .addTo(window.indhanMap).bindPopup('📍 You are here');
+          window.indhanMap.setView([lat,lng],13);
+        }
+      }catch(e){}
+    },()=>{});
+  }
+}
+document.addEventListener('DOMContentLoaded', autoLoadPumps);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>IndhanShodhak — Pump Owner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1b2a;min-height:100vh;max-width:500px;margin:0 auto;color:white}
+
+/* Header */
+.header{background:#0f3460;padding:12px 16px}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.header-title{font-size:16px;font-weight:700;color:white}
+.header-sub{font-size:11px;color:rgba(255,255,255,.6)}
+.logout-btn{background:rgba(255,255,255,.15);color:white;border:none;border-radius:20px;padding:5px 13px;font-size:12px;cursor:pointer}
+
+/* Language selector */
+
+
+/* Pump info bar */
+.pump-bar{background:#163854;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.pump-name{font-size:14px;font-weight:600}
+.pump-status{font-size:11px;color:rgba(255,255,255,.6)}
+.green-tick{background:#1a6b2e;color:white;border-radius:20px;padding:3px 10px;font-size:11px;display:none}
+
+/* Tabs */
+.tab-row{display:flex;background:#0f2840;border-bottom:1px solid rgba(255,255,255,.1)}
+.tab{flex:1;padding:11px 4px;text-align:center;font-size:12px;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:white;border-bottom:2px solid #1a6b2e;font-weight:700}
+
+/* Tab content */
+.tab-content{display:none;padding:14px}
+.tab-content.active{display:block}
+
+/* Fuel toggles */
+.fuel-card{background:#163854;border-radius:14px;padding:14px;margin-bottom:12px}
+.fuel-card-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.8);margin-bottom:12px}
+.fuel-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.fuel-row:last-child{border-bottom:none;padding-bottom:0}
+.fuel-name{font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px}
+.toggle{width:46px;height:26px;border-radius:13px;background:#555;position:relative;cursor:pointer;transition:background .3s;flex-shrink:0}
+.toggle.on{background:#1a6b2e}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:white;top:3px;left:3px;transition:left .3s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on::after{left:23px}
+.update-btn{width:100%;padding:14px;background:#1a6b2e;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px}
+.update-btn:active{background:#145723}
+.hint-text{font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:8px}
+.active-banner{background:#1a6b2e;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:none;align-items:center;gap:8px}
+
+/* QR Scanner */
+.scanner-card{background:#163854;border-radius:14px;padding:16px;margin-bottom:12px;text-align:center}
+.scanner-icon{font-size:48px;margin-bottom:8px}
+.scanner-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.scanner-sub{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px}
+.camera-btn{width:100%;padding:13px;background:#1565c0;color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px}
+.manual-row{display:flex;gap:8px}
+.manual-input{flex:1;padding:11px 13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:white;font-size:13px;outline:none}
+.manual-input::placeholder{color:rgba(255,255,255,.4)}
+.check-btn{padding:11px 18px;background:#1565c0;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+/* Scan result */
+.result-card{border-radius:14px;padding:16px;margin-top:12px;display:none}
+.result-card.cleared{background:#1a6b2e;display:block}
+.result-card.denied{background:#b71c1c;display:block}
+.result-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.result-icon{font-size:28px}
+.result-title{font-size:18px;font-weight:800}
+.result-sub{font-size:12px;opacity:.8}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.result-item{background:rgba(255,255,255,.15);border-radius:10px;padding:10px}
+.result-label{font-size:10px;opacity:.7;margin-bottom:3px;text-transform:uppercase}
+.result-value{font-size:14px;font-weight:700}
+.result-litres{background:rgba(255,255,255,.2);border-radius:10px;padding:12px;text-align:center;margin-bottom:12px}
+.litres-num{font-size:32px;font-weight:800}
+.litres-label{font-size:12px;opacity:.8}
+.dispense-btn{width:100%;padding:14px;background:rgba(255,255,255,.25);color:white;border:2px solid white;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px}
+.deny-btn{width:100%;padding:12px;background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.3);border-radius:12px;font-size:13px;cursor:pointer}
+.deny-reason{font-size:14px;line-height:1.6;opacity:.9}
+
+/* Transactions */
+.txn-card{background:#163854;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.txn-left{flex:1}
+.txn-name{font-size:13px;font-weight:600}
+.txn-detail{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+.txn-right{text-align:right}
+.txn-litres{font-size:14px;font-weight:700;color:#4caf50}
+.txn-time{font-size:11px;color:rgba(255,255,255,.4)}
+.txn-denied{color:#ef5350}
+.total-card{background:#1a6b2e;border-radius:12px;padding:14px;text-align:center;margin-top:4px}
+.total-num{font-size:28px;font-weight:800}
+.total-label{font-size:12px;opacity:.8}
+
+/* Video for camera */
+#cameraVideo{width:100%;border-radius:10px;display:none;margin-top:10px}
+#cameraCanvas{display:none}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title" id="h-title">⛽ Pump Owner Dashboard</div>
+      <div class="header-sub" id="h-sub">IndhanShodhak — Fuel Management System</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="openProfileModal()"
+        style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:20px;
+        padding:6px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px">
+        👤 Profile
+      </button>
+      <button class="logout-btn" id="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- Language Selector — Dropdown -->
+<div style="background:#0a2748;padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.1)">
+  <span style="font-size:12px;color:rgba(255,255,255,.6);white-space:nowrap">🌐 भाषा / Language:</span>
+  <select id="lang-select" onchange="setLangDrop(this.value)"
+    style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#163854;color:white;font-size:13px;outline:none;cursor:pointer">
+    <option value="en">English</option>
+    <option value="hi">हिंदी — Hindi</option>
+    <option value="mr">मराठी — Marathi</option>
+    <option value="te">తెలుగు — Telugu</option>
+    <option value="ta">தமிழ் — Tamil</option>
+    <option value="kn">ಕನ್ನಡ — Kannada</option>
+    <option value="gu">ગુજરાતી — Gujarati</option>
+    <option value="pa">ਪੰਜਾਬੀ — Punjabi</option>
+    <option value="bn">বাংলা — Bengali</option>
+    <option value="ml">മലയാളം — Malayalam</option>
+    <option value="or">ଓଡ଼ିଆ — Odia</option>
+    <option value="as">অসমীয়া — Assamese</option>
+    <option value="ur">اردو — Urdu</option>
+  </select>
+</div>
+
+<!-- Pump Info Bar -->
+<div class="pump-bar">
+  <div>
+    <div class="pump-name" id="pump-name">Loading pump details...</div>
+    <div class="pump-status" id="pump-status">—</div>
+  </div>
+  <div class="green-tick" id="green-tick">✅ TOP LISTED</div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-row">
+  <div class="tab active" id="tab-fuel-btn"   onclick="showTab('fuel',this)">⛽ <span data-t="tab_fuel">Fuel Status</span></div>
+  <div class="tab"        id="tab-scanner-btn" onclick="showTab('scanner',this)">📷 <span data-t="tab_scan">QR Scanner</span></div>
+  <div class="tab"        id="tab-txn-btn"     onclick="showTab('transactions',this)">📋 <span data-t="tab_txn">Transactions</span></div>
+</div>
+
+<!-- FUEL STATUS TAB -->
+<div class="tab-content active" id="tab-fuel">
+  <div class="active-banner" id="active-banner">
+    ✅ <span data-t="green_active">Green tick ACTIVE — Your pump appears at TOP of user search for 12 hours!</span>
+  </div>
+  <div class="fuel-card">
+    <div class="fuel-card-title" data-t="update_stock">🛢️ Update My Pump Fuel Stock</div>
+    <div class="fuel-row">
+      <div class="fuel-name">⛽ <span data-t="petrol">Petrol</span></div>
+      <div class="toggle on" id="tog-petrol" onclick="toggleFuel(this,'petrol')"></div>
+    </div>
+    <div class="fuel-row">
+      <div class="fuel-name">🛢️ <span data-t="diesel">Diesel</span></div>
+      <div class="toggle on" id="tog-diesel" onclick="toggleFuel(this,'diesel')"></div>
+    </div>
+    <div class="fuel-row">
+      <div class="fuel-name">🔥 <span data-t="cng">CNG</span></div>
+      <div class="toggle" id="tog-cng" onclick="toggleFuel(this,'cng')"></div>
+    </div>
+    <div class="fuel-row">
+      <div class="fuel-name">⚡ <span data-t="ev">EV Charging</span></div>
+      <div class="toggle" id="tog-ev" onclick="toggleFuel(this,'ev')"></div>
+    </div>
+  </div>
+  <button class="update-btn" onclick="updateFuel()">
+    ✅ <span data-t="update_btn">Update Fuel Status — Notify Users</span>
+  </button>
+  <div class="hint-text" data-t="update_hint">Owner report trusted more · Valid for 12 hours · Green tick on search listing</div>
+</div>
+
+<!-- QR SCANNER TAB -->
+<div class="tab-content" id="tab-scanner">
+  <div class="scanner-card">
+    <div class="scanner-icon">📷</div>
+    <div class="scanner-title" data-t="scan_title">Scan Customer QR Code</div>
+    <div class="scanner-sub" data-t="scan_sub">For fuel rationing mode — scan to verify priority and dispense fuel</div>
+    <button class="camera-btn" onclick="openCamera()" data-t="open_camera">📷 Open Camera Scanner</button>
+    <video id="cameraVideo" autoplay playsinline></video>
+    <canvas id="cameraCanvas"></canvas>
+    <div class="manual-row" style="margin-top:8px">
+      <input class="manual-input" id="manualQR" data-t-placeholder="manual_placeholder" placeholder="Or enter QR ID manually...">
+      <button class="check-btn" onclick="manualCheck()" data-t="check_btn">Check</button>
+    </div>
+  </div>
+
+  <!-- CLEARED result -->
+  <div class="result-card" id="result-cleared">
+    <div class="result-header">
+      <div class="result-icon">✅</div>
+      <div>
+        <div class="result-title" data-t="cleared">CLEARED</div>
+        <div class="result-sub" data-t="dispense_auth">Fuel dispensing authorised</div>
+      </div>
+    </div>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="result-label" data-t="customer">CUSTOMER</div>
+        <div class="result-value" id="r-name">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label" data-t="vehicle">VEHICLE</div>
+        <div class="result-value" id="r-vehicle">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label" data-t="priority">PRIORITY</div>
+        <div class="result-value" id="r-priority">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-label" data-t="fuel_type">FUEL TYPE</div>
+        <div class="result-value" id="r-fuel">—</div>
+      </div>
+    </div>
+    <div class="result-litres">
+      <div class="litres-num" id="r-litres">—</div>
+      <div class="litres-label" data-t="litres_auth">Litres Authorised</div>
+    </div>
+    <button class="dispense-btn" onclick="confirmDispense()" data-t="dispense_btn">✅ DISPENSE FUEL — Confirm</button>
+    <button class="deny-btn" onclick="denyFuel()" data-t="deny_btn">❌ DENY — Do Not Dispense</button>
+  </div>
+
+  <!-- DENIED result -->
+  <div class="result-card denied" id="result-denied" style="display:none">
+    <div class="result-header">
+      <div class="result-icon">🚫</div>
+      <div>
+        <div class="result-title" data-t="blocked">BLOCKED</div>
+        <div class="result-sub" data-t="do_not_dispense">Do NOT dispense fuel</div>
+      </div>
+    </div>
+    <div class="deny-reason" id="r-reason">—</div>
+  </div>
+</div>
+
+<!-- TRANSACTIONS TAB -->
+<div class="tab-content" id="tab-transactions">
+  <div class="txn-card">
+    <div class="txn-left">
+      <div class="txn-name">Suresh Kumar</div>
+      <div class="txn-detail">MH-12 CD 5678 · P5 General</div>
+    </div>
+    <div class="txn-right">
+      <div class="txn-litres">10L Petrol</div>
+      <div class="txn-time">2:15 PM</div>
+    </div>
+  </div>
+  <div class="txn-card">
+    <div class="txn-left">
+      <div class="txn-name">Anjali Sharma</div>
+      <div class="txn-detail">MH-04 EF 9012 · P2 Essential</div>
+    </div>
+    <div class="txn-right">
+      <div class="txn-litres">20L Petrol</div>
+      <div class="txn-time">1:40 PM</div>
+    </div>
+  </div>
+  <div class="txn-card">
+    <div class="txn-left">
+      <div class="txn-name">Unknown Vehicle</div>
+      <div class="txn-detail">MH-16 XY 0000 · Blocked</div>
+    </div>
+    <div class="txn-right">
+      <div class="txn-litres txn-denied" data-t="denied">Denied</div>
+      <div class="txn-time">12:55 PM</div>
+    </div>
+  </div>
+  <div class="total-card">
+    <div class="total-num">415 <span style="font-size:18px">L</span></div>
+    <div class="total-label" data-t="total_today">Total Fuel Dispensed Today</div>
+    <div style="font-size:12px;opacity:.7;margin-top:4px">20 <span data-t="vehicles">vehicles</span> · 3 <span data-t="denied_count">denied</span></div>
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('indhan_token');
+
+// ══════════════════════════════════════════
+// TRANSLATIONS — All regional languages
+// ══════════════════════════════════════════
+const TRANSLATIONS = {
+  en: {
+    tab_fuel:'Fuel Status', tab_scan:'QR Scanner', tab_txn:'Transactions',
+    green_active:'Green tick ACTIVE — Your pump appears at TOP of user search for 12 hours!',
+    update_stock:'🛢️ Update My Pump Fuel Stock',
+    petrol:'Petrol', diesel:'Diesel', cng:'CNG', ev:'EV Charging',
+    update_btn:'Update Fuel Status — Notify Users',
+    update_hint:'Owner report trusted more · Valid for 12 hours · Green tick and top on search listing',
+    scan_title:'Scan Customer QR Code',
+    scan_sub:'For fuel rationing — scan to verify priority and dispense fuel',
+    open_camera:'📷 Open Camera Scanner',
+    manual_placeholder:'Or enter QR ID manually...',
+    check_btn:'Check',
+    cleared:'CLEARED', dispense_auth:'Fuel dispensing authorised',
+    customer:'CUSTOMER', vehicle:'VEHICLE', priority:'PRIORITY', fuel_type:'FUEL TYPE',
+    litres_auth:'Litres Authorised',
+    dispense_btn:'✅ DISPENSE FUEL — Confirm',
+    deny_btn:'❌ DENY — Do Not Dispense',
+    blocked:'BLOCKED', do_not_dispense:'Do NOT dispense fuel',
+    denied:'Denied', total_today:'Total Fuel Dispensed Today',
+    vehicles:'vehicles', denied_count:'denied',
+    h_title:'⛽ Pump Owner Dashboard',
+    h_sub:'IndhanShodhak — Fuel Management System',
+    btn_logout:'Logout',
+    update_success:'✅ Fuel status updated! Green tick active for 12 hours.',
+    no_pump:'No pump linked — contact admin',
+  },
+  hi: {
+    tab_fuel:'ईंधन स्थिति', tab_scan:'QR स्कैनर', tab_txn:'लेनदेन',
+    green_active:'हरा टिक सक्रिय — आपका पंप 12 घंटे के लिए खोज में सबसे ऊपर दिखेगा!',
+    update_stock:'🛢️ मेरे पंप का ईंधन स्टॉक अपडेट करें',
+    petrol:'पेट्रोल', diesel:'डीज़ल', cng:'CNG', ev:'EV चार्जिंग',
+    update_btn:'ईंधन स्थिति अपडेट करें — उपयोगकर्ताओं को सूचित करें',
+    update_hint:'मालिक की रिपोर्ट अधिक विश्वसनीय · 12 घंटे वैध · खोज में हरा टिक और सबसे ऊपर',
+    scan_title:'ग्राहक का QR कोड स्कैन करें',
+    scan_sub:'ईंधन राशनिंग के लिए — प्राथमिकता सत्यापित करें और ईंधन दें',
+    open_camera:'📷 कैमरा स्कैनर खोलें',
+    manual_placeholder:'या QR ID मैन्युअल दर्ज करें...',
+    check_btn:'जांचें',
+    cleared:'मंजूर', dispense_auth:'ईंधन देना अधिकृत है',
+    customer:'ग्राहक', vehicle:'वाहन', priority:'प्राथमिकता', fuel_type:'ईंधन प्रकार',
+    litres_auth:'अधिकृत लीटर',
+    dispense_btn:'✅ ईंधन दें — पुष्टि करें',
+    deny_btn:'❌ अस्वीकार करें — ईंधन न दें',
+    blocked:'अवरुद्ध', do_not_dispense:'ईंधन न दें',
+    denied:'अस्वीकृत', total_today:'आज कुल ईंधन वितरित',
+    vehicles:'वाहन', denied_count:'अस्वीकृत',
+    h_title:'⛽ पंप मालिक डैशबोर्ड',
+    h_sub:'इंधन शोधक — ईंधन प्रबंधन प्रणाली',
+    btn_logout:'लॉग आउट',
+    update_success:'✅ ईंधन स्थिति अपडेट! 12 घंटे के लिए हरा टिक सक्रिय।',
+    no_pump:'कोई पंप लिंक नहीं — व्यवस्थापक से संपर्क करें',
+  },
+  mr: {
+    tab_fuel:'इंधन स्थिती', tab_scan:'QR स्कॅनर', tab_txn:'व्यवहार',
+    green_active:'हिरवी टिक सक्रिय — तुमचा पंप 12 तासांसाठी शोधात सर्वात वर दिसेल!',
+    update_stock:'🛢️ माझ्या पंपाचा इंधन साठा अपडेट करा',
+    petrol:'पेट्रोल', diesel:'डिझेल', cng:'CNG', ev:'EV चार्जिंग',
+    update_btn:'इंधन स्थिती अपडेट करा — वापरकर्त्यांना सूचित करा',
+    update_hint:'मालकाचा अहवाल अधिक विश्वासार्ह · 12 तास वैध · शोधात हिरवी टिक आणि सर्वात वर',
+    scan_title:'ग्राहकाचा QR कोड स्कॅन करा',
+    scan_sub:'इंधन रेशनिंगसाठी — प्राधान्य सत्यापित करा आणि इंधन द्या',
+    open_camera:'📷 कॅमेरा स्कॅनर उघडा',
+    manual_placeholder:'किंवा QR ID मॅन्युअली टाका...',
+    check_btn:'तपासा',
+    cleared:'मंजूर', dispense_auth:'इंधन देणे अधिकृत आहे',
+    customer:'ग्राहक', vehicle:'वाहन', priority:'प्राधान्य', fuel_type:'इंधन प्रकार',
+    litres_auth:'अधिकृत लिटर',
+    dispense_btn:'✅ इंधन द्या — पुष्टी करा',
+    deny_btn:'❌ नाकारा — इंधन देऊ नका',
+    blocked:'अवरोधित', do_not_dispense:'इंधन देऊ नका',
+    denied:'नाकारले', total_today:'आज एकूण इंधन वितरित',
+    vehicles:'वाहने', denied_count:'नाकारले',
+    h_title:'⛽ पंप मालक डॅशबोर्ड',
+    h_sub:'इंधन शोधक — इंधन व्यवस्थापन प्रणाली',
+    btn_logout:'लॉग आउट',
+    update_success:'✅ इंधन स्थिती अपडेट! 12 तासांसाठी हिरवी टिक सक्रिय.',
+    no_pump:'कोणताही पंप लिंक नाही — प्रशासकाशी संपर्क करा',
+  },
+  te: {
+    tab_fuel:'ఇంధన స్థితి', tab_scan:'QR స్కానర్', tab_txn:'లావాదేవీలు',
+    green_active:'గ్రీన్ టిక్ యాక్టివ్ — మీ పంప్ 12 గంటలు శోధనలో అగ్రస్థానంలో ఉంటుంది!',
+    update_stock:'🛢️ నా పంప్ ఇంధన స్టాక్ అప్‌డేట్ చేయండి',
+    petrol:'పెట్రోల్', diesel:'డీజిల్', cng:'CNG', ev:'EV చార్జింగ్',
+    update_btn:'ఇంధన స్థితిని నవీకరించండి — వినియోగదారులకు తెలియజేయండి',
+    update_hint:'యజమాని నివేదిక నమ్మకమైనది · 12 గంటలు చెల్లుబాటు · శోధనలో గ్రీన్ టిక్',
+    scan_title:'కస్టమర్ QR కోడ్ స్కాన్ చేయండి',
+    scan_sub:'ఇంధన రేషనింగ్ కోసం — ప్రాధాన్యతను ధృవీకరించండి మరియు ఇంధనం ఇవ్వండి',
+    open_camera:'📷 కెమెరా స్కానర్ తెరవండి',
+    manual_placeholder:'లేదా QR ID మాన్యువల్‌గా నమోదు చేయండి...',
+    check_btn:'తనిఖీ చేయండి',
+    cleared:'అనుమతించబడింది', dispense_auth:'ఇంధనం ఇవ్వడానికి అనుమతి ఉంది',
+    customer:'కస్టమర్', vehicle:'వాహనం', priority:'ప్రాధాన్యత', fuel_type:'ఇంధన రకం',
+    litres_auth:'అనుమతించిన లీటర్లు',
+    dispense_btn:'✅ ఇంధనం ఇవ్వండి — నిర్ధారించండి',
+    deny_btn:'❌ తిరస్కరించండి — ఇంధనం ఇవ్వకండి',
+    blocked:'నిరోధించబడింది', do_not_dispense:'ఇంధనం ఇవ్వకండి',
+    denied:'తిరస్కరించబడింది', total_today:'నేడు మొత్తం ఇంధనం పంపిణీ',
+    vehicles:'వాహనాలు', denied_count:'తిరస్కరించబడిన',
+    h_title:'⛽ పంప్ యజమాని డాష్‌బోర్డ్',
+    h_sub:'ఇంధన్ శోధక్ — ఇంధన నిర్వహణ వ్యవస్థ',
+    btn_logout:'లాగ్ అవుట్',
+    update_success:'✅ ఇంధన స్థితి నవీకరించబడింది! 12 గంటలు గ్రీన్ టిక్ యాక్టివ్.',
+    no_pump:'పంప్ లింక్ లేదు — అడ్మిన్‌ని సంప్రదించండి',
+  },
+  ta: {
+    tab_fuel:'எரிபொருள் நிலை', tab_scan:'QR ஸ்கேனர்', tab_txn:'பரிவர்த்தனைகள்',
+    green_active:'பச்சை டிக் செயலில் — உங்கள் பம்ப் 12 மணி நேரம் தேடலில் மேலே தெரியும்!',
+    update_stock:'🛢️ என் பம்ப் எரிபொருள் இருப்பை புதுப்பிக்கவும்',
+    petrol:'பெட்ரோல்', diesel:'டீசல்', cng:'CNG', ev:'EV சார்ஜிங்',
+    update_btn:'எரிபொருள் நிலையை புதுப்பிக்கவும் — பயனர்களுக்கு தெரிவிக்கவும்',
+    update_hint:'உரிமையாளர் அறிக்கை நம்பகமானது · 12 மணி நேரம் செல்லுபடியாகும்',
+    scan_title:'வாடிக்கையாளர் QR குறியீட்டை ஸ்கேன் செய்யவும்',
+    scan_sub:'எரிபொருள் ரேஷனிங்கிற்கு — முன்னுரிமையை சரிபார்க்கவும்',
+    open_camera:'📷 கேமரா ஸ்கேனரை திறக்கவும்',
+    manual_placeholder:'அல்லது QR ID ஐ கைமுறையாக உள்ளிடவும்...',
+    check_btn:'சரிபார்க்கவும்',
+    cleared:'அனுமதிக்கப்பட்டது', dispense_auth:'எரிபொருள் வழங்க அதிகாரம் உள்ளது',
+    customer:'வாடிக்கையாளர்', vehicle:'வாகனம்', priority:'முன்னுரிமை', fuel_type:'எரிபொருள் வகை',
+    litres_auth:'அனுமதிக்கப்பட்ட லிட்டர்கள்',
+    dispense_btn:'✅ எரிபொருள் கொடுங்கள் — உறுதிப்படுத்தவும்',
+    deny_btn:'❌ மறுக்கவும் — எரிபொருள் கொடுக்காதீர்கள்',
+    blocked:'தடுக்கப்பட்டது', do_not_dispense:'எரிபொருள் கொடுக்காதீர்கள்',
+    denied:'மறுக்கப்பட்டது', total_today:'இன்று மொத்த எரிபொருள் வழங்கியது',
+    vehicles:'வாகனங்கள்', denied_count:'மறுக்கப்பட்டது',
+    h_title:'⛽ பம்ப் உரிமையாளர் டாஷ்போர்டு',
+    h_sub:'இந்தன் ஷோதக் — எரிபொருள் மேலாண்மை அமைப்பு',
+    btn_logout:'வெளியேறு',
+    update_success:'✅ எரிபொருள் நிலை புதுப்பிக்கப்பட்டது! 12 மணி நேரம் பச்சை டிக்.',
+    no_pump:'பம்ப் இணைக்கப்படவில்லை — நிர்வாகியை தொடர்பு கொள்ளவும்',
+  },
+  kn: {
+    tab_fuel:'ಇಂಧನ ಸ್ಥಿತಿ', tab_scan:'QR ಸ್ಕ್ಯಾನರ್', tab_txn:'ವ್ಯವಹಾರಗಳು',
+    green_active:'ಹಸಿರು ಟಿಕ್ ಸಕ್ರಿಯ — ನಿಮ್ಮ ಪಂಪ್ 12 ಗಂಟೆ ಹುಡುಕಾಟದಲ್ಲಿ ಮೇಲೆ ಕಾಣಿಸುತ್ತದೆ!',
+    update_stock:'🛢️ ನನ್ನ ಪಂಪ್ ಇಂಧನ ದಾಸ್ತಾನು ನವೀಕರಿಸಿ',
+    petrol:'ಪೆಟ್ರೋಲ್', diesel:'ಡೀಸೆಲ್', cng:'CNG', ev:'EV ಚಾರ್ಜಿಂಗ್',
+    update_btn:'ಇಂಧನ ಸ್ಥಿತಿ ನವೀಕರಿಸಿ — ಬಳಕೆದಾರರಿಗೆ ತಿಳಿಸಿ',
+    update_hint:'ಮಾಲೀಕರ ವರದಿ ವಿಶ್ವಾಸಾರ್ಹ · 12 ಗಂಟೆ ಮಾನ್ಯ · ಹಸಿರು ಟಿಕ್',
+    scan_title:'ಗ್ರಾಹಕರ QR ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ',
+    scan_sub:'ಇಂಧನ ರೇಷನಿಂಗ್‌ಗಾಗಿ — ಆದ್ಯತೆ ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಇಂಧನ ನೀಡಿ',
+    open_camera:'📷 ಕ್ಯಾಮೆರಾ ಸ್ಕ್ಯಾನರ್ ತೆರೆಯಿರಿ',
+    manual_placeholder:'ಅಥವಾ QR ID ಹಸ್ತಚಾಲಿತವಾಗಿ ನಮೂದಿಸಿ...',
+    check_btn:'ಪರಿಶೀಲಿಸಿ',
+    cleared:'ಅನುಮೋದಿತ', dispense_auth:'ಇಂಧನ ನೀಡಲು ಅಧಿಕಾರ ಇದೆ',
+    customer:'ಗ್ರಾಹಕ', vehicle:'ವಾಹನ', priority:'ಆದ್ಯತೆ', fuel_type:'ಇಂಧನ ಪ್ರಕಾರ',
+    litres_auth:'ಅಧಿಕೃತ ಲೀಟರ್‌ಗಳು',
+    dispense_btn:'✅ ಇಂಧನ ನೀಡಿ — ದೃಢೀಕರಿಸಿ',
+    deny_btn:'❌ ನಿರಾಕರಿಸಿ — ಇಂಧನ ನೀಡಬೇಡಿ',
+    blocked:'ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ', do_not_dispense:'ಇಂಧನ ನೀಡಬೇಡಿ',
+    denied:'ನಿರಾಕರಿಸಲಾಗಿದೆ', total_today:'ಇಂದು ಒಟ್ಟು ಇಂಧನ ವಿತರಿಸಲಾಗಿದೆ',
+    vehicles:'ವಾಹನಗಳು', denied_count:'ನಿರಾಕರಿಸಲಾಗಿದೆ',
+    h_title:'⛽ ಪಂಪ್ ಮಾಲೀಕರ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
+    h_sub:'ಇಂಧನ ಶೋಧಕ — ಇಂಧನ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆ',
+    btn_logout:'ಲಾಗ್ ಔಟ್',
+    update_success:'✅ ಇಂಧನ ಸ್ಥಿತಿ ನವೀಕರಿಸಲಾಗಿದೆ! 12 ಗಂಟೆ ಹಸಿರು ಟಿಕ್ ಸಕ್ರಿಯ.',
+    no_pump:'ಯಾವುದೇ ಪಂಪ್ ಲಿಂಕ್ ಇಲ್ಲ — ನಿರ್ವಾಹಕರನ್ನು ಸಂಪರ್ಕಿಸಿ',
+  },
+  gu: {
+    tab_fuel:'ઈંધણ સ્થિતિ', tab_scan:'QR સ્કેનર', tab_txn:'વ્યવહારો',
+    green_active:'ગ્રીન ટિક સક્રિય — તમારો પંપ 12 કલાક માટે સર્ચમાં ટોચ પર દેખાશે!',
+    update_stock:'🛢️ મારા પંપનો ઈંધણ સ્ટોક અપડેટ કરો',
+    petrol:'પેટ્રોલ', diesel:'ડીઝલ', cng:'CNG', ev:'EV ચાર્જિંગ',
+    update_btn:'ઈંધણ સ્થિતિ અપડેટ કરો — વપરાશકર્તાઓને જણાવો',
+    update_hint:'માલિકનો અહેવાલ વધુ વિશ્વસનીય · 12 કલાક માટે માન્ય',
+    scan_title:'ગ્રાહકનો QR કોડ સ્કેન કરો',
+    scan_sub:'ઈંધણ રેશનિંગ માટે — પ્રાથમિકતા ચકાસો અને ઈંધણ આપો',
+    open_camera:'📷 કેમેરા સ્કેનર ખોલો',
+    manual_placeholder:'અથવા QR ID મેન્યુઅલી દાખલ કરો...',
+    check_btn:'તપાસો',
+    cleared:'મંજૂર', dispense_auth:'ઈંધણ આપવાની સ્વીકૃતિ છે',
+    customer:'ગ્રાહક', vehicle:'વાહન', priority:'પ્રાથમિકતા', fuel_type:'ઈંધણ પ્રકાર',
+    litres_auth:'અધિકૃત લિટર',
+    dispense_btn:'✅ ઈંધણ આપો — પુષ્ટિ કરો',
+    deny_btn:'❌ નકારો — ઈંધણ ન આપો',
+    blocked:'અવરોધિત', do_not_dispense:'ઈંધણ ન આપો',
+    denied:'નકારાયેલ', total_today:'આજે કુલ ઈંધણ વિતરિત',
+    vehicles:'વાહનો', denied_count:'નકારાયેલ',
+    h_title:'⛽ પંપ માલિક ડેશબોર્ડ',
+    h_sub:'ઇંધન શોધક — ઈંધણ વ્યવસ્થાપન પ્રણાલી',
+    btn_logout:'લૉગ આઉટ',
+    update_success:'✅ ઈંધણ સ્થિતિ અપડેટ! 12 કલાક ગ્રીન ટિક સક્રિય.',
+    no_pump:'કોઈ પંપ લિંક નથી — વ્યવસ્થાપકનો સંપર્ક કરો',
+  },
+  pa: {
+    tab_fuel:'ਬਾਲਣ ਸਥਿਤੀ', tab_scan:'QR ਸਕੈਨਰ', tab_txn:'ਲੈਣ-ਦੇਣ',
+    green_active:'ਹਰਾ ਟਿੱਕ ਸਰਗਰਮ — ਤੁਹਾਡਾ ਪੰਪ 12 ਘੰਟੇ ਲਈ ਖੋਜ ਵਿੱਚ ਸਿਖਰ ਤੇ ਦਿਖੇਗਾ!',
+    update_stock:'🛢️ ਮੇਰੇ ਪੰਪ ਦਾ ਬਾਲਣ ਸਟਾਕ ਅਪਡੇਟ ਕਰੋ',
+    petrol:'ਪੈਟਰੋਲ', diesel:'ਡੀਜ਼ਲ', cng:'CNG', ev:'EV ਚਾਰਜਿੰਗ',
+    update_btn:'ਬਾਲਣ ਸਥਿਤੀ ਅਪਡੇਟ ਕਰੋ — ਉਪਭੋਗਤਾਵਾਂ ਨੂੰ ਸੂਚਿਤ ਕਰੋ',
+    update_hint:'ਮਾਲਕ ਦੀ ਰਿਪੋਰਟ ਵਧੇਰੇ ਭਰੋਸੇਮੰਦ · 12 ਘੰਟੇ ਵੈਧ',
+    scan_title:'ਗਾਹਕ ਦਾ QR ਕੋਡ ਸਕੈਨ ਕਰੋ',
+    scan_sub:'ਬਾਲਣ ਰਾਸ਼ਨਿੰਗ ਲਈ — ਤਰਜੀਹ ਜਾਂਚੋ ਅਤੇ ਬਾਲਣ ਦਿਓ',
+    open_camera:'📷 ਕੈਮਰਾ ਸਕੈਨਰ ਖੋਲ੍ਹੋ',
+    manual_placeholder:'ਜਾਂ QR ID ਮੈਨੂਅਲੀ ਦਰਜ ਕਰੋ...',
+    check_btn:'ਜਾਂਚ ਕਰੋ',
+    cleared:'ਮਨਜ਼ੂਰ', dispense_auth:'ਬਾਲਣ ਦੇਣ ਦੀ ਇਜਾਜ਼ਤ ਹੈ',
+    customer:'ਗਾਹਕ', vehicle:'ਵਾਹਨ', priority:'ਤਰਜੀਹ', fuel_type:'ਬਾਲਣ ਕਿਸਮ',
+    litres_auth:'ਅਧਿਕਾਰਤ ਲੀਟਰ',
+    dispense_btn:'✅ ਬਾਲਣ ਦਿਓ — ਪੁਸ਼ਟੀ ਕਰੋ',
+    deny_btn:'❌ ਮਨ੍ਹਾ ਕਰੋ — ਬਾਲਣ ਨਾ ਦਿਓ',
+    blocked:'ਬਲਾਕ', do_not_dispense:'ਬਾਲਣ ਨਾ ਦਿਓ',
+    denied:'ਮਨ੍ਹਾ', total_today:'ਅੱਜ ਕੁੱਲ ਬਾਲਣ ਵੰਡਿਆ',
+    vehicles:'ਵਾਹਨ', denied_count:'ਮਨ੍ਹਾ',
+    h_title:'⛽ ਪੰਪ ਮਾਲਕ ਡੈਸ਼ਬੋਰਡ',
+    h_sub:'ਇੰਧਨ ਸ਼ੋਧਕ — ਬਾਲਣ ਪ੍ਰਬੰਧਨ ਸਿਸਟਮ',
+    btn_logout:'ਲੌਗ ਆਊਟ',
+    update_success:'✅ ਬਾਲਣ ਸਥਿਤੀ ਅਪਡੇਟ! 12 ਘੰਟੇ ਹਰਾ ਟਿੱਕ ਸਰਗਰਮ.',
+    no_pump:'ਕੋਈ ਪੰਪ ਲਿੰਕ ਨਹੀਂ — ਪ੍ਰਬੰਧਕ ਨਾਲ ਸੰਪਰਕ ਕਰੋ',
+  },
+  bn: {
+    tab_fuel:'জ্বালানি অবস্থা', tab_scan:'QR স্ক্যানার', tab_txn:'লেনদেন',
+    green_active:'সবুজ টিক সক্রিয় — আপনার পাম্প ১২ ঘণ্টার জন্য অনুসন্ধানে শীর্ষে থাকবে!',
+    update_stock:'🛢️ আমার পাম্পের জ্বালানি স্টক আপডেট করুন',
+    petrol:'পেট্রোল', diesel:'ডিজেল', cng:'CNG', ev:'EV চার্জিং',
+    update_btn:'জ্বালানি অবস্থা আপডেট করুন — ব্যবহারকারীদের জানান',
+    update_hint:'মালিকের রিপোর্ট বিশ্বস্ত · ১২ ঘণ্টা বৈধ · সবুজ টিক',
+    scan_title:'গ্রাহকের QR কোড স্ক্যান করুন',
+    scan_sub:'জ্বালানি রেশনিংয়ের জন্য — অগ্রাধিকার যাচাই করুন এবং জ্বালানি দিন',
+    open_camera:'📷 ক্যামেরা স্ক্যানার খুলুন',
+    manual_placeholder:'অথবা QR ID ম্যানুয়ালি লিখুন...',
+    check_btn:'যাচাই করুন',
+    cleared:'অনুমোদিত', dispense_auth:'জ্বালানি দেওয়ার অনুমতি আছে',
+    customer:'গ্রাহক', vehicle:'যানবাহন', priority:'অগ্রাধিকার', fuel_type:'জ্বালানির ধরন',
+    litres_auth:'অনুমোদিত লিটার',
+    dispense_btn:'✅ জ্বালানি দিন — নিশ্চিত করুন',
+    deny_btn:'❌ প্রত্যাখ্যান করুন — জ্বালানি দেবেন না',
+    blocked:'অবরুদ্ধ', do_not_dispense:'জ্বালানি দেবেন না',
+    denied:'প্রত্যাখ্যাত', total_today:'আজ মোট জ্বালানি বিতরণ',
+    vehicles:'যানবাহন', denied_count:'প্রত্যাখ্যাত',
+    h_title:'⛽ পাম্প মালিক ড্যাশবোর্ড',
+    h_sub:'ইন্ধন শোধক — জ্বালানি ব্যবস্থাপনা সিস্টেম',
+    btn_logout:'লগ আউট',
+    update_success:'✅ জ্বালানি অবস্থা আপডেট! ১২ ঘণ্টা সবুজ টিক সক্রিয়.',
+    no_pump:'কোনো পাম্প লিংক নেই — প্রশাসকের সাথে যোগাযোগ করুন',
+  },
+  ml: {
+    tab_fuel:'ഇന്ധന നില', tab_scan:'QR സ്കാനർ', tab_txn:'ഇടപാടുകൾ',
+    green_active:'ഗ്രീൻ ടിക് സജീവം — നിങ്ങളുടെ പമ്പ് 12 മണിക്കൂർ തിരയലിൽ മുകളിൽ കാണും!',
+    update_stock:'🛢️ എന്റെ പമ്പിന്റെ ഇന്ധന സ്റ്റോക്ക് അപ്ഡേറ്റ് ചെയ്യുക',
+    petrol:'പെട്രോൾ', diesel:'ഡീസൽ', cng:'CNG', ev:'EV ചാർജിംഗ്',
+    update_btn:'ഇന്ധന നില അപ്ഡേറ്റ് ചെയ്യുക — ഉപയോക്താക്കളെ അറിയിക്കുക',
+    update_hint:'ഉടമയുടെ റിപ്പോർട്ട് വിശ്വസനീയം · 12 മണിക്കൂർ സാധുതയുള്ളത്',
+    scan_title:'ഉപഭോക്താവിന്റെ QR കോഡ് സ്കാൻ ചെയ്യുക',
+    scan_sub:'ഇന്ധന റേഷനിംഗിനായി — മുൻഗണന പരിശോധിക്കുക',
+    open_camera:'📷 ക്യാമറ സ്കാനർ തുറക്കുക',
+    manual_placeholder:'അല്ലെങ്കിൽ QR ID സ്വമേധയാ നൽകുക...',
+    check_btn:'പരിശോധിക്കുക',
+    cleared:'അനുമതി നൽകി', dispense_auth:'ഇന്ധനം നൽകാൻ അധികാരമുണ്ട്',
+    customer:'ഉപഭോക്താവ്', vehicle:'വാഹനം', priority:'മുൻഗണന', fuel_type:'ഇന്ധന തരം',
+    litres_auth:'അംഗീകൃത ലിറ്ററുകൾ',
+    dispense_btn:'✅ ഇന്ധനം നൽകുക — സ്ഥിരീകരിക്കുക',
+    deny_btn:'❌ നിരസിക്കുക — ഇന്ധനം നൽകരുത്',
+    blocked:'തടഞ്ഞു', do_not_dispense:'ഇന്ധനം നൽകരുത്',
+    denied:'നിരസിച്ചു', total_today:'ഇന്ന് മൊത്തം ഇന്ധനം വിതരണം ചെയ്തു',
+    vehicles:'വാഹനങ്ങൾ', denied_count:'നിരസിച്ചു',
+    h_title:'⛽ പമ്പ് ഉടമ ഡാഷ്ബോർഡ്',
+    h_sub:'ഇന്ധൻ ശോധക് — ഇന്ധന മാനേജ്മെന്റ് സിസ്റ്റം',
+    btn_logout:'ലോഗ് ഔട്ട്',
+    update_success:'✅ ഇന്ധന നില അപ്ഡേറ്റ്! 12 മണിക്കൂർ ഗ്രീൻ ടിക് സജീവം.',
+    no_pump:'പമ്പ് ലിങ്ക് ഇല്ല — അഡ്മിനുമായി ബന്ധപ്പെടുക',
+  },
+  or: {
+    tab_fuel:'ଇନ୍ଧନ ସ୍ଥିତି', tab_scan:'QR ସ୍କାନର', tab_txn:'କାରବାର',
+    green_active:'ସବୁଜ ଟିକ୍ ସକ୍ରିୟ — ଆପଣଙ୍କ ପମ୍ପ ୧୨ ଘଣ୍ଟା ଖୋଜ ଶ୍ରେଣୀରେ ଉପରେ ଦେଖାଯିବ!',
+    update_stock:'🛢️ ମୋ ପମ୍ପ ଇନ୍ଧନ ଷ୍ଟକ ଅପଡେଟ କରନ୍ତୁ',
+    petrol:'ପେଟ୍ରୋଲ', diesel:'ଡିଜେଲ', cng:'CNG', ev:'EV ଚାର୍ଜିଂ',
+    update_btn:'ଇନ୍ଧନ ସ୍ଥିତି ଅପଡେଟ କରନ୍ତୁ — ଉପଭୋକ୍ତାମାନଙ୍କୁ ଜଣାନ୍ତୁ',
+    update_hint:'ମାଲିକ ରିପୋର୍ଟ ବିଶ୍ୱସ୍ତ · ୧୨ ଘଣ୍ଟା ବୈଧ',
+    scan_title:'ଗ୍ରାହକଙ୍କ QR କୋଡ ସ୍କାନ କରନ୍ତୁ',
+    scan_sub:'ଇନ୍ଧନ ରେସନିଂ ପାଇଁ — ଅଗ୍ରାଧିକାର ଯାଞ୍ଚ କରନ୍ତୁ',
+    open_camera:'📷 କ୍ୟାମେରା ସ୍କାନର ଖୋଲନ୍ତୁ',
+    manual_placeholder:'ବା QR ID ମ୍ୟାନୁଆଲୀ ଦିଅନ୍ତୁ...',
+    check_btn:'ଯାଞ୍ଚ',
+    cleared:'ଅନୁମୋଦିତ', dispense_auth:'ଇନ୍ଧନ ଦେବାର ଅଧିକାର ଅଛି',
+    customer:'ଗ୍ରାହକ', vehicle:'ଯାନ', priority:'ଅଗ୍ରାଧିକାର', fuel_type:'ଇନ୍ଧନ ପ୍ରକାର',
+    litres_auth:'ଅଧିକୃତ ଲିଟର',
+    dispense_btn:'✅ ଇନ୍ଧନ ଦିଅନ୍ତୁ — ନିଶ୍ଚିତ କରନ୍ତୁ',
+    deny_btn:'❌ ଅସ୍ୱୀକାର — ଇନ୍ଧନ ଦିଅନ୍ତୁ ନାହିଁ',
+    blocked:'ଅବରୁଦ୍ଧ', do_not_dispense:'ଇନ୍ଧନ ଦିଅନ୍ତୁ ନାହିଁ',
+    denied:'ଅସ୍ୱୀକୃତ', total_today:'ଆଜି ମୋଟ ଇନ୍ଧନ ବିତରଣ',
+    vehicles:'ଯାନ', denied_count:'ଅସ୍ୱୀକୃତ',
+    h_title:'⛽ ପମ୍ପ ମାଲିକ ଡ୍ୟାଶବୋର୍ଡ',
+    h_sub:'ଇନ୍ଧନ ଶୋଧକ — ଇନ୍ଧନ ପ୍ରବନ୍ଧନ ସିଷ୍ଟମ',
+    btn_logout:'ଲଗ ଆଉଟ',
+    update_success:'✅ ଇନ୍ଧନ ସ୍ଥିତି ଅପଡେଟ! ୧୨ ଘଣ୍ଟା ସବୁଜ ଟିକ ସକ୍ରିୟ.',
+    no_pump:'କୌଣସି ପମ୍ପ ଲିଙ୍କ ନାହିଁ — ଆଡମିନ ସହ ଯୋଗାଯୋଗ କରନ୍ତୁ',
+  },
+  as: {
+    tab_fuel:'ইন্ধন অৱস্থা', tab_scan:'QR স্কেনাৰ', tab_txn:'লেনদেন',
+    green_active:'সেউজীয়া টিক সক্ৰিয় — আপোনাৰ পাম্প ১২ ঘণ্টাৰ বাবে সন্ধানত শীৰ্ষত থাকিব!',
+    update_stock:'🛢️ মোৰ পাম্পৰ ইন্ধন ষ্টক আপডেট কৰক',
+    petrol:'পেট্ৰল', diesel:'ডিজেল', cng:'CNG', ev:'EV চাৰ্জিং',
+    update_btn:'ইন্ধন অৱস্থা আপডেট কৰক — ব্যৱহাৰকাৰীক জনাওক',
+    update_hint:'মালিকৰ প্ৰতিবেদন বিশ্বাসযোগ্য · ১২ ঘণ্টা বৈধ',
+    scan_title:'গ্ৰাহকৰ QR কোড স্কেন কৰক',
+    scan_sub:'ইন্ধন ৰেচনিঙৰ বাবে — অগ্ৰাধিকাৰ পৰীক্ষা কৰক',
+    open_camera:'📷 কেমেৰা স্কেনাৰ খোলক',
+    manual_placeholder:'বা QR ID হাতেৰে দিয়ক...',
+    check_btn:'পৰীক্ষা কৰক',
+    cleared:'অনুমোদিত', dispense_auth:'ইন্ধন দিবলৈ অনুমতি আছে',
+    customer:'গ্ৰাহক', vehicle:'বাহন', priority:'অগ্ৰাধিকাৰ', fuel_type:'ইন্ধনৰ প্ৰকাৰ',
+    litres_auth:'অনুমোদিত লিটাৰ',
+    dispense_btn:'✅ ইন্ধন দিয়ক — নিশ্চিত কৰক',
+    deny_btn:'❌ অস্বীকাৰ — ইন্ধন নিদিব',
+    blocked:'অৱৰুদ্ধ', do_not_dispense:'ইন্ধন নিদিব',
+    denied:'অস্বীকৃত', total_today:'আজি মুঠ ইন্ধন বিতৰণ',
+    vehicles:'বাহন', denied_count:'অস্বীকৃত',
+    h_title:'⛽ পাম্প মালিক ডেশ্বোৰ্ড',
+    h_sub:'ইন্ধন শোধক — ইন্ধন ব্যৱস্থাপনা প্ৰণালী',
+    btn_logout:'লগ আউট',
+    update_success:'✅ ইন্ধন অৱস্থা আপডেট! ১২ ঘণ্টা সেউজীয়া টিক সক্ৰিয়.',
+    no_pump:'কোনো পাম্প লিংক নাই — প্ৰশাসকৰ সৈতে যোগাযোগ কৰক',
+  },
+};
+
+let currentLang = localStorage.getItem('pump_lang') || 'en';
+let scanStream = null;
+let lastQRData = '';
+const fuels = {petrol:true, diesel:true, cng:false, ev:false};
+
+function T(key){ return (TRANSLATIONS[currentLang] || TRANSLATIONS.en)[key] || TRANSLATIONS.en[key] || key; }
+
+function setLang(lang){
+  currentLang = lang;
+  localStorage.setItem('pump_lang', lang);
+  applyTranslations();
+}
+function setLangDrop(lang){ setLang(lang); }
+
+function applyTranslations(){
+  // All data-t elements
+  document.querySelectorAll('[data-t]').forEach(el=>{
+    el.textContent = T(el.getAttribute('data-t'));
+  });
+  // Placeholders
+  document.querySelectorAll('[data-t-placeholder]').forEach(el=>{
+    el.placeholder = T(el.getAttribute('data-t-placeholder'));
+  });
+  // Header special elements
+  document.getElementById('h-title').textContent    = T('h_title');
+  document.getElementById('h-sub').textContent      = T('h_sub');
+  document.getElementById('btn-logout').textContent = T('btn_logout');
+}
+
+function showTab(name, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function toggleFuel(el, type){
+  el.classList.toggle('on');
+  fuels[type] = el.classList.contains('on');
+}
+
+async function updateFuel(){
+  const banner = document.getElementById('active-banner');
+  banner.style.display = 'flex';
+  setTimeout(()=> banner.style.display='none', 4000);
+  if(TOKEN){
+    await fetch('/api/pump-owner/update-fuel',{
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify(fuels)
+    }).catch(()=>{});
+  }
+  document.getElementById('green-tick').style.display = 'block';
+  alert(T('update_success'));
+}
+
+// QR Scanner
+function manualCheck(){
+  const val = document.getElementById('manualQR').value.trim();
+  if(!val){ alert(T('manual_placeholder')); return; }
+  verifyScan(val);
+}
+
+async function verifyScan(qrData){
+  document.getElementById('result-cleared').style.display = 'none';
+  document.getElementById('result-denied').style.display  = 'none';
+  lastQRData = qrData;
+
+  // Demo mode when no token
+  if(!TOKEN){
+    const demo = { allowed:true, user_name:'Ramesh Patil', vehicle:'MH-16 AB 1234',
+      category:'P3', litres_allowed:50, fuel_type:'Diesel' };
+    showResult(demo); return;
+  }
+  try {
+    const r = await fetch('/api/fuel-id/scan',{
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({qr_data:qrData})
+    });
+    const ct = r.headers.get('content-type')||'';
+    if(!ct.includes('json')){ showDenied('Server error'); return; }
+    const d = await r.json();
+    showResult(d);
+  } catch(e){ showDenied('Connection error'); }
+}
+
+function showResult(d){
+  if(d.allowed){
+    document.getElementById('r-name').textContent     = d.user_name || '—';
+    document.getElementById('r-vehicle').textContent  = d.vehicle || '—';
+    document.getElementById('r-priority').textContent = d.category || 'P5';
+    document.getElementById('r-fuel').textContent     = d.fuel_type || 'Petrol';
+    document.getElementById('r-litres').textContent   = d.no_limit ? '∞' : (d.litres_allowed||10)+' L';
+    document.getElementById('result-cleared').style.display = 'block';
+    // Re-apply translations to result labels
+    applyTranslations();
+  } else {
+    showDenied(d.reason || d.error || 'Blocked');
+  }
+}
+
+function showDenied(reason){
+  document.getElementById('r-reason').textContent = reason;
+  document.getElementById('result-denied').style.display = 'block';
+}
+
+async function confirmDispense(){
+  const litres = document.getElementById('r-litres').textContent.replace(' L','');
+  if(TOKEN){
+    await fetch('/api/fuel-id/confirm-dispense',{
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({qr_data:lastQRData, litres_dispensed:parseFloat(litres)||10, fuel_type:'petrol'})
+    }).catch(()=>{});
+  }
+  document.getElementById('result-cleared').style.display = 'none';
+  document.getElementById('manualQR').value = '';
+  alert('✅ ' + litres + 'L dispensed & logged!');
+}
+
+function denyFuel(){
+  document.getElementById('result-cleared').style.display = 'none';
+  document.getElementById('manualQR').value = '';
+}
+
+async function openCamera(){
+  const video = document.getElementById('cameraVideo');
+  const canvas = document.getElementById('cameraCanvas');
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; video.style.display='none'; return; }
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    video.srcObject = scanStream;
+    video.style.display = 'block';
+    const ctx = canvas.getContext('2d');
+    const scan = ()=>{
+      if(!scanStream) return;
+      canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+      ctx.drawImage(video,0,0);
+      const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code = jsQR(img.data,img.width,img.height);
+      if(code){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; video.style.display='none'; verifyScan(code.data); }
+      else requestAnimationFrame(scan);
+    };
+    video.onloadedmetadata = ()=> requestAnimationFrame(scan);
+  } catch(e){ alert('Camera access denied. Use manual entry.'); }
+}
+
+function logout(){
+  localStorage.removeItem('indhan_token');
+  localStorage.removeItem('indhan_role');
+  window.location.href='/login';
+}
+
+// Init — set dropdown to saved language
+applyTranslations();
+const sel = document.getElementById('lang-select');
+if(sel) sel.value = currentLang;
+
+// Load pump name in header on page load
+(async function loadDashHeader(){
+  try {
+    const r = await fetch('/api/pump-owner/subscription-status',{headers:{'x-auth-token':TOKEN}});
+    const d = await r.json();
+    if(d.pump){
+      const nameEl = document.getElementById('pump-name');
+      if(nameEl) nameEl.textContent = (d.pump.name||'Your Pump') + (d.pump.is_verified ? ' ✅' : ' ⏳');
+    }
+  } catch(e) {
+    const nameEl = document.getElementById('pump-name');
+    if(nameEl) nameEl.textContent = 'Your Pump Dashboard';
+  }
+})();
+
+// Profile Modal Functions
+async function openProfileModal(){
+  document.getElementById('pumpProfileModal').style.display='flex';
+  try {
+    const r = await fetch('/api/pump-owner/subscription-status',{headers:{'x-auth-token':TOKEN}});
+    const d = await r.json();
+    if(d.pump){
+      document.getElementById('prof-pump-name').textContent = d.pump.name||'—';
+      document.getElementById('prof-oil-co').textContent    = d.pump.oil_company||'—';
+      document.getElementById('prof-license').textContent   = d.pump.license_number||'—';
+      document.getElementById('prof-address').textContent   = d.pump.address||'—';
+      const vEl=document.getElementById('prof-verified');
+      vEl.textContent=d.pump.is_verified?'✅ Verified':'⏳ Pending';
+      vEl.style.color=d.pump.is_verified?'#81c784':'#ffd700';
+    }
+    document.getElementById('prof-login-id').textContent=d.login_id||'—';
+    const sEl=document.getElementById('prof-sub-status');
+    const subBtn=document.getElementById('prof-sub-btn');
+    if(d.is_premium&&d.status==='active'){
+      sEl.textContent='✅ Active';sEl.style.color='#81c784';
+      document.getElementById('prof-trial-row').style.display='none';
+      subBtn.style.display='none';
+    } else if(d.is_premium&&d.status==='trial'){
+      sEl.textContent=`⏳ Trial (${d.trial_left} day${d.trial_left===1?'':'s'} left)`;
+      sEl.style.color='#ffd700';
+      document.getElementById('prof-trial-left').textContent=`${d.trial_left} of ${d.trial_days} days`;
+      subBtn.style.display='block';
+      subBtn.textContent=`💚 Subscribe ₹${d.price}/month`;
+    } else {
+      sEl.textContent='❌ Expired';sEl.style.color='#ef9a9a';
+      document.getElementById('prof-trial-left').textContent='Trial ended';
+      subBtn.style.display='block';
+      subBtn.textContent=`💚 Subscribe ₹${d.price}/month`;
+    }
+    const gtEl=document.getElementById('prof-green-tick');
+    gtEl.textContent=d.green_tick?'✅ Active':'❌ Not active';
+    gtEl.style.color=d.green_tick?'#81c784':'#ef9a9a';
+    const scEl=document.getElementById('prof-scan-count');
+    if(d.is_premium){scEl.textContent='♾️ Unlimited';scEl.style.color='#81c784';}
+    else if(d.scanner_blocked){scEl.textContent=`🚫 Blocked (${d.scan_count}/${d.scan_limit})`;scEl.style.color='#ef9a9a';}
+    else{scEl.textContent=`${d.scan_count}/${d.scan_limit} · ${d.scan_remaining} left`;scEl.style.color=d.scan_remaining<=2?'#ffd700':'#81c784';}
+  }catch(e){console.error('Profile error:',e);}
+}
+
+function closeProfileModal(){
+  document.getElementById('pumpProfileModal').style.display='none';
+  ['pwd-current','pwd-new','pwd-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('pwd-success').style.display='none';
+  document.getElementById('pwd-error').style.display='none';
+}
+
+function copyLoginId(){
+  const id=document.getElementById('prof-login-id').textContent;
+  navigator.clipboard.writeText(id).then(()=>{
+    const btn=event.target;btn.textContent='Copied!';
+    setTimeout(()=>btn.textContent='Copy',2000);
+  }).catch(()=>alert('Login ID: '+id));
+}
+
+async function changePassword(){
+  const cur=document.getElementById('pwd-current').value.trim();
+  const nw=document.getElementById('pwd-new').value.trim();
+  const cf=document.getElementById('pwd-confirm').value.trim();
+  const errEl=document.getElementById('pwd-error');
+  const sucEl=document.getElementById('pwd-success');
+  const btn=document.getElementById('pwd-btn');
+  errEl.style.display='none';sucEl.style.display='none';
+  if(!cur){errEl.textContent='Enter current password';errEl.style.display='block';return;}
+  if(!nw||nw.length<6){errEl.textContent='New password min 6 chars';errEl.style.display='block';return;}
+  if(nw!==cf){errEl.textContent='Passwords do not match';errEl.style.display='block';return;}
+  if(cur===nw){errEl.textContent='New password must differ';errEl.style.display='block';return;}
+  btn.disabled=true;btn.textContent='⏳ Updating...';
+  try{
+    const r=await fetch('/api/pump-owner/change-password',{
+      method:'POST',headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({current_password:cur,new_password:nw})
+    });
+    const d=await r.json();
+    if(d.success){
+      sucEl.style.display='block';
+      ['pwd-current','pwd-new','pwd-confirm'].forEach(id=>document.getElementById(id).value='');
+    }else{errEl.textContent=d.error||'Failed';errEl.style.display='block';}
+  }catch(e){errEl.textContent='Network error';errEl.style.display='block';}
+  btn.disabled=false;btn.textContent='🔑 Update Password';
+}
+</script>
+
+<!-- Pump Owner Profile Modal -->
+<div id="pumpProfileModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.7);z-index:9999;align-items:flex-end;justify-content:center">
+  <div style="background:#1a2744;width:100%;max-width:480px;border-radius:20px 20px 0 0;
+    padding:0 0 20px;max-height:90vh;overflow-y:auto">
+
+    <!-- Handle -->
+    <div style="text-align:center;padding:10px">
+      <div style="width:36px;height:4px;background:rgba(255,255,255,.3);border-radius:2px;margin:0 auto"></div>
+    </div>
+
+    <!-- Header -->
+    <div style="padding:0 16px 12px;display:flex;justify-content:space-between;align-items:center;
+      border-bottom:1px solid rgba(255,255,255,.1)">
+      <div style="font-size:15px;font-weight:700;color:white">👤 Pump Profile & Subscription</div>
+      <button onclick="closeProfileModal()"
+        style="background:rgba(255,255,255,.1);border:none;color:white;border-radius:50%;
+        width:28px;height:28px;cursor:pointer;font-size:14px">✕</button>
+    </div>
+
+    <div style="padding:14px 16px">
+
+      <!-- Pump Info -->
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;
+          text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">⛽ Pump Details</div>
+        <div style="display:grid;gap:8px">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Pump Name</span>
+            <span style="font-size:12px;font-weight:600;color:white" id="prof-pump-name">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Oil Company</span>
+            <span style="font-size:12px;font-weight:600;color:white" id="prof-oil-co">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">License No</span>
+            <span style="font-size:12px;font-weight:600;color:#ffd700" id="prof-license">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Address</span>
+            <span style="font-size:12px;font-weight:600;color:white;text-align:right;max-width:60%" id="prof-address">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Verified Status</span>
+            <span style="font-size:12px;font-weight:600" id="prof-verified">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Login Credentials -->
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;
+          text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔐 Login Credentials</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:12px;color:rgba(255,255,255,.6)">Login ID</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:13px;font-weight:700;color:#4fc3f7;font-family:monospace"
+              id="prof-login-id">—</span>
+            <button onclick="copyLoginId()"
+              style="background:rgba(79,195,247,.2);border:none;color:#4fc3f7;border-radius:6px;
+              padding:2px 8px;font-size:11px;cursor:pointer">Copy</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px">
+          ℹ️ Use this Login ID on any device to access your dashboard
+        </div>
+      </div>
+
+      <!-- Subscription Status -->
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;
+          text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">💳 Subscription</div>
+        <div style="display:grid;gap:8px">
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Status</span>
+            <span style="font-size:12px;font-weight:600" id="prof-sub-status">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between" id="prof-trial-row">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Trial Left</span>
+            <span style="font-size:12px;font-weight:600;color:#ffd700" id="prof-trial-left">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Green Tick ✅</span>
+            <span style="font-size:12px;font-weight:600" id="prof-green-tick">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Scanner Today</span>
+            <span style="font-size:12px;font-weight:600" id="prof-scan-count">—</span>
+          </div>
+        </div>
+        <button id="prof-sub-btn" onclick="window.location.href='/subscribe.html'"
+          style="display:none;width:100%;margin-top:12px;padding:10px;background:#1a6b2e;
+          color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">
+          💚 Subscribe / Renew
+        </button>
+      </div>
+
+      <!-- Change Password -->
+      <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;
+          text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🔑 Change Password</div>
+        <div id="pwd-success" style="display:none;background:rgba(26,107,46,.4);color:#81c784;
+          padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:8px">
+          ✅ Password changed successfully!
+        </div>
+        <div id="pwd-error" style="display:none;background:rgba(183,28,28,.4);color:#ef9a9a;
+          padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:8px"></div>
+        <input id="pwd-current" type="password" placeholder="Current password"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+          border-radius:8px;color:white;font-size:13px;margin-bottom:8px;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='#4fc3f7'" onblur="this.style.borderColor='rgba(255,255,255,.2)'">
+        <input id="pwd-new" type="password" placeholder="New password (min 6 chars)"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+          border-radius:8px;color:white;font-size:13px;margin-bottom:8px;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='#4fc3f7'" onblur="this.style.borderColor='rgba(255,255,255,.2)'">
+        <input id="pwd-confirm" type="password" placeholder="Confirm new password"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+          border-radius:8px;color:white;font-size:13px;margin-bottom:10px;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='#4fc3f7'" onblur="this.style.borderColor='rgba(255,255,255,.2)'"
+          onkeypress="if(event.key==='Enter')changePassword()">
+        <button onclick="changePassword()" id="pwd-btn"
+          style="width:100%;padding:10px;background:rgba(79,195,247,.2);color:#4fc3f7;
+          border:1px solid #4fc3f7;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">
+          🔑 Update Password
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

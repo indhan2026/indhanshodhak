@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Login / Register</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#1a6b2e,#0d3d1a);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:white;border-radius:20px;padding:0;width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.logo-bar{background:#1a6b2e;padding:20px;text-align:center}
+.logo-icon{font-size:40px;margin-bottom:6px}
+.logo-title{color:white;font-size:20px;font-weight:700}
+.logo-sub{color:rgba(255,255,255,.8);font-size:12px;margin-top:2px}
+.form-area{padding:22px 20px 26px}
+.step{display:none}.step.active{display:block}
+.step-title{font-size:16px;font-weight:600;color:#333;margin-bottom:4px}
+.step-sub{font-size:12px;color:#888;margin-bottom:18px;line-height:1.5}
+.form-label{font-size:12px;font-weight:600;color:#555;margin-bottom:5px;display:block}
+.form-input{width:100%;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:12px;font-size:15px;background:#f9f9f9;outline:none;transition:border-color .2s;margin-bottom:12px}
+.form-input:focus{border-color:#1a6b2e;background:white}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px}
+.btn-green{background:#1a6b2e;color:white}
+.btn-outline{background:white;color:#1a6b2e;border:2px solid #1a6b2e}
+.btn-grey{background:#f5f5f5;color:#888}
+.err{background:#ffebee;color:#b71c1c;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px}
+.info{background:#e8f5e9;color:#1b5e20;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px}
+.otp-inputs{display:flex;gap:8px;margin-bottom:12px;justify-content:center}
+.otp-d{width:42px;height:52px;padding:0;border:1.5px solid #e0e0e0;border-radius:12px;font-size:22px;font-weight:700;text-align:center;background:#f9f9f9;outline:none;flex-shrink:0}
+.otp-d:focus{border-color:#1a6b2e;background:white}
+.timer{text-align:center;font-size:13px;color:#888;margin-bottom:10px}
+.resend{background:none;border:none;color:#1a6b2e;font-size:13px;font-weight:600;cursor:pointer;display:block;margin:0 auto;text-decoration:underline}
+.test-badge{background:#fff3e0;border:1px solid #ffb300;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:#e65100;text-align:center}
+.test-otp{font-size:26px;font-weight:700;color:#e65100;letter-spacing:6px;margin-top:4px}
+.divider{text-align:center;color:#ccc;font-size:12px;margin:10px 0}
+.staff-link{text-align:center;font-size:12px;color:#888;margin-top:4px}
+.staff-link a{color:#1a6b2e;font-weight:600;text-decoration:none}
+.email-note{font-size:11px;color:#aaa;margin-top:-8px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo-bar">
+    <div class="logo-icon">⛽</div>
+    <div class="logo-title">IndhanShodhak</div>
+    <div class="logo-sub">इंधन उपलब्धता शोधा · India's Fuel Finder</div>
+  </div>
+  <div class="form-area">
+
+    <!-- STEP 1: Mobile + Email -->
+    <div class="step active" id="step1">
+      <div class="step-title">📱 Login / Register</div>
+      <div class="step-sub">New or returning user — enter mobile to get OTP. Email optional but recommended for welcome mail and notifications.</div>
+      <div class="err" id="err1"></div>
+      <label class="form-label">Mobile Number *</label>
+      <input class="form-input" type="tel" id="mobile" inputmode="numeric"
+             placeholder="10-digit mobile number" maxlength="10"
+             oninput="this.value=this.value.replace(/\D/g,'')"
+             onkeypress="if(event.key==='Enter')document.getElementById('email').focus()">
+      <label class="form-label">Email Address (optional — for welcome email)</label>
+      <input class="form-input" type="email" id="email" placeholder="yourname@email.com"
+             onkeypress="if(event.key==='Enter')sendOTP()">
+      <div class="email-note">📧 Welcome email + fuel alerts will be sent to this email</div>
+      <button class="btn btn-green" onclick="sendOTP()">📲 Send OTP</button>
+      <div class="divider">— OR —</div>
+      <div class="staff-link">
+        Pump Owner / Verifier / Admin?
+        <a href="/login.html?redirect=/admin&role=admin">Staff Login →</a>
+      </div>
+      <div class="staff-link" style="margin-top:6px">
+        Govt Official?
+        <a href="/govt_login.html">Govt Access →</a>
+      </div>
+    </div>
+
+    <!-- STEP 2: OTP -->
+    <div class="step" id="step2">
+      <div class="step-title">🔐 Enter OTP</div>
+      <div class="info" id="otp-info">OTP sent to your mobile</div>
+      <div class="test-badge" id="testBadge" style="display:none">
+        🧪 Testing Mode — Your OTP:
+        <div class="test-otp" id="testOTP">------</div>
+        <div style="font-size:10px;margin-top:3px">Remove in production</div>
+      </div>
+      <div class="err" id="err2"></div>
+      <label class="form-label">Enter 6-digit OTP</label>
+      <div class="otp-inputs">
+        <input class="otp-d" type="tel" maxlength="1" id="o1" oninput="nextOtp(this,'o2')">
+        <input class="otp-d" type="tel" maxlength="1" id="o2" oninput="nextOtp(this,'o3')" onkeydown="prevOtp(event,'o1')">
+        <input class="otp-d" type="tel" maxlength="1" id="o3" oninput="nextOtp(this,'o4')" onkeydown="prevOtp(event,'o2')">
+        <input class="otp-d" type="tel" maxlength="1" id="o4" oninput="nextOtp(this,'o5')" onkeydown="prevOtp(event,'o3')">
+        <input class="otp-d" type="tel" maxlength="1" id="o5" oninput="nextOtp(this,'o6')" onkeydown="prevOtp(event,'o4')">
+        <input class="otp-d" type="tel" maxlength="1" id="o6" oninput="autoVerify()" onkeydown="prevOtp(event,'o5')">
+      </div>
+      <div class="timer" id="timerDiv">OTP expires in <span id="timerTxt">5:00</span></div>
+      <button class="resend" id="resendBtn" style="display:none" onclick="sendOTP()">Resend OTP</button>
+      <button class="btn btn-green" onclick="verifyOTP()" id="verifyBtn">✅ Verify & Login</button>
+      <button class="btn btn-grey" onclick="goBack()">← Change Mobile</button>
+    </div>
+
+    <!-- STEP 3: New user name (shown only if first time) -->
+    <div class="step" id="step3">
+      <div class="step-title">👤 Welcome! One last step</div>
+      <div class="step-sub">You are registered! Tell us your name so we can personalise your experience.</div>
+      <div class="err" id="err3"></div>
+      <label class="form-label">Your Full Name *</label>
+      <input class="form-input" type="text" id="fullname" placeholder="Enter your full name"
+             onkeypress="if(event.key==='Enter')completeReg()">
+      <div class="info">
+        ℹ️ Enter correct info. Fake accounts may get blocked during fuel crisis QR verification.
+      </div>
+      <button class="btn btn-green" onclick="completeReg()">🚀 Start Using IndhanShodhak</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let mob = '', emailId = '', timerInt = null, timerSec = 300, savedToken = '';
+
+const tok = localStorage.getItem('indhan_token');
+
+function showErr(id, msg){ const e=document.getElementById(id); e.textContent=msg; e.style.display='block'; }
+function hideErr(id){ document.getElementById(id).style.display='none'; }
+
+async function sendOTP(){
+  mob     = document.getElementById('mobile').value.trim();
+  emailId = document.getElementById('email').value.trim();
+  hideErr('err1');
+  if(mob.length!==10||isNaN(mob)){ showErr('err1','Enter valid 10-digit mobile number'); return; }
+  try {
+    const r = await fetch('/api/auth/send-otp',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mobile:mob, email:emailId})
+    });
+    const d = await r.json();
+    if(d.success){
+      document.getElementById('otp-info').textContent = `OTP sent to ${mob.slice(0,2)}XXXXXX${mob.slice(-2)}`;
+      if(d.otp_for_testing){
+        document.getElementById('testBadge').style.display='block';
+        document.getElementById('testOTP').textContent = d.otp_for_testing;
+        // Auto-fill all 6 boxes
+        String(d.otp_for_testing).split('').forEach((digit,i)=>{
+          const el = document.getElementById('o'+(i+1));
+          if(el) el.value = digit;
+        });
+        // Auto-verify after short delay
+        setTimeout(verifyOTP, 800);
+      }
+      document.getElementById('step1').classList.remove('active');
+      document.getElementById('step2').classList.add('active');
+      startTimer();
+      document.getElementById('o1').focus();
+    } else showErr('err1', d.error||'Failed to send OTP');
+  } catch(e){ showErr('err1','Server error. Try again.'); }
+}
+
+function nextOtp(el, nextId){
+  if(el.value && nextId) document.getElementById(nextId).focus();
+}
+function prevOtp(e, prevId){
+  if(e.key==='Backspace' && !e.target.value && prevId) document.getElementById(prevId).focus();
+}
+function autoVerify(){
+  const otp = ['o1','o2','o3','o4','o5','o6'].map(id=>document.getElementById(id).value).join('');
+  if(otp.length===6) setTimeout(verifyOTP,300);
+}
+
+async function verifyOTP(){
+  const otp = ['o1','o2','o3','o4','o5','o6'].map(id=>document.getElementById(id).value).join('');
+  hideErr('err2');
+  if(otp.length!==6){ showErr('err2','Enter complete 6-digit OTP'); return; }
+  const btn = document.getElementById('verifyBtn');
+  btn.disabled=true; btn.textContent='Verifying...';
+  try {
+    const r = await fetch('/api/auth/verify-otp',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mobile:mob, otp, email:emailId})
+    });
+    const d = await r.json();
+    if(d.success){
+      savedToken = d.token;
+      localStorage.setItem('indhan_token', d.token);
+      localStorage.setItem('indhan_role',  d.role);
+      localStorage.setItem('indhan_name',  d.name||'');
+      clearInterval(timerInt);
+      if(d.is_new){
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step3').classList.add('active');
+      } else {
+        window.location.href='/';
+      }
+    } else { showErr('err2', d.error||'Wrong OTP'); btn.disabled=false; btn.textContent='✅ Verify & Login'; }
+  } catch(e){ showErr('err2','Server error'); btn.disabled=false; btn.textContent='✅ Verify & Login'; }
+}
+
+async function completeReg(){
+  const name = document.getElementById('fullname').value.trim();
+  hideErr('err3');
+  if(!name){ showErr('err3','Please enter your name'); return; }
+  try {
+    await fetch('/api/user/update-name',{
+      method:'POST', headers:{'x-auth-token':savedToken,'Content-Type':'application/json'},
+      body: JSON.stringify({name})
+    });
+  } catch(e){}
+  localStorage.setItem('indhan_name', name);
+  window.location.href='/profile_setup';
+}
+
+function startTimer(){
+  timerSec=600; clearInterval(timerInt);
+  document.getElementById('resendBtn').style.display='none';
+  timerInt=setInterval(()=>{
+    timerSec--;
+    const m=Math.floor(timerSec/60), s=timerSec%60;
+    document.getElementById('timerTxt').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+    if(timerSec<=0){
+      clearInterval(timerInt);
+      document.getElementById('timerDiv').querySelector('span').textContent='Expired';
+      document.getElementById('resendBtn').style.display='block';
+    }
+  },1000);
+}
+
+function goBack(){
+  clearInterval(timerInt);
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step1').classList.add('active');
+  ['o1','o2','o3','o4','o5','o6'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('testBadge').style.display='none';
+}
+</script>
+</body>
+</html>
