@@ -3701,7 +3701,7 @@ initDB().then(() => {
 ║   🚀 IndhanShodhak FIXED SERVER v2.0            ║
 ║   Node.js ${process.version} — sql.js (no compile)       ║
 ╠══════════════════════════════════════════════════╣
-║   http://localhost:${PORT}/           User App       ║
+║   http://localhost:${PORT}/           Landing Page   ║
 ║   http://localhost:${PORT}/admin      Admin Panel    ║
 ║   http://localhost:${PORT}/govt       Govt Dashboard ║
 ║   http://localhost:${PORT}/verify     Verifier Panel ║
