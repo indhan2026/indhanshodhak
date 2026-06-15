@@ -150,13 +150,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <div class="role-expand" id="expand-pump" style="border-color:#ffcc80">
           <input class="role-input" id="pump-id" type="text" placeholder="Login ID"
             onfocus="this.style.borderColor='#e65100'" onblur="this.style.borderColor='#e0e0e0'">
-          <input class="role-input" id="pump-pwd" type="password" placeholder="Password"
-            onfocus="this.style.borderColor='#e65100'" onblur="this.style.borderColor='#e0e0e0'"
-            onkeypress="if(event.key==='Enter')roleLogin('pump')">
+          <div style="position:relative">
+            <input class="role-input" id="pump-pwd" type="password" placeholder="Password"
+              onfocus="this.style.borderColor='#e65100'" onblur="this.style.borderColor='#e0e0e0'"
+              onkeypress="if(event.key==='Enter')roleLogin('pump')"
+              style="padding-right:40px;width:100%;box-sizing:border-box">
+            <span onclick="toggleEye('pump-pwd','pump-eye')" id="pump-eye"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;color:#aaa">👁️</span>
+          </div>
           <button class="role-login-btn" style="background:#e65100" onclick="roleLogin('pump')">
             ⛽ Login
           </button>
           <div class="role-err" id="pump-err"></div>
+          <div style="text-align:center;margin-top:8px">
+            <span onclick="toggleForgotPump()" 
+              style="font-size:12px;color:#e65100;cursor:pointer;text-decoration:underline">
+              🔑 Forgot Password?
+            </span>
+            <div id="pump-forgot-msg" style="display:none;margin-top:8px;padding:10px 14px;
+              background:#fff8f0;border:1px solid #ffcc80;border-radius:8px;
+              font-size:12px;color:#bf360c;text-align:left;line-height:1.7">
+              📧 <b>Please check your registered email!</b><br>
+              Your <b>Login ID</b> and <b>Password</b> were sent to your email 
+              when you registered your pump with IndhanShodhak.<br><br>
+              Still not found? Contact us at<br>
+              <a href="mailto:indhanshodhak@gmail.com" style="color:#e65100;font-weight:700">
+                indhanshodhak@gmail.com
+              </a>
+            </div>
+          </div>
           <div style="text-align:center;margin-top:10px;padding-top:10px;border-top:1px solid #ffe0b2">
             <a href="/pump-signup" style="font-size:12px;font-weight:700;color:#e65100;text-decoration:none">
               📝 Register New Pump →
@@ -176,9 +198,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <div class="role-expand" id="expand-govt" style="border-color:#90caf9">
           <input class="role-input" id="govt-id" type="text" placeholder="Govt Login ID"
             onfocus="this.style.borderColor='#1565c0'" onblur="this.style.borderColor='#e0e0e0'">
-          <input class="role-input" id="govt-pwd" type="password" placeholder="Password"
-            onfocus="this.style.borderColor='#1565c0'" onblur="this.style.borderColor='#e0e0e0'"
-            onkeypress="if(event.key==='Enter')roleLogin('govt')">
+          <div style="position:relative">
+            <input class="role-input" id="govt-pwd" type="password" placeholder="Password"
+              onfocus="this.style.borderColor='#1565c0'" onblur="this.style.borderColor='#e0e0e0'"
+              onkeypress="if(event.key==='Enter')roleLogin('govt')"
+              style="padding-right:40px;width:100%;box-sizing:border-box">
+            <span onclick="toggleEye('govt-pwd','govt-eye')" id="govt-eye"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;color:#aaa">👁️</span>
+          </div>
           <button class="role-login-btn" style="background:#1565c0" onclick="roleLogin('govt')">
             🏛️ Govt Login
           </button>
@@ -293,6 +320,18 @@ async function roleLogin(r){
 }
 
 // OTP send with 60s cooldown
+function toggleForgotPump() {
+  const msg = document.getElementById('pump-forgot-msg');
+  msg.style.display = msg.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleEye(inputId, eyeId) {
+  const inp = document.getElementById(inputId);
+  const eye = document.getElementById(eyeId);
+  if(inp.type === 'password') { inp.type = 'text'; eye.textContent = '🙈'; }
+  else { inp.type = 'password'; eye.textContent = '👁️'; }
+}
+
 async function sendOTP(){
   mob=document.getElementById('mobile').value.trim();
   emailId=document.getElementById('email').value.trim();
