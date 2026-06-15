@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#138808">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IndhanShodhak — इंधन शोधक | Find Fuel. Fast. Trusted.</title>
@@ -1586,22 +1589,11 @@ async function handleLogin() {
     });
     const data = await res.json();
 
-    if (data.token) {
-      // Save token and role like otp_login does
-      localStorage.setItem('indhan_token', data.token);
-      localStorage.setItem('indhan_role', data.role || '');
-      localStorage.setItem('indhan_name', data.name || '');
+    if (data.success) {
       showMsg('Login successful! Redirecting…', 'info');
-      // Role-based redirect
-      const role = data.role || '';
-      let dest = '/app';
-      if(role === 'super_admin') dest = '/admin';
-      else if(role === 'pump_owner') dest = '/pump-owner';
-      else if(role === 'doc_verifier') dest = '/verify';
-      else if(role === 'govt_official') dest = '/govt';
-      setTimeout(() => { window.location.href = dest; }, 800);
+      setTimeout(() => { window.location.href = '/app'; }, 800);
     } else {
-      showMsg(data.error || 'Invalid credentials. Please try again.', 'error');
+      showMsg(data.message || 'Invalid credentials. Please try again.', 'error');
     }
   } catch (e) {
     showMsg('Connection error. Please try again.', 'error');
