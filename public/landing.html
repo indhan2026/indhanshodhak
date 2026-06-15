@@ -1586,11 +1586,22 @@ async function handleLogin() {
     });
     const data = await res.json();
 
-    if (data.success) {
+    if (data.token) {
+      // Save token and role like otp_login does
+      localStorage.setItem('indhan_token', data.token);
+      localStorage.setItem('indhan_role', data.role || '');
+      localStorage.setItem('indhan_name', data.name || '');
       showMsg('Login successful! Redirecting…', 'info');
-      setTimeout(() => { window.location.href = '/app'; }, 800);
+      // Role-based redirect
+      const role = data.role || '';
+      let dest = '/app';
+      if(role === 'super_admin') dest = '/admin';
+      else if(role === 'pump_owner') dest = '/pump-owner';
+      else if(role === 'doc_verifier') dest = '/verify';
+      else if(role === 'govt_official') dest = '/govt';
+      setTimeout(() => { window.location.href = dest; }, 800);
     } else {
-      showMsg(data.message || 'Invalid credentials. Please try again.', 'error');
+      showMsg(data.error || 'Invalid credentials. Please try again.', 'error');
     }
   } catch (e) {
     showMsg('Connection error. Please try again.', 'error');
