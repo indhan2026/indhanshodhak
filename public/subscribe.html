@@ -74,7 +74,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           style="padding:10px 24px;background:#e65100;color:white;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;width:100%">
           💚 Contribute Early — Keep Full Access
         </button>
-        <button onclick="window.location.href='/'" style="margin-top:8px;padding:8px 24px;background:transparent;color:#888;border:none;font-size:12px;cursor:pointer;width:100%">
+        <button onclick="window.location.href='/app'" style="margin-top:8px;padding:8px 24px;background:transparent;color:#888;border:none;font-size:12px;cursor:pointer;width:100%">
           ← Back to App
         </button>
       </div>
@@ -137,7 +137,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           </div>
           <div style="font-size:10px;color:#aaa;margin-top:4px">Powered by Razorpay · 256-bit SSL · PCI DSS compliant</div>
         </div>
-        <button onclick="window.location.href='/'"
+        <button onclick="window.location.href='/app'"
           style="width:100%;padding:12px;background:#1a6b2e;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">
           ← Back to App · परत जा
         </button>
@@ -152,7 +152,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           style="padding:10px 24px;background:#b71c1c;color:white;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;width:100%">
           💚 Contribute <span id="contributePrice">₹14.99</span>/month
         </button>
-        <button onclick="window.location.href='/'" style="margin-top:8px;padding:8px;background:transparent;color:#888;border:none;font-size:12px;cursor:pointer;width:100%">
+        <button onclick="window.location.href='/app'" style="margin-top:8px;padding:8px;background:transparent;color:#888;border:none;font-size:12px;cursor:pointer;width:100%">
           ← Continue with limited access
         </button>
       </div>
@@ -233,7 +233,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div class="upi-text">Powered by Razorpay · 256-bit SSL · PCI DSS compliant</div>
 
-      <button class="skip-btn" onclick="window.location.href='/'">
+      <button class="skip-btn" onclick="window.location.href='/app'">
         Not now — continue with limited access
       </button>
     </div>
@@ -399,7 +399,7 @@ async function startPayment(){
 
         if(verify.success){
           alert('✅ Payment successful!\n\nYour account is now active.\nFull access unlocked!');
-          window.location.href='/';
+          window.location.href='/app';
         } else {
           alert('Payment received but verification pending.\nContact support if issue persists.');
         }
