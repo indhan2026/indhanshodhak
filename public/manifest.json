@@ -1,0 +1,64 @@
+{
+  "name": "IndhanShodhak — India's Fuel Finder",
+  "short_name": "IndhanShodhak",
+  "description": "India's first community-powered fuel availability tracking app. Real-time pump status in 12 Indian languages.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#138808",
+  "background_color": "#0a1f0a",
+  "lang": "en-IN",
+  "categories": ["utilities", "lifestyle", "navigation"],
+  "icons": [
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find Fuel",
+      "short_name": "Find",
+      "url": "/app",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My QR Code",
+      "short_name": "My QR",
+      "url": "/profile_setup",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "label": "Find nearest fuel pump"
+    }
+  ]
+}
