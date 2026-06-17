@@ -189,13 +189,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="scanner-icon">📷</div>
     <div class="scanner-title" data-t="scan_title">Scan Customer QR Code</div>
     <div class="scanner-sub" data-t="scan_sub">For fuel rationing mode — scan to verify priority and dispense fuel</div>
-    <button class="camera-btn" onclick="openCamera()" data-t="open_camera">📷 Open Camera Scanner</button>
+    <label for="cameraInput" class="camera-btn" data-t="open_camera" style="display:block;cursor:pointer">📷 Open Camera Scanner</label>
     <input type="file" id="cameraInput" accept="image/*" capture="environment"
-           style="display:none" onchange="handleCameraCapture(this)">
-    <video id="cameraVideo" autoplay playsinline style="display:none"></video>
+           style="position:absolute;opacity:0;width:1px;height:1px;overflow:hidden" onchange="handleCameraCapture(this)">
     <canvas id="cameraCanvas" style="display:none"></canvas>
     <div class="manual-row" style="margin-top:8px">
-      <input class="manual-input" id="manualQR" data-t-placeholder="manual_placeholder" placeholder="Or enter QR ID manually...">
+      <input class="manual-input" id="manualQR" data-t-placeholder="manual_placeholder" placeholder="Enter Fuel Code (e.g. BKTM7293)...">
       <button class="check-btn" onclick="manualCheck()" data-t="check_btn">Check</button>
     </div>
   </div>
@@ -732,10 +731,8 @@ function denyFuel(){
 }
 
 function openCamera(){
-  // Photo capture approach — reliable in all webviews including Appilix
-  const input = document.getElementById('cameraInput');
-  input.value = ''; // reset so same file can be picked again
-  input.click();
+  // Label directly triggers file input — fallback for any direct calls
+  document.getElementById('cameraInput').click();
 }
 
 function handleCameraCapture(input){
@@ -754,10 +751,11 @@ function handleCameraCapture(input){
       const code = jsQR(imageData.data, imageData.width, imageData.height, {
         inversionAttempts: 'attemptBoth'
       });
+      input.value = ''; // reset so user can scan again
       if(code){
         verifyScan(code.data);
       } else {
-        alert('❌ QR not detected in photo.\nTips:\n• Hold phone steady\n• Good lighting\n• QR fills most of frame\n\nOr type Fuel Code manually below.');
+        alert('❌ QR not detected.\nTips: Good light • QR fills frame • Hold steady\n\nOr type Fuel Code manually below.');
       }
     };
     img.src = e.target.result;
