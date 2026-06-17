@@ -225,6 +225,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="result-label" data-t="fuel_type">FUEL TYPE</div>
         <div class="result-value" id="r-fuel">—</div>
       </div>
+      <div class="result-item" style="grid-column:1/-1">
+        <div class="result-label">FUEL CODE</div>
+        <div class="result-value" id="r-code" style="font-family:monospace;font-size:16px;letter-spacing:3px;color:#90caf9">—</div>
+      </div>
     </div>
     <div class="result-litres">
       <div class="litres-num" id="r-litres">—</div>
@@ -698,6 +702,7 @@ function showResult(d){
     document.getElementById('r-vehicle').textContent  = d.vehicle || '—';
     document.getElementById('r-priority').textContent = d.category || 'P5';
     document.getElementById('r-fuel').textContent     = d.fuel_type || 'Petrol';
+    document.getElementById('r-code').textContent     = d.user_code || '—';
     document.getElementById('r-litres').textContent   = d.no_limit ? '∞' : (d.litres_allowed||10)+' L';
     document.getElementById('result-cleared').style.display = 'block';
     // Re-apply translations to result labels

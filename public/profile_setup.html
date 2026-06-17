@@ -100,6 +100,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="qr-name" id="qrName">—</div>
     <div class="qr-vehicle" id="qrVehicle">No vehicle added yet</div>
     <div class="qr-limit" id="qrLimit">10 Litres / 72 hours</div>
+    <div id="qrCodeBox" style="display:none;margin:8px auto 4px;background:rgba(0,0,0,0.25);border-radius:10px;padding:8px 16px;text-align:center;width:90%">
+      <div style="font-size:10px;color:rgba(255,255,255,0.6);letter-spacing:1px;margin-bottom:2px">YOUR FUEL CODE</div>
+      <div id="qrCodeText" style="font-size:24px;font-weight:800;letter-spacing:4px;color:#fff;font-family:monospace">—</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px">Show this code at pump if QR scan fails</div>
+    </div>
     <button class="download-btn" id="downloadBtn" onclick="downloadQR()">⬇️ Save QR to Phone</button>
     <div class="upgrade-hint" id="upgradeHint">
       ⬆️ Apply for higher priority below to increase fuel limit<br>
@@ -489,10 +494,13 @@ async function saveAadhaar(){
       body: JSON.stringify({aadhaar_number:raw, vehicle_number:vehicle, fuel_type:fuel, name})
     });
     if(d?.success){
-      // Use server-generated QR if available (has signature)
       if(d.qr_image_b64){
         document.getElementById('qrCanvas').innerHTML =
           `<img src="${d.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
+      }
+      if(d.user_code){
+        document.getElementById('qrCodeText').textContent = d.user_code;
+        document.getElementById('qrCodeBox').style.display = 'block';
       }
     }
   }
