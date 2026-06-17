@@ -100,11 +100,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="qr-name" id="qrName">—</div>
     <div class="qr-vehicle" id="qrVehicle">No vehicle added yet</div>
     <div class="qr-limit" id="qrLimit">10 Litres / 72 hours</div>
-    <div id="qrCodeBox" style="display:none;margin:8px auto 4px;background:rgba(0,0,0,0.25);border-radius:10px;padding:8px 16px;text-align:center;width:90%">
-      <div style="font-size:10px;color:rgba(255,255,255,0.6);letter-spacing:1px;margin-bottom:2px">YOUR FUEL CODE</div>
-      <div id="qrCodeText" style="font-size:24px;font-weight:800;letter-spacing:4px;color:#fff;font-family:monospace">—</div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px">Show this code at pump if QR scan fails</div>
-    </div>
     <button class="download-btn" id="downloadBtn" onclick="downloadQR()">⬇️ Save QR to Phone</button>
     <div class="upgrade-hint" id="upgradeHint">
       ⬆️ Apply for higher priority below to increase fuel limit<br>
@@ -444,21 +439,30 @@ async function saveBasic(){
   if(mobile) localStorage.setItem('indhan_mobile', mobile);
   if(email)  localStorage.setItem('indhan_email',  email);
 
-  // Generate P5 QR immediately — no login needed!
+  // Generate P5 QR immediately — no login needed (local fallback)
   generateQR(name, vehicle, 'P5', fuel);
   showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated — 10L / 72hrs');
 
   // Also save to server if logged in
   if(TOKEN){
-    const d = await safeFetch('/api/user/update-name',{
+    await safeFetch('/api/user/update-name',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
       body: JSON.stringify({name, email})
     });
-    // Save vehicle to server
-    await safeFetch('/api/user/complete-profile',{
+    // Save vehicle to server + get server QR (simple INDHAN:XXXX9999 format)
+    const profileResult = await safeFetch('/api/user/complete-profile',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
       body: JSON.stringify({vehicle_number:vehicle, fuel_type:fuel, name})
     });
+    // Use server QR (simple format = scannable) — overrides local complex QR
+    if(profileResult?.qr_image_b64){
+      document.getElementById('qrCanvas').innerHTML =
+        `<img src="${profileResult.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
+    }
+    if(profileResult?.user_code){
+      document.getElementById('qrCodeText').textContent = profileResult.user_code;
+      document.getElementById('qrCodeBox').style.display = 'block';
+    }
   }
 }
 
@@ -504,10 +508,8 @@ async function saveAadhaar(){
       }
     }
   }
-
   showMsg('ok-aad','✅ Aadhaar saved! Account is now verified — eligible for tier upgrades.');
-  // QR stays same P5 — tier upgrade needs verifier approval
-  generateQR(name, vehicle, currentTier, fuel);
+  // Server QR takes priority — local generateQR() NOT called to avoid overwriting simple scannable QR
 }
 
 // ══════════════════════════════════════════
@@ -731,17 +733,9 @@ async function loadProfile(){
     document.getElementById('qrVehicle').textContent = '🚗 ' + (u.vehicle_number || '—');
     document.getElementById('qrLimit').textContent   = t.limit;
     document.getElementById('downloadBtn').style.display = 'inline-block';
-    if(u.user_code){
-      document.getElementById('qrCodeText').textContent = u.user_code;
-      document.getElementById('qrCodeBox').style.display = 'block';
-    }
   } else if(u.name && u.vehicle_number){
     // No server QR yet — generate locally
     generateQR(u.name, u.vehicle_number, tier, u.fuel_type || 'petrol');
-    if(u.user_code){
-      document.getElementById('qrCodeText').textContent = u.user_code;
-      document.getElementById('qrCodeBox').style.display = 'block';
-    }
   }
 }
 
