@@ -439,31 +439,45 @@ async function saveBasic(){
   if(mobile) localStorage.setItem('indhan_mobile', mobile);
   if(email)  localStorage.setItem('indhan_email',  email);
 
-  // Generate P5 QR immediately — no login needed (local fallback)
-  generateQR(name, vehicle, 'P5', fuel);
-  showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated — 10L / 72hrs');
+  // Show loading state while fetching server QR
+  document.getElementById('qrCanvas').innerHTML =
+    '<div style="text-align:center;padding:30px;font-size:13px;opacity:0.6">⏳ Generating QR Code...</div>';
+  showMsg('ok-basic', '⏳ Saving info...');
 
-  // Also save to server if logged in
   if(TOKEN){
+    // Update name on server
     await safeFetch('/api/user/update-name',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
       body: JSON.stringify({name, email})
     });
-    // Save vehicle to server + get server QR (simple INDHAN:XXXX9999 format)
+    // Get server QR (simple INDHAN:XXXX9999 — scannable!)
     const profileResult = await safeFetch('/api/user/complete-profile',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
       body: JSON.stringify({vehicle_number:vehicle, fuel_type:fuel, name})
     });
-    // Use server QR (simple format = scannable) — overrides local complex QR
     if(profileResult?.qr_image_b64){
+      // Show server QR — simple, black, scannable ✅
       document.getElementById('qrCanvas').innerHTML =
         `<img src="${profileResult.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
-    }
-    if(profileResult?.user_code){
-      document.getElementById('qrCodeText').textContent = profileResult.user_code;
-      document.getElementById('qrCodeBox').style.display = 'block';
+      document.getElementById('qrName').textContent    = name;
+      document.getElementById('qrVehicle').textContent = '🚗 ' + vehicle;
+      document.getElementById('qrLimit').textContent   = '10L / 72hrs';
+      document.getElementById('downloadBtn').style.display = 'inline-block';
+      const t = TIER_LABELS['P5'] || {};
+      const badge = document.getElementById('qrTierBadge');
+      if(badge){ badge.textContent = t.label||'P5 — General Public'; badge.className = 'qr-tier-badge '+(t.cls||''); }
+      if(profileResult.user_code){
+        document.getElementById('qrCodeText').textContent = profileResult.user_code;
+        document.getElementById('qrCodeBox').style.display = 'block';
+      }
+      showMsg('ok-basic', '✅ QR Code generated! Show this QR at fuel pump.');
+      return; // ← stop here, no local QR needed
     }
   }
+
+  // Fallback: local QR only if not logged in or server failed
+  generateQR(name, vehicle, 'P5', fuel);
+  showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated — 10L / 72hrs');
 }
 
 // ══════════════════════════════════════════
