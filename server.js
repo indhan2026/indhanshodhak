@@ -351,6 +351,16 @@ async function initDB() {
       db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
       console.log(`[USER_CODE] Backfilled ${assigned} users with unique codes.`);
     }
+    // ── Force QR re-generation with new black QR style ──
+    // Clear qr_image_b64 for users whose qr_code_data matches user_code (green QR already generated)
+    // Next profile load will regenerate with black QR automatically
+    const needsBlackQR = db.exec(`SELECT COUNT(*) as c FROM users WHERE user_code IS NOT NULL AND user_code != '' AND qr_image_b64 IS NOT NULL AND length(qr_image_b64) > 100`);
+    const count = needsBlackQR?.[0]?.values?.[0]?.[0] || 0;
+    if(count > 0) {
+      db.run(`UPDATE users SET qr_image_b64=NULL WHERE user_code IS NOT NULL AND user_code != ''`);
+      db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
+      console.log(`[QR REGEN] Cleared ${count} old QR images → black QR will regenerate on next profile load`);
+    }
   } catch(e) { console.error('[USER_CODE] Backfill error:', e.message); }
 
   // Sample pumps
@@ -3066,7 +3076,7 @@ app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
     const QRCode = require('qrcode');
     qrImageBase64 = await QRCode.toDataURL('INDHAN:' + userCode, {
       width: 300, margin: 2,
-      color: { dark: '#1a6b2e', light: '#ffffff' }
+      color: { dark: '#000000', light: '#ffffff' }
     });
   } catch(e) { console.error('QR gen error:', e.message); }
   dbRun(`UPDATE users SET qr_code_data=?, qr_image_b64=? WHERE id=?`,
@@ -3100,7 +3110,7 @@ app.get('/api/user/profile', requireAuth(), async (req, res) => {
         const QRCode = require('qrcode');
         const newQrImage = await QRCode.toDataURL('INDHAN:' + user.user_code, {
           width: 300, margin: 2,
-          color: { dark: '#1a6b2e', light: '#ffffff' }
+          color: { dark: '#000000', light: '#ffffff' }
         });
         dbRun(`UPDATE users SET qr_code_data=?, qr_image_b64=? WHERE id=?`,
           [user.user_code, newQrImage, user.id]);
