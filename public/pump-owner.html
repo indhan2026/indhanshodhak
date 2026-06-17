@@ -224,6 +224,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="result-label" data-t="fuel_type">FUEL TYPE</div>
         <div class="result-value" id="r-fuel">—</div>
       </div>
+      <div class="result-item" style="grid-column:1/-1">
+        <div class="result-label">FUEL CODE</div>
+        <div class="result-value" id="r-code" style="font-family:monospace;font-size:16px;letter-spacing:3px;color:#90caf9">—</div>
+      </div>
     </div>
     <div class="result-litres">
       <div class="litres-num" id="r-litres">—</div>
@@ -302,7 +306,7 @@ const TRANSLATIONS = {
     scan_title:'Scan Customer QR Code',
     scan_sub:'For fuel rationing — scan to verify priority and dispense fuel',
     open_camera:'📷 Open Camera Scanner',
-    manual_placeholder:'Or enter QR ID manually...',
+    manual_placeholder:'Enter Fuel Code (e.g. BKTM7293)...',
     check_btn:'Check',
     cleared:'CLEARED', dispense_auth:'Fuel dispensing authorised',
     customer:'CUSTOMER', vehicle:'VEHICLE', priority:'PRIORITY', fuel_type:'FUEL TYPE',
@@ -328,7 +332,7 @@ const TRANSLATIONS = {
     scan_title:'ग्राहक का QR कोड स्कैन करें',
     scan_sub:'ईंधन राशनिंग के लिए — प्राथमिकता सत्यापित करें और ईंधन दें',
     open_camera:'📷 कैमरा स्कैनर खोलें',
-    manual_placeholder:'या QR ID मैन्युअल दर्ज करें...',
+    manual_placeholder:'फ्यूल कोड दर्ज करें (जैसे BKTM7293)...',
     check_btn:'जांचें',
     cleared:'मंजूर', dispense_auth:'ईंधन देना अधिकृत है',
     customer:'ग्राहक', vehicle:'वाहन', priority:'प्राथमिकता', fuel_type:'ईंधन प्रकार',
@@ -354,7 +358,7 @@ const TRANSLATIONS = {
     scan_title:'ग्राहकाचा QR कोड स्कॅन करा',
     scan_sub:'इंधन रेशनिंगसाठी — प्राधान्य सत्यापित करा आणि इंधन द्या',
     open_camera:'📷 कॅमेरा स्कॅनर उघडा',
-    manual_placeholder:'किंवा QR ID मॅन्युअली टाका...',
+    manual_placeholder:'फ्युएल कोड टाका (उदा. BKTM7293)...',
     check_btn:'तपासा',
     cleared:'मंजूर', dispense_auth:'इंधन देणे अधिकृत आहे',
     customer:'ग्राहक', vehicle:'वाहन', priority:'प्राधान्य', fuel_type:'इंधन प्रकार',
@@ -380,7 +384,7 @@ const TRANSLATIONS = {
     scan_title:'కస్టమర్ QR కోడ్ స్కాన్ చేయండి',
     scan_sub:'ఇంధన రేషనింగ్ కోసం — ప్రాధాన్యతను ధృవీకరించండి మరియు ఇంధనం ఇవ్వండి',
     open_camera:'📷 కెమెరా స్కానర్ తెరవండి',
-    manual_placeholder:'లేదా QR ID మాన్యువల్‌గా నమోదు చేయండి...',
+    manual_placeholder:'ఫ్యూయల్ కోడ్ నమోదు చేయండి (ఉదా. BKTM7293)...',
     check_btn:'తనిఖీ చేయండి',
     cleared:'అనుమతించబడింది', dispense_auth:'ఇంధనం ఇవ్వడానికి అనుమతి ఉంది',
     customer:'కస్టమర్', vehicle:'వాహనం', priority:'ప్రాధాన్యత', fuel_type:'ఇంధన రకం',
@@ -406,7 +410,7 @@ const TRANSLATIONS = {
     scan_title:'வாடிக்கையாளர் QR குறியீட்டை ஸ்கேன் செய்யவும்',
     scan_sub:'எரிபொருள் ரேஷனிங்கிற்கு — முன்னுரிமையை சரிபார்க்கவும்',
     open_camera:'📷 கேமரா ஸ்கேனரை திறக்கவும்',
-    manual_placeholder:'அல்லது QR ID ஐ கைமுறையாக உள்ளிடவும்...',
+    manual_placeholder:'எரிபொருள் குறியீடு உள்ளிடுக (எ.கா. BKTM7293)...',
     check_btn:'சரிபார்க்கவும்',
     cleared:'அனுமதிக்கப்பட்டது', dispense_auth:'எரிபொருள் வழங்க அதிகாரம் உள்ளது',
     customer:'வாடிக்கையாளர்', vehicle:'வாகனம்', priority:'முன்னுரிமை', fuel_type:'எரிபொருள் வகை',
@@ -432,7 +436,7 @@ const TRANSLATIONS = {
     scan_title:'ಗ್ರಾಹಕರ QR ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ',
     scan_sub:'ಇಂಧನ ರೇಷನಿಂಗ್‌ಗಾಗಿ — ಆದ್ಯತೆ ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಇಂಧನ ನೀಡಿ',
     open_camera:'📷 ಕ್ಯಾಮೆರಾ ಸ್ಕ್ಯಾನರ್ ತೆರೆಯಿರಿ',
-    manual_placeholder:'ಅಥವಾ QR ID ಹಸ್ತಚಾಲಿತವಾಗಿ ನಮೂದಿಸಿ...',
+    manual_placeholder:'ಇಂಧನ ಕೋಡ್ ನಮೂದಿಸಿ (ಉದಾ. BKTM7293)...',
     check_btn:'ಪರಿಶೀಲಿಸಿ',
     cleared:'ಅನುಮೋದಿತ', dispense_auth:'ಇಂಧನ ನೀಡಲು ಅಧಿಕಾರ ಇದೆ',
     customer:'ಗ್ರಾಹಕ', vehicle:'ವಾಹನ', priority:'ಆದ್ಯತೆ', fuel_type:'ಇಂಧನ ಪ್ರಕಾರ',
@@ -458,7 +462,7 @@ const TRANSLATIONS = {
     scan_title:'ગ્રાહકનો QR કોડ સ્કેન કરો',
     scan_sub:'ઈંધણ રેશનિંગ માટે — પ્રાથમિકતા ચકાસો અને ઈંધણ આપો',
     open_camera:'📷 કેમેરા સ્કેનર ખોલો',
-    manual_placeholder:'અથવા QR ID મેન્યુઅલી દાખલ કરો...',
+    manual_placeholder:'ફ્યુઅલ કોડ દાખલ કરો (દા.ત. BKTM7293)...',
     check_btn:'તપાસો',
     cleared:'મંજૂર', dispense_auth:'ઈંધણ આપવાની સ્વીકૃતિ છે',
     customer:'ગ્રાહક', vehicle:'વાહન', priority:'પ્રાથમિકતા', fuel_type:'ઈંધણ પ્રકાર',
@@ -484,7 +488,7 @@ const TRANSLATIONS = {
     scan_title:'ਗਾਹਕ ਦਾ QR ਕੋਡ ਸਕੈਨ ਕਰੋ',
     scan_sub:'ਬਾਲਣ ਰਾਸ਼ਨਿੰਗ ਲਈ — ਤਰਜੀਹ ਜਾਂਚੋ ਅਤੇ ਬਾਲਣ ਦਿਓ',
     open_camera:'📷 ਕੈਮਰਾ ਸਕੈਨਰ ਖੋਲ੍ਹੋ',
-    manual_placeholder:'ਜਾਂ QR ID ਮੈਨੂਅਲੀ ਦਰਜ ਕਰੋ...',
+    manual_placeholder:'ਫਿਊਲ ਕੋਡ ਦਰਜ ਕਰੋ (ਜਿਵੇਂ BKTM7293)...',
     check_btn:'ਜਾਂਚ ਕਰੋ',
     cleared:'ਮਨਜ਼ੂਰ', dispense_auth:'ਬਾਲਣ ਦੇਣ ਦੀ ਇਜਾਜ਼ਤ ਹੈ',
     customer:'ਗਾਹਕ', vehicle:'ਵਾਹਨ', priority:'ਤਰਜੀਹ', fuel_type:'ਬਾਲਣ ਕਿਸਮ',
@@ -510,7 +514,7 @@ const TRANSLATIONS = {
     scan_title:'গ্রাহকের QR কোড স্ক্যান করুন',
     scan_sub:'জ্বালানি রেশনিংয়ের জন্য — অগ্রাধিকার যাচাই করুন এবং জ্বালানি দিন',
     open_camera:'📷 ক্যামেরা স্ক্যানার খুলুন',
-    manual_placeholder:'অথবা QR ID ম্যানুয়ালি লিখুন...',
+    manual_placeholder:'ফুয়েল কোড লিখুন (যেমন BKTM7293)...',
     check_btn:'যাচাই করুন',
     cleared:'অনুমোদিত', dispense_auth:'জ্বালানি দেওয়ার অনুমতি আছে',
     customer:'গ্রাহক', vehicle:'যানবাহন', priority:'অগ্রাধিকার', fuel_type:'জ্বালানির ধরন',
@@ -536,7 +540,7 @@ const TRANSLATIONS = {
     scan_title:'ഉപഭോക്താവിന്റെ QR കോഡ് സ്കാൻ ചെയ്യുക',
     scan_sub:'ഇന്ധന റേഷനിംഗിനായി — മുൻഗണന പരിശോധിക്കുക',
     open_camera:'📷 ക്യാമറ സ്കാനർ തുറക്കുക',
-    manual_placeholder:'അല്ലെങ്കിൽ QR ID സ്വമേധയാ നൽകുക...',
+    manual_placeholder:'ഫ്യൂവൽ കോഡ് നൽകുക (ഉദാ. BKTM7293)...',
     check_btn:'പരിശോധിക്കുക',
     cleared:'അനുമതി നൽകി', dispense_auth:'ഇന്ധനം നൽകാൻ അധികാരമുണ്ട്',
     customer:'ഉപഭോക്താവ്', vehicle:'വാഹനം', priority:'മുൻഗണന', fuel_type:'ഇന്ധന തരം',
@@ -562,7 +566,7 @@ const TRANSLATIONS = {
     scan_title:'ଗ୍ରାହକଙ୍କ QR କୋଡ ସ୍କାନ କରନ୍ତୁ',
     scan_sub:'ଇନ୍ଧନ ରେସନିଂ ପାଇଁ — ଅଗ୍ରାଧିକାର ଯାଞ୍ଚ କରନ୍ତୁ',
     open_camera:'📷 କ୍ୟାମେରା ସ୍କାନର ଖୋଲନ୍ତୁ',
-    manual_placeholder:'ବା QR ID ମ୍ୟାନୁଆଲୀ ଦିଅନ୍ତୁ...',
+    manual_placeholder:'ଫ୍ୟୁଏଲ୍ କୋଡ ଦିଅନ୍ତୁ (ଯେପରି BKTM7293)...',
     check_btn:'ଯାଞ୍ଚ',
     cleared:'ଅନୁମୋଦିତ', dispense_auth:'ଇନ୍ଧନ ଦେବାର ଅଧିକାର ଅଛି',
     customer:'ଗ୍ରାହକ', vehicle:'ଯାନ', priority:'ଅଗ୍ରାଧିକାର', fuel_type:'ଇନ୍ଧନ ପ୍ରକାର',
@@ -588,7 +592,7 @@ const TRANSLATIONS = {
     scan_title:'গ্ৰাহকৰ QR কোড স্কেন কৰক',
     scan_sub:'ইন্ধন ৰেচনিঙৰ বাবে — অগ্ৰাধিকাৰ পৰীক্ষা কৰক',
     open_camera:'📷 কেমেৰা স্কেনাৰ খোলক',
-    manual_placeholder:'বা QR ID হাতেৰে দিয়ক...',
+    manual_placeholder:'ফুৱেল কোড দিয়ক (যেনে BKTM7293)...',
     check_btn:'পৰীক্ষা কৰক',
     cleared:'অনুমোদিত', dispense_auth:'ইন্ধন দিবলৈ অনুমতি আছে',
     customer:'গ্ৰাহক', vehicle:'বাহন', priority:'অগ্ৰাধিকাৰ', fuel_type:'ইন্ধনৰ প্ৰকাৰ',
@@ -663,7 +667,7 @@ async function updateFuel(){
 
 // QR Scanner
 function manualCheck(){
-  const val = document.getElementById('manualQR').value.trim();
+  const val = document.getElementById('manualQR').value.trim().toUpperCase();
   if(!val){ alert(T('manual_placeholder')); return; }
   verifyScan(val);
 }
@@ -698,6 +702,7 @@ function showResult(d){
     document.getElementById('r-priority').textContent = d.category || 'P5';
     document.getElementById('r-fuel').textContent     = d.fuel_type || 'Petrol';
     document.getElementById('r-litres').textContent   = d.no_limit ? '∞' : (d.litres_allowed||10)+' L';
+    document.getElementById('r-code').textContent     = d.user_code || '—';
     document.getElementById('result-cleared').style.display = 'block';
     // Re-apply translations to result labels
     applyTranslations();

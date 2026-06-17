@@ -283,6 +283,7 @@ async function initDB() {
     `ALTER TABLE users ADD COLUMN profile_complete INTEGER DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN qr_code_data TEXT`,
     `ALTER TABLE users ADD COLUMN qr_image_b64 TEXT`,
+    `ALTER TABLE users ADD COLUMN user_code TEXT`,
     `ALTER TABLE petrol_pumps ADD COLUMN staff_password TEXT`,
     `CREATE TABLE IF NOT EXISTS pump_staff (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -321,6 +322,36 @@ async function initDB() {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
     catch(e) { /* column already exists — ignore */ }
   });
+
+  // ── User Code Generator (4 letters A-Z no I/O + 4 digits 1-9 no 0) ──
+  function generateUserCode() {
+    const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 letters, no I, no O
+    const D = '123456789';                 // 9 digits, no 0
+    let code = '';
+    for (let i = 0; i < 4; i++) code += L[Math.floor(Math.random() * L.length)];
+    for (let i = 0; i < 4; i++) code += D[Math.floor(Math.random() * D.length)];
+    return code; // e.g. BKTM7293
+  }
+
+  // ── Backfill: assign user_code to all existing users who don't have one ──
+  try {
+    const usersWithoutCode = db.exec(`SELECT id FROM users WHERE user_code IS NULL OR user_code = ''`);
+    if (usersWithoutCode.length && usersWithoutCode[0].values.length) {
+      let assigned = 0;
+      for (const row of usersWithoutCode[0].values) {
+        const uid = row[0];
+        let code, attempts = 0;
+        do {
+          code = generateUserCode();
+          attempts++;
+        } while (dbGet('SELECT id FROM users WHERE user_code=?', [code]) && attempts < 100);
+        db.run('UPDATE users SET user_code=? WHERE id=?', [code, uid]);
+        assigned++;
+      }
+      db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
+      console.log(`[USER_CODE] Backfilled ${assigned} users with unique codes.`);
+    }
+  } catch(e) { console.error('[USER_CODE] Backfill error:', e.message); }
 
   // Sample pumps
   const pumps = [
@@ -1753,6 +1784,28 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
     const pump = dbGet('SELECT * FROM petrol_pumps WHERE owner_user_id=? AND is_active=1',[req.user.id]);
     if(!pump) return res.status(404).json({error:'No pump linked'});
 
+    // ── Universal resolver: user_code / INDHAN: prefix / legacy base64 ──
+    function resolveUser(raw) {
+      let input = (raw||'').trim();
+      if (input.toUpperCase().startsWith('INDHAN:')) input = input.slice(7).trim();
+      // New format: 4 uppercase letters (no I/O) + 4 digits (1-9)
+      if (/^[A-HJ-NP-Z]{4}[1-9]{4}$/i.test(input)) {
+        const u = dbGet('SELECT * FROM users WHERE user_code=?', [input.toUpperCase()]);
+        return { user: u, fa: u ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u.id]) : null };
+      }
+      // Legacy: base64 JSON
+      try {
+        const decoded = JSON.parse(Buffer.from(input, 'base64').toString('utf8'));
+        const uid = decoded.uid || decoded.id;
+        const u = uid ? dbGet('SELECT * FROM users WHERE id=?', [parseInt(uid)]) : null;
+        return { user: u, fa: u ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u.id]) : null };
+      } catch(_) {}
+      // Legacy: pipe-separated
+      const uid2 = parseInt((input.split('|')[0])||'0');
+      const u2 = uid2 ? dbGet('SELECT * FROM users WHERE id=?', [uid2]) : null;
+      return { user: u2, fa: u2 ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u2.id]) : null };
+    }
+
     const premium    = isPumpOwnerPremium(req.user);
     const FREE_LIMIT = 10;
     const WARN_AT    = 8;
@@ -1774,54 +1827,42 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
       }
       scanCount++;
       dbRun('UPDATE petrol_pumps SET scan_count_free=? WHERE id=?',[scanCount,pump.id]);
-      const qrParts = qr_data.split('|');
-      const userId  = parseInt(qrParts[0]);
-      const user    = userId ? dbGet('SELECT * FROM users WHERE id=?',[userId]) : null;
-      const fa      = user  ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?',[userId]) : null;
+      const { user, fa } = resolveUser(qr_data);
       const remaining = FREE_LIMIT - scanCount;
       return res.json({
         allowed:!!fa, is_premium:false, scan_count:scanCount, remaining,
         warning: scanCount>=WARN_AT ? `⚠️ ${remaining} scan${remaining===1?'':'s'} left today!` : null,
         subscribe_url: remaining<=2 ? '/subscribe.html' : null,
         user_name:user?.name||'Unknown', vehicle:fa?.vehicle_number||'—',
+        user_code:user?.user_code||'—',
         category:fa?.category||'P5', fuel_type:fa?.fuel_type||'petrol',
         litres_allowed:getLitresForCategory(fa?.category||'P5'),
-        message:fa?'✅ Valid Fuel ID':'❌ Invalid QR'
+        message:fa?'✅ Valid Fuel ID':'❌ Invalid QR or Code'
       });
     }
-    const qrParts = qr_data.split('|');
-    const userId  = parseInt(qrParts[0]);
-    const user    = userId ? dbGet('SELECT * FROM users WHERE id=?',[userId]) : null;
-    const fa      = user  ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?',[userId]) : null;
 
-    // Crisis mode enforcement
+    const { user, fa } = resolveUser(qr_data);
     const rationingOn    = getSetting('rationing_mode')    === '1';
     const verificationOn = getSetting('verification_mode') === '1';
 
-    // FULL CRISIS: Block non-QR users at API level
     if(rationingOn && verificationOn && !fa) {
       return res.json({
-        allowed:      false,
-        denied:       true,
-        crisis_block: true,
-        user_name:    user?.name || 'Unknown',
-        vehicle:      '—',
-        category:     null,
-        litres_allowed: 0,
-        message: '🚨 Full Crisis Mode — Fuel ID required. This user has no Fuel ID and cannot get fuel.',
-        action:  'Direct user to register at IndhanShodhak app',
+        allowed:false, denied:true, crisis_block:true,
+        user_name:user?.name||'Unknown', user_code:user?.user_code||'—',
+        vehicle:'—', category:null, litres_allowed:0,
+        message:'🚨 Full Crisis Mode — Fuel ID required. This user has no Fuel ID and cannot get fuel.',
+        action:'Direct user to register at IndhanShodhak app',
       });
     }
 
-    // EMERGENCY (Rationing only): Allow with P5 limit for non-QR users
     const effectiveCategory = fa?.category || (rationingOn ? 'P5' : null);
     res.json({
       allowed:      !!fa || !verificationOn,
       is_premium:   true,
-      scan_count:   null,
-      remaining:    null,
+      scan_count:   null, remaining:null,
       warning:      (!fa && rationingOn) ? '⚠️ No Fuel ID — Emergency limit: 10 litres (P5)' : null,
       user_name:    user?.name||'Unknown',
+      user_code:    user?.user_code||'—',
       vehicle:      fa?.vehicle_number||'—',
       category:     effectiveCategory || 'P5',
       fuel_type:    fa?.fuel_type||'petrol',
@@ -3004,20 +3045,26 @@ app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
   dbRun(`UPDATE users SET aadhaar_number=?, aadhaar_verified=1, vehicle_number=?,
          profile_complete=1 WHERE id=?`,
     [aadhaar_number, vehicle_number.toUpperCase(), req.user.id]);
-  const qrPayload = {
-    uid:     req.user.id,
-    veh:     vehicle_number.toUpperCase(),
-    cat:     'P5',
-    fuel:    fuel_type || 'petrol',
-    ts:      Date.now(),
-  };
-  const qrStr  = JSON.stringify(qrPayload);
-  const sig    = crypto.createHmac('sha256','indhan_qr_2026').update(qrStr).digest('hex').slice(0,16);
-  const qrData = Buffer.from(JSON.stringify({...qrPayload, sig})).toString('base64');
+  // ── Assign user_code if not already set ──
+  let userRec = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
+  if (!userRec?.user_code) {
+    const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ', D = '123456789';
+    let code, attempts = 0;
+    do {
+      code = Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('') +
+             Array.from({length:4},()=>D[Math.floor(Math.random()*D.length)]).join('');
+      attempts++;
+    } while(dbGet('SELECT id FROM users WHERE user_code=?',[code]) && attempts<100);
+    dbRun('UPDATE users SET user_code=? WHERE id=?', [code, req.user.id]);
+    userRec = { user_code: code };
+  }
+  const userCode = userRec.user_code;
+  // ── New simple QR: INDHAN:XXXX9999 ──
+  const qrData = userCode;
   let qrImageBase64 = '';
   try {
     const QRCode = require('qrcode');
-    qrImageBase64 = await QRCode.toDataURL('INDHAN:' + qrData, {
+    qrImageBase64 = await QRCode.toDataURL('INDHAN:' + userCode, {
       width: 300, margin: 2,
       color: { dark: '#1a6b2e', light: '#ffffff' }
     });
@@ -3030,16 +3077,17 @@ app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
     profile_complete: true,
     category:         'P5',
     vehicle_number:   vehicle_number.toUpperCase(),
+    user_code:        userCode,
     qr_code_data:     qrData,
     qr_image_b64:     qrImageBase64,
-    message:          'Profile complete! P5 QR code generated.',
+    message:          'Profile complete! P5 QR code generated. Your code: ' + userCode,
   });
 });
 
 app.get('/api/user/profile', requireAuth(), (req, res) => {
   const user = dbGet(`SELECT id,mobile,name,role,email,subscription_status,
                       aadhaar_verified,vehicle_number,profile_complete,
-                      qr_code_data,qr_image_b64,created_at,category,original_category
+                      qr_code_data,qr_image_b64,created_at,category,original_category,user_code
                       FROM users WHERE id=?`, [req.user.id]);
   if(!user) return res.status(404).json({error:'User not found'});
   const premium   = isUserPremium(user);
@@ -3090,11 +3138,21 @@ app.post('/api/verify/fuel-applications/:id/approve', requireAuth(['doc_verifier
          VALUES (?,?,?,?,?)`,
     [row.user_id, row.vehicle_number, row.fuel_type, finalCategory, row.profession||null]);
   const acct = dbGet(`SELECT id FROM fuel_accounts WHERE user_id=?`, [row.user_id]);
-  const crypto2 = require('crypto');
-  const qrPayload = { id: acct?.id, uid: row.user_id, veh: row.vehicle_number, cat: finalCategory, ts: Date.now() };
-  const qrStr = JSON.stringify(qrPayload);
-  const sig   = crypto2.createHmac('sha256','indhan_qr_2026').update(qrStr).digest('hex').slice(0,16);
-  const qrData = Buffer.from(JSON.stringify({...qrPayload, sig})).toString('base64');
+  // ── Use existing user_code or assign new one ──
+  let approvedUser = dbGet('SELECT user_code FROM users WHERE id=?', [row.user_id]);
+  if (!approvedUser?.user_code) {
+    const L2 = 'ABCDEFGHJKLMNPQRSTUVWXYZ', D2 = '123456789';
+    let code2, att2 = 0;
+    do {
+      code2 = Array.from({length:4},()=>L2[Math.floor(Math.random()*L2.length)]).join('') +
+              Array.from({length:4},()=>D2[Math.floor(Math.random()*D2.length)]).join('');
+      att2++;
+    } while(dbGet('SELECT id FROM users WHERE user_code=?',[code2]) && att2<100);
+    dbRun('UPDATE users SET user_code=? WHERE id=?', [code2, row.user_id]);
+    approvedUser = { user_code: code2 };
+  }
+  const approvedCode = approvedUser.user_code;
+  const qrData = approvedCode;
   dbRun(`UPDATE users SET profile_complete=1, qr_code_data=?, category=? WHERE id=?`,
     [qrData, finalCategory, row.user_id]);
   dbRun(`UPDATE user_fuel_applications SET status='approved', reviewed_by=?, reviewed_at=datetime('now'), fuel_account_id=? WHERE id=?`,
