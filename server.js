@@ -3084,25 +3084,48 @@ app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
   });
 });
 
-app.get('/api/user/profile', requireAuth(), (req, res) => {
-  const user = dbGet(`SELECT id,mobile,name,role,email,subscription_status,
-                      aadhaar_verified,vehicle_number,profile_complete,
-                      qr_code_data,qr_image_b64,created_at,category,original_category,user_code
-                      FROM users WHERE id=?`, [req.user.id]);
-  if(!user) return res.status(404).json({error:'User not found'});
-  const premium   = isUserPremium(user);
-  const trialDays = parseInt(getSetting('trial_days')||'10');
-  const elapsed   = Math.floor((Date.now()-new Date(user.created_at||Date.now()).getTime())/86400000);
-  const trialLeft = Math.max(0, trialDays - elapsed);
-  const fa = dbGet('SELECT category,vehicle_number,fuel_type FROM fuel_accounts WHERE user_id=?',[user.id]);
-  const origCat = user.original_category || fa?.category || 'P5';
-  const effCat  = (!premium && fa?.category && fa.category!=='P5') ? 'P5' : (fa?.category||'P5');
-  res.json({
-    user, profile_complete:!!user.profile_complete,
-    is_premium:premium, trial_remaining:trialLeft, trial_days:trialDays,
-    effective_category:effCat, original_category:origCat,
-    show_upgrade_prompt:!premium && origCat!=='P5',
-  });
+app.get('/api/user/profile', requireAuth(), async (req, res) => {
+  try {
+    let user = dbGet(`SELECT id,mobile,name,role,email,subscription_status,
+                        aadhaar_verified,vehicle_number,profile_complete,
+                        qr_code_data,qr_image_b64,created_at,category,original_category,user_code
+                        FROM users WHERE id=?`, [req.user.id]);
+    if(!user) return res.status(404).json({error:'User not found'});
+
+    // ── Auto-regenerate QR if user has user_code but old format QR ──
+    // Old format: qr_code_data is base64 JSON (long string), not equal to user_code
+    // New format: qr_code_data === user_code (8 chars like BKTM7293)
+    if(user.user_code && user.qr_code_data !== user.user_code) {
+      try {
+        const QRCode = require('qrcode');
+        const newQrImage = await QRCode.toDataURL('INDHAN:' + user.user_code, {
+          width: 300, margin: 2,
+          color: { dark: '#1a6b2e', light: '#ffffff' }
+        });
+        dbRun(`UPDATE users SET qr_code_data=?, qr_image_b64=? WHERE id=?`,
+          [user.user_code, newQrImage, user.id]);
+        user.qr_code_data = user.user_code;
+        user.qr_image_b64 = newQrImage;
+        console.log(`[QR REGEN] User ${user.id} (${user.name}) → new QR: INDHAN:${user.user_code}`);
+      } catch(qrErr) {
+        console.error('[QR REGEN] Error:', qrErr.message);
+      }
+    }
+
+    const premium   = isUserPremium(user);
+    const trialDays = parseInt(getSetting('trial_days')||'10');
+    const elapsed   = Math.floor((Date.now()-new Date(user.created_at||Date.now()).getTime())/86400000);
+    const trialLeft = Math.max(0, trialDays - elapsed);
+    const fa = dbGet('SELECT category,vehicle_number,fuel_type FROM fuel_accounts WHERE user_id=?',[user.id]);
+    const origCat = user.original_category || fa?.category || 'P5';
+    const effCat  = (!premium && fa?.category && fa.category!=='P5') ? 'P5' : (fa?.category||'P5');
+    res.json({
+      user, profile_complete:!!user.profile_complete,
+      is_premium:premium, trial_remaining:trialLeft, trial_days:trialDays,
+      effective_category:effCat, original_category:origCat,
+      show_upgrade_prompt:!premium && origCat!=='P5',
+    });
+  } catch(e) { res.status(500).json({error:e.message}); }
 });
 
 app.post('/api/user/update-name', requireAuth(), (req, res) => {
