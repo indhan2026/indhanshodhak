@@ -1843,7 +1843,7 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
         allowed:!!fa, is_premium:false, scan_count:scanCount, remaining,
         warning: scanCount>=WARN_AT ? `⚠️ ${remaining} scan${remaining===1?'':'s'} left today!` : null,
         subscribe_url: remaining<=2 ? '/subscribe.html' : null,
-        user_name:user?.name||'Unknown', vehicle:fa?.vehicle_number||'—',
+        user_name:user?.name||'Unknown', vehicle:fa?.vehicle_number||user?.vehicle_number||'—',
         user_code:user?.user_code||'—',
         category:fa?.category||'P5', fuel_type:fa?.fuel_type||'petrol',
         litres_allowed:getLitresForCategory(fa?.category||'P5'),
@@ -1873,7 +1873,7 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
       warning:      (!fa && rationingOn) ? '⚠️ No Fuel ID — Emergency limit: 10 litres (P5)' : null,
       user_name:    user?.name||'Unknown',
       user_code:    user?.user_code||'—',
-      vehicle:      fa?.vehicle_number||'—',
+      vehicle:      fa?.vehicle_number||user?.vehicle_number||'—',
       category:     effectiveCategory || 'P5',
       fuel_type:    fa?.fuel_type||'petrol',
       litres_allowed: getLitresForCategory(effectiveCategory || 'P5'),
@@ -3105,7 +3105,7 @@ app.get('/api/user/profile', requireAuth(), async (req, res) => {
     // ── Auto-regenerate QR if user has user_code but old format QR ──
     // Old format: qr_code_data is base64 JSON (long string), not equal to user_code
     // New format: qr_code_data === user_code (8 chars like BKTM7293)
-    if(user.user_code && user.qr_code_data !== user.user_code) {
+    if(user.user_code && (!user.qr_image_b64 || user.qr_code_data !== user.user_code)) {
       try {
         const QRCode = require('qrcode');
         const newQrImage = await QRCode.toDataURL('INDHAN:' + user.user_code, {
