@@ -190,8 +190,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="scanner-title" data-t="scan_title">Scan Customer QR Code</div>
     <div class="scanner-sub" data-t="scan_sub">For fuel rationing mode — scan to verify priority and dispense fuel</div>
     <button class="camera-btn" onclick="openCamera()" data-t="open_camera">📷 Open Camera Scanner</button>
-    <video id="cameraVideo" autoplay playsinline></video>
-    <canvas id="cameraCanvas"></canvas>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment"
+           style="display:none" onchange="handleCameraCapture(this)">
+    <video id="cameraVideo" autoplay playsinline style="display:none"></video>
+    <canvas id="cameraCanvas" style="display:none"></canvas>
     <div class="manual-row" style="margin-top:8px">
       <input class="manual-input" id="manualQR" data-t-placeholder="manual_placeholder" placeholder="Or enter QR ID manually...">
       <button class="check-btn" onclick="manualCheck()" data-t="check_btn">Check</button>
@@ -729,44 +731,38 @@ function denyFuel(){
   document.getElementById('manualQR').value = '';
 }
 
-async function openCamera(){
-  const video = document.getElementById('cameraVideo');
-  const canvas = document.getElementById('cameraCanvas');
-  if(scanStream){
-    scanStream.getTracks().forEach(t=>t.stop());
-    scanStream=null; video.style.display='none'; return;
-  }
-  try {
-    scanStream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }
-    });
-    video.srcObject = scanStream;
-    video.setAttribute('playsinline','true');
-    video.setAttribute('muted','true');
-    video.play();
-    video.style.display = 'block';
-    const ctx = canvas.getContext('2d');
+function openCamera(){
+  // Photo capture approach — reliable in all webviews including Appilix
+  const input = document.getElementById('cameraInput');
+  input.value = ''; // reset so same file can be picked again
+  input.click();
+}
 
-    // setInterval — more reliable than requestAnimationFrame in Appilix webview
-    const scanInterval = setInterval(()=>{
-      if(!scanStream){ clearInterval(scanInterval); return; }
-      if(video.readyState < video.HAVE_ENOUGH_DATA) return;
-      const w = video.videoWidth  || 320;
-      const h = video.videoHeight || 240;
-      if(w === 0 || h === 0) return;
-      canvas.width = w; canvas.height = h;
-      ctx.drawImage(video, 0, 0, w, h);
-      const img  = ctx.getImageData(0, 0, w, h);
-      const code = jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
+function handleCameraCapture(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.getElementById('cameraCanvas');
+      canvas.width  = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'attemptBoth'
+      });
       if(code){
-        clearInterval(scanInterval);
-        scanStream.getTracks().forEach(t=>t.stop());
-        scanStream=null; video.style.display='none';
         verifyScan(code.data);
+      } else {
+        alert('❌ QR not detected in photo.\nTips:\n• Hold phone steady\n• Good lighting\n• QR fills most of frame\n\nOr type Fuel Code manually below.');
       }
-    }, 200);
-
-  } catch(e){ alert('Camera error: ' + e.message + '\nPlease use manual Fuel Code entry.'); }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function logout(){

@@ -3102,10 +3102,22 @@ app.get('/api/user/profile', requireAuth(), async (req, res) => {
                         FROM users WHERE id=?`, [req.user.id]);
     if(!user) return res.status(404).json({error:'User not found'});
 
-    // ── Auto-regenerate QR if user has user_code but old format QR ──
-    // Old format: qr_code_data is base64 JSON (long string), not equal to user_code
-    // New format: qr_code_data === user_code (8 chars like BKTM7293)
-    if(user.user_code && (!user.qr_image_b64 || user.qr_code_data !== user.user_code)) {
+    // ── Assign user_code if missing (new users without Aadhaar) ──
+    if(!user.user_code) {
+      const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ', D = '123456789';
+      let newCode, att = 0;
+      do {
+        newCode = Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('') +
+                  Array.from({length:4},()=>D[Math.floor(Math.random()*D.length)]).join('');
+        att++;
+      } while(dbGet('SELECT id FROM users WHERE user_code=?',[newCode]) && att<100);
+      dbRun('UPDATE users SET user_code=? WHERE id=?', [newCode, user.id]);
+      user.user_code = newCode;
+      console.log(`[USER_CODE] Assigned new code ${newCode} to user ${user.id} (${user.name})`);
+    }
+
+    // ── Generate/regenerate QR if missing or old format ──
+    if(!user.qr_image_b64 || user.qr_code_data !== user.user_code) {
       try {
         const QRCode = require('qrcode');
         const newQrImage = await QRCode.toDataURL('INDHAN:' + user.user_code, {
@@ -3116,7 +3128,7 @@ app.get('/api/user/profile', requireAuth(), async (req, res) => {
           [user.user_code, newQrImage, user.id]);
         user.qr_code_data = user.user_code;
         user.qr_image_b64 = newQrImage;
-        console.log(`[QR REGEN] User ${user.id} (${user.name}) → new QR: INDHAN:${user.user_code}`);
+        console.log(`[QR REGEN] User ${user.id} (${user.name}) → INDHAN:${user.user_code}`);
       } catch(qrErr) {
         console.error('[QR REGEN] Error:', qrErr.message);
       }
