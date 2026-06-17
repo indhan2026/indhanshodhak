@@ -450,24 +450,31 @@ async function saveBasic(){
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
       body: JSON.stringify({name, email})
     });
-    // Get server QR (simple INDHAN:XXXX9999 — scannable!)
+    // Save vehicle + generate QR on server
     const profileResult = await safeFetch('/api/user/complete-profile',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
       body: JSON.stringify({vehicle_number:vehicle, fuel_type:fuel, name})
     });
-    if(profileResult?.qr_image_b64){
-      // Show server QR — simple, black, scannable ✅
+
+    // Re-fetch profile to get the freshly generated simple server QR
+    const freshProfile = await safeFetch('/api/user/profile', {
+      headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'}
+    });
+    const u2 = freshProfile?.user;
+
+    if(u2?.qr_image_b64){
+      // Show simple server QR — scannable! ✅
       document.getElementById('qrCanvas').innerHTML =
-        `<img src="${profileResult.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
-      document.getElementById('qrName').textContent    = name;
-      document.getElementById('qrVehicle').textContent = '🚗 ' + vehicle;
+        `<img src="${u2.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
+      document.getElementById('qrName').textContent    = u2.name || name;
+      document.getElementById('qrVehicle').textContent = '🚗 ' + (u2.vehicle_number || vehicle);
       document.getElementById('qrLimit').textContent   = '10L / 72hrs';
       document.getElementById('downloadBtn').style.display = 'inline-block';
       const t = TIER_LABELS['P5'] || {};
       const badge = document.getElementById('qrTierBadge');
       if(badge){ badge.textContent = t.label||'P5 — General Public'; badge.className = 'qr-tier-badge '+(t.cls||''); }
-      if(profileResult.user_code){
-        document.getElementById('qrCodeText').textContent = profileResult.user_code;
+      if(u2.user_code){
+        document.getElementById('qrCodeText').textContent = u2.user_code;
         document.getElementById('qrCodeBox').style.display = 'block';
       }
       showMsg('ok-basic', '✅ QR Code generated! Show this QR at fuel pump.');
