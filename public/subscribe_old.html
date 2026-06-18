@@ -262,7 +262,9 @@ async function loadConfig(){
       // Fix button texts that have price inline
       const payBtn = document.getElementById('payBtn');
       if(payBtn && !payBtn.querySelector('#btnPrice')){
-        payBtn.textContent = '🔒 Pay ' + PRICE_DISPLAY + ' — Activate Full Access';
+        const finalPaise = window._PRICE_PAISE || PRICE_PAISE;
+    const finalDisplay = '₹' + (finalPaise/100).toFixed(2);
+    payBtn.textContent = '🔒 Pay ' + finalDisplay + ' — Activate Full Access';
       }
     }
     // IMPORTANT: Also fix amount in startPayment
@@ -295,6 +297,9 @@ async function loadPointsDiscount() {
     if(el('displayPrice'))   el('displayPrice').textContent   = '₹' + finalRs;
     // Adjust PRICE_PAISE for Razorpay
     window._PRICE_PAISE = Math.max(100, (window._PRICE_PAISE||1499) - discPaise); // min ₹1
+    // Update pay button to show discounted price
+    const payBtn2 = document.getElementById('payBtn');
+    if(payBtn2) payBtn2.textContent = '🔒 Pay ₹' + (window._PRICE_PAISE/100).toFixed(2) + ' — Activate Full Access';
   } catch(e) { console.log('Points discount error:', e.message); }
 }
 
@@ -363,7 +368,7 @@ async function startPayment(){
     // Create order
     const order = await fetch('/api/payment/create-order',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
-      body: JSON.stringify({amount: PRICE_PAISE}) // dynamic from admin settings
+      body: JSON.stringify({amount: window._PRICE_PAISE || PRICE_PAISE}) // uses discounted price if points applied
     }).then(r=>r.json());
 
     if(!order.id){ throw new Error(order.error||'Order creation failed'); }

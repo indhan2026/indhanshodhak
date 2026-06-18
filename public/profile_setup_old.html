@@ -80,7 +80,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="top-bar-title">👤 My Profile & Fuel ID</div>
       <div class="top-bar-sub">Manage your details and QR code</div>
     </div>
-    <a href="/" class="home-btn">← Home</a>
+    <a href="/app" class="home-btn">← Home</a>
   </div>
 </div>
 
@@ -239,10 +239,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 
-</div>
-
   <!-- ══ MY POINTS CARD ════════════════════════════════════════════════ -->
-  <div style="background:white;border-radius:16px;padding:16px;margin-top:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <div style="background:white;border-radius:16px;padding:16px;margin-top:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);box-sizing:border-box;width:100%;overflow:hidden">
     <div style="font-size:14px;font-weight:700;color:#1a6b2e;margin-bottom:12px">⭐ My Reporter Points</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       <div style="background:#e8f5e9;border-radius:12px;padding:12px;text-align:center">
@@ -265,7 +263,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <!-- Today stats -->
-    <div style="display:flex;gap:8px;margin-bottom:14px">
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <div style="flex:1;background:#f3e5f5;border-radius:10px;padding:8px;text-align:center">
         <div style="font-size:16px;font-weight:700;color:#6a1b9a" id="prof-today-pts">—</div>
         <div style="font-size:10px;color:#666">Today's Points</div>
@@ -441,22 +439,52 @@ async function saveBasic(){
   if(mobile) localStorage.setItem('indhan_mobile', mobile);
   if(email)  localStorage.setItem('indhan_email',  email);
 
-  // Generate P5 QR immediately — no login needed!
-  generateQR(name, vehicle, 'P5', fuel);
-  showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated — 10L / 72hrs');
+  // Show loading state while fetching server QR
+  document.getElementById('qrCanvas').innerHTML =
+    '<div style="text-align:center;padding:30px;font-size:13px;opacity:0.6">⏳ Generating QR Code...</div>';
+  showMsg('ok-basic', '⏳ Saving info...');
 
-  // Also save to server if logged in
   if(TOKEN){
-    const d = await safeFetch('/api/user/update-name',{
+    // Update name on server
+    await safeFetch('/api/user/update-name',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
       body: JSON.stringify({name, email})
     });
-    // Save vehicle to server
-    await safeFetch('/api/user/complete-profile',{
+    // Save vehicle + generate QR on server
+    const profileResult = await safeFetch('/api/user/complete-profile',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
       body: JSON.stringify({vehicle_number:vehicle, fuel_type:fuel, name})
     });
+
+    // Re-fetch profile to get the freshly generated simple server QR
+    const freshProfile = await safeFetch('/api/user/profile', {
+      headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'}
+    });
+    const u2 = freshProfile?.user;
+
+    if(u2?.qr_image_b64){
+      // Show simple server QR — scannable! ✅
+      document.getElementById('qrCanvas').innerHTML =
+        `<img src="${u2.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
+      document.getElementById('qrName').textContent    = u2.name || name;
+      document.getElementById('qrVehicle').textContent = '🚗 ' + (u2.vehicle_number || vehicle);
+      document.getElementById('qrLimit').textContent   = '10L / 72hrs';
+      document.getElementById('downloadBtn').style.display = 'inline-block';
+      const t = TIER_LABELS['P5'] || {};
+      const badge = document.getElementById('qrTierBadge');
+      if(badge){ badge.textContent = t.label||'P5 — General Public'; badge.className = 'qr-tier-badge '+(t.cls||''); }
+      if(u2.user_code){
+        document.getElementById('qrCodeText').textContent = u2.user_code;
+        document.getElementById('qrCodeBox').style.display = 'block';
+      }
+      showMsg('ok-basic', '✅ QR Code generated! Show this QR at fuel pump.');
+      return; // ← stop here, no local QR needed
+    }
   }
+
+  // Fallback: local QR only if not logged in or server failed
+  generateQR(name, vehicle, 'P5', fuel);
+  showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated — 10L / 72hrs');
 }
 
 // ══════════════════════════════════════════
@@ -491,17 +519,18 @@ async function saveAadhaar(){
       body: JSON.stringify({aadhaar_number:raw, vehicle_number:vehicle, fuel_type:fuel, name})
     });
     if(d?.success){
-      // Use server-generated QR if available (has signature)
       if(d.qr_image_b64){
         document.getElementById('qrCanvas').innerHTML =
           `<img src="${d.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
       }
+      if(d.user_code){
+        document.getElementById('qrCodeText').textContent = d.user_code;
+        document.getElementById('qrCodeBox').style.display = 'block';
+      }
     }
   }
-
   showMsg('ok-aad','✅ Aadhaar saved! Account is now verified — eligible for tier upgrades.');
-  // QR stays same P5 — tier upgrade needs verifier approval
-  generateQR(name, vehicle, currentTier, fuel);
+  // Server QR takes priority — local generateQR() NOT called to avoid overwriting simple scannable QR
 }
 
 // ══════════════════════════════════════════
@@ -757,18 +786,29 @@ async function loadProfilePoints() {
       logEl.innerHTML = hist.logs.slice(0,8).map(l => {
         const sign  = l.points > 0 ? '+' : '';
         const color = l.points > 0 ? '#1a6b2e' : '#b71c1c';
-        const pumpLabel = l.pump_name ? ' · ' + l.pump_name : '';
-        const label = (l.reason === 'fuel_report' ? '⛽ Fuel Report' + pumpLabel
-          : l.reason === 'false_report_penalty' ? '❌ False Report Penalty' + pumpLabel
+        // Date + Time in IST
+        const dtObj = l.created_at ? new Date(l.created_at.replace(' ','T')+'Z') : null;
+        const dtStr = dtObj ? dtObj.toLocaleString('en-IN',{
+          timeZone:'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric',
+          hour:'2-digit', minute:'2-digit', hour12:true }) : '—';
+        // Location line
+        const locParts = [l.address, l.tehsil, l.district].filter(Boolean);
+        const locStr = locParts.length ? locParts.join(', ') : '';
+        // Action label
+        const actionLabel = l.reason === 'fuel_report' ? '⛽ Fuel Report'
+          : l.reason === 'false_report_penalty' ? '❌ False Report Penalty'
           : l.reason === 'deregister_penalty' ? '🚫 Account Penalty'
-          : l.reason);
-        const dt = l.created_at ? new Date(l.created_at.replace(' ','T')+'Z').toLocaleDateString('en-IN') : '—';
-        return '<div style="padding:6px 0;border-bottom:1px solid #f5f5f5">'
-          + '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-            + '<span style="color:#555;font-size:11px;flex:1;padding-right:8px">' + label + '</span>'
-            + '<span style="font-weight:700;color:' + color + ';white-space:nowrap">' + sign + l.points + ' pts</span>'
+          : l.reason;
+        return '<div style="padding:8px 0;border-bottom:1px solid #f0f0f0">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
+            + '<div style="flex:1">'
+              + '<div style="font-size:12px;font-weight:600;color:#333">' + actionLabel + '</div>'
+              + (l.pump_name ? '<div style="font-size:11px;color:#1a6b2e;font-weight:600;margin-top:2px">📍 ' + l.pump_name + '</div>' : '')
+              + (locStr ? '<div style="font-size:10px;color:#888;margin-top:1px">' + locStr + '</div>' : '')
+              + '<div style="font-size:10px;color:#aaa;margin-top:2px">🕐 ' + dtStr + '</div>'
+            + '</div>'
+            + '<span style="font-weight:700;color:' + color + ';white-space:nowrap;font-size:13px">' + sign + l.points + ' pts</span>'
           + '</div>'
-          + '<div style="font-size:10px;color:#aaa;margin-top:1px">' + dt + '</div>'
           + '</div>';
       }).join('');
     }

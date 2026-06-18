@@ -190,8 +190,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="scanner-title" data-t="scan_title">Scan Customer QR Code</div>
     <div class="scanner-sub" data-t="scan_sub">For fuel rationing mode — scan to verify priority and dispense fuel</div>
     <button class="camera-btn" onclick="openCamera()" data-t="open_camera">📷 Open Camera Scanner</button>
-    <video id="cameraVideo" autoplay playsinline></video>
-    <canvas id="cameraCanvas"></canvas>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment"
+           style="display:none" onchange="handleCameraCapture(this)">
+    <video id="cameraVideo" autoplay playsinline style="display:none"></video>
+    <canvas id="cameraCanvas" style="display:none"></canvas>
     <div class="manual-row" style="margin-top:8px">
       <input class="manual-input" id="manualQR" data-t-placeholder="manual_placeholder" placeholder="Or enter QR ID manually...">
       <button class="check-btn" onclick="manualCheck()" data-t="check_btn">Check</button>
@@ -223,6 +225,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="result-item">
         <div class="result-label" data-t="fuel_type">FUEL TYPE</div>
         <div class="result-value" id="r-fuel">—</div>
+      </div>
+      <div class="result-item" style="grid-column:1/-1;background:rgba(255,255,255,0.2);border-radius:10px;padding:10px">
+        <div class="result-label">FUEL CODE — Verify with customer</div>
+        <div class="result-value" id="r-code" style="font-family:monospace;font-size:20px;font-weight:800;letter-spacing:5px;color:#ffffff">—</div>
       </div>
     </div>
     <div class="result-litres">
@@ -697,6 +703,7 @@ function showResult(d){
     document.getElementById('r-vehicle').textContent  = d.vehicle || '—';
     document.getElementById('r-priority').textContent = d.category || 'P5';
     document.getElementById('r-fuel').textContent     = d.fuel_type || 'Petrol';
+    document.getElementById('r-code').textContent     = d.user_code || '—';
     document.getElementById('r-litres').textContent   = d.no_limit ? '∞' : (d.litres_allowed||10)+' L';
     document.getElementById('result-cleared').style.display = 'block';
     // Re-apply translations to result labels
@@ -729,26 +736,61 @@ function denyFuel(){
   document.getElementById('manualQR').value = '';
 }
 
-async function openCamera(){
-  const video = document.getElementById('cameraVideo');
-  const canvas = document.getElementById('cameraCanvas');
-  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; video.style.display='none'; return; }
-  try {
-    scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    video.srcObject = scanStream;
-    video.style.display = 'block';
-    const ctx = canvas.getContext('2d');
-    const scan = ()=>{
-      if(!scanStream) return;
-      canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-      ctx.drawImage(video,0,0);
-      const img = ctx.getImageData(0,0,canvas.width,canvas.height);
-      const code = jsQR(img.data,img.width,img.height);
-      if(code){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; video.style.display='none'; verifyScan(code.data); }
-      else requestAnimationFrame(scan);
+function openCamera(){
+  // ── Appilix Native QR Scanner (Official API) ──
+  if (typeof appilix !== 'undefined') {
+    appilix.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        appilix.onmessage = null;
+        if (data.response.status === 'success') {
+          verifyScan(data.response.result);
+        } else if (data.response.status === 'camera_permission_missing') {
+          alert('📷 Camera permission required.\nAllow camera in Android Settings.');
+        } else if (data.response.status === 'cancel') {
+          // cancelled — do nothing
+        } else {
+          alert('Scan failed. Type Fuel Code manually.');
+        }
+      } catch(e) { console.error('QR result error:', e); }
     };
-    video.onloadedmetadata = ()=> requestAnimationFrame(scan);
-  } catch(e){ alert('Camera access denied. Use manual entry.'); }
+    appilix.postMessage(JSON.stringify({
+      type: "qr_scanner_init",
+      props: { enable_confirmation_popup: false }
+    }));
+  } else {
+    // Fallback: file input (desktop/browser)
+    const input = document.getElementById('cameraInput');
+    if(input){ input.value=''; input.click(); }
+    else { alert('QR Scanner not available. Use manual Fuel Code entry.'); }
+  }
+}
+
+function handleCameraCapture(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.getElementById('cameraCanvas');
+      canvas.width  = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'attemptBoth'
+      });
+      if(code){
+        verifyScan(code.data);
+      } else {
+        alert('❌ QR not detected in photo.\nTips:\n• Hold phone steady\n• Good lighting\n• QR fills most of frame\n\nOr type Fuel Code manually below.');
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function logout(){
@@ -761,6 +803,21 @@ function logout(){
 applyTranslations();
 const sel = document.getElementById('lang-select');
 if(sel) sel.value = currentLang;
+
+// Load pump name in header on page load
+(async function loadDashHeader(){
+  try {
+    const r = await fetch('/api/pump-owner/subscription-status',{headers:{'x-auth-token':TOKEN}});
+    const d = await r.json();
+    if(d.pump){
+      const nameEl = document.getElementById('pump-name');
+      if(nameEl) nameEl.textContent = (d.pump.name||'Your Pump') + (d.pump.is_verified ? ' ✅' : ' ⏳');
+    }
+  } catch(e) {
+    const nameEl = document.getElementById('pump-name');
+    if(nameEl) nameEl.textContent = 'Your Pump Dashboard';
+  }
+})();
 
 // Profile Modal Functions
 async function openProfileModal(){

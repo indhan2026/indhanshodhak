@@ -120,6 +120,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .trial-desc{font-size:13px;color:#666;margin-bottom:16px;line-height:1.6}
 .pay-btn{width:100%;padding:14px;background:#1a6b2e;color:white;border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:8px}
 .skip-btn{width:100%;padding:11px;background:#f5f5f5;color:#888;border:none;border-radius:14px;font-size:13px;cursor:pointer}
+
+/* ── Temptation Plate & Leaderboard ─────────── */
+@keyframes slideUp {
+  from { opacity:0; transform:translateX(-50%) translateY(20px); }
+  to   { opacity:1; transform:translateX(-50%) translateY(0); }
+}
+.tp-state { transition: all .3s ease; }
+#lb-list::-webkit-scrollbar { width:4px; }
+#lb-list::-webkit-scrollbar-thumb { background:#c8e6c9; border-radius:4px; }
 </style>
 </head>
 <body>
@@ -133,6 +142,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="header-right">
     <button class="hbtn" onclick="openModal('langModal')" id="btn-lang">🌐 Lang</button>
     <button class="hbtn" onclick="goToFuelId()" id="btn-myqr">🎫 My QR</button>
+    <button class="hbtn" onclick="toggleLeaderboard()" id="btn-trophy" style="position:relative">
+      🏆 <span id="trophy-pts" style="font-size:10px;background:#ffd700;color:#333;border-radius:8px;padding:1px 5px;margin-left:2px;font-weight:700;display:none">0</span>
+    </button>
     <button class="hbtn" onclick="userLogout()" id="btn-logout" style="background:rgba(255,255,255,.15)">🚪</button>
   </div>
 </div>
@@ -179,6 +191,77 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="fuelid-title" id="fuelid-title">🎫 Get Your Fuel ID — Be Crisis Ready!</div>
     <div class="fuelid-sub" id="fuelid-msg">Register now to get a QR code. During fuel crisis — QR holders get priority fuel access. Aadhaar users get higher fuel limits!</div>
     <button class="fuelid-btn" onclick="goToFuelId()">Register for Fuel ID →</button>
+  </div>
+
+  <!-- ══ TEMPTATION PLATE ══════════════════════════════════════════════ -->
+  <div id="temptPlate" style="margin:10px 12px 6px;border-radius:14px;overflow:hidden;display:none">
+    <!-- State 1: New (0 pts) -->
+    <div id="tp-new" class="tp-state" style="background:linear-gradient(135deg,#1a6b2e,#2e7d32);padding:14px 16px;display:none">
+      <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:4px">🎁 Report Fuel = Earn ₹5/month!</div>
+      <div style="color:rgba(255,255,255,.85);font-size:12px;margin-bottom:10px">See a petrol pump near you? Tap Report → Get 1 point · 100 pts = ₹5 off your subscription!</div>
+      <button onclick="document.getElementById('gpsBtn')?.click()" style="background:#ffd700;color:#333;border:none;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%">📍 Find Nearby Pumps to Report →</button>
+    </div>
+    <!-- State 2: Progressing -->
+    <div id="tp-progress" class="tp-state" style="background:linear-gradient(135deg,#1a6b2e,#2e7d32);padding:14px 16px;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="color:#ffd700;font-size:13px;font-weight:700">⭐ <span id="tp-pts">0</span> pts → ₹<span id="tp-rs">0.00</span> ready!</div>
+        <div style="color:rgba(255,255,255,.7);font-size:11px"><span id="tp-remain">100</span> more = ₹5 max!</div>
+      </div>
+      <div style="background:rgba(255,255,255,.2);border-radius:10px;height:8px;margin-bottom:10px;overflow:hidden">
+        <div id="tp-bar" style="background:#ffd700;height:100%;border-radius:10px;width:0%;transition:width .6s ease"></div>
+      </div>
+      <button onclick="document.getElementById('gpsBtn')?.click()" style="background:#ffd700;color:#333;border:none;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%">⛽ Report +1 Point Now →</button>
+    </div>
+    <!-- State 3: Close (75+) -->
+    <div id="tp-close" class="tp-state" style="background:linear-gradient(135deg,#e65100,#bf360c);padding:14px 16px;display:none">
+      <div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:4px">🔥 SO CLOSE! Just <span id="tp-close-remain">25</span> more reports!</div>
+      <div style="background:rgba(255,255,255,.2);border-radius:10px;height:8px;margin-bottom:8px;overflow:hidden">
+        <div id="tp-bar-close" style="background:#ffd700;height:100%;border-radius:10px;width:0%;transition:width .6s ease"></div>
+      </div>
+      <div style="color:rgba(255,255,255,.85);font-size:12px;margin-bottom:10px">You have ₹<span id="tp-close-rs">0</span> waiting. Don't stop now!</div>
+      <button onclick="document.getElementById('gpsBtn')?.click()" style="background:#ffd700;color:#333;border:none;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%">🚀 Report Now — Almost There!</button>
+    </div>
+    <!-- State 4: Reward Ready (100+) -->
+    <div id="tp-ready" class="tp-state" style="background:linear-gradient(135deg,#f9a825,#f57f17);padding:14px 16px;display:none">
+      <div style="color:#333;font-size:15px;font-weight:700;margin-bottom:4px">🎉 ₹<span id="tp-ready-rs">5.00</span> Discount READY!</div>
+      <div style="color:rgba(0,0,0,.7);font-size:12px;margin-bottom:10px">You have <span id="tp-ready-pts">100</span> points! Claim your discount on subscription.</div>
+      <button onclick="window.location.href='/subscribe'" style="background:#1a6b2e;color:white;border:none;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%">💰 Claim ₹<span id="tp-ready-rs2">5.00</span> Discount →</button>
+    </div>
+    <!-- State 5: Daily Cap -->
+    <div id="tp-cap" class="tp-state" style="background:linear-gradient(135deg,#1565c0,#0d47a1);padding:14px 16px;display:none">
+      <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:4px">✅ Max 5 Reports Done Today!</div>
+      <div style="color:rgba(255,255,255,.8);font-size:12px;margin-bottom:10px">Great work! You've earned max points today. Come back tomorrow for more. See where you rank:</div>
+      <button onclick="toggleLeaderboard()" style="background:#ffd700;color:#333;border:none;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%">🏆 View Leaderboard →</button>
+    </div>
+  <!-- Rules line -->
+  <div id="tp-rules" style="background:rgba(0,0,0,.15);padding:7px 14px;font-size:10px;
+    color:rgba(255,255,255,.8);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
+    <span>📋 1pt/report · Max 5/day · False report = -2pts · Suspension = -10pts</span>
+    <a href="/profile_setup" style="color:#ffd700;font-weight:700;text-decoration:none;font-size:10px">View T&amp;C →</a>
+  </div>
+  </div>
+
+  <!-- ══ LEADERBOARD DROPDOWN ══════════════════════════════════════════ -->
+  <div id="leaderboardPanel" style="display:none;margin:0 12px 10px;background:white;border-radius:14px;
+    box-shadow:0 4px 20px rgba(0,0,0,.15);overflow:hidden">
+    <div style="background:linear-gradient(135deg,#1a6b2e,#2e7d32);padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+      <div style="color:#ffd700;font-size:14px;font-weight:700">🏆 Top Fuel Reporters — This Month</div>
+      <button onclick="toggleLeaderboard()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="lb-my-rank" style="background:#e8f5e9;padding:8px 16px;font-size:12px;color:#1a6b2e;font-weight:600;border-bottom:1px solid #e0e0e0"></div>
+    <div id="lb-list" style="padding:8px 0;max-height:280px;overflow-y:auto">
+      <div style="text-align:center;padding:16px;color:#aaa;font-size:13px">⏳ Loading...</div>
+    </div>
+  </div>
+
+  <!-- ══ POINT TOAST ════════════════════════════════════════════════════ -->
+  <div id="pointToast" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:#1a6b2e;color:white;padding:12px 20px;border-radius:14px;font-size:13px;
+    box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:9999;text-align:center;min-width:220px;
+    animation:slideUp .3s ease">
+    <div id="pointToast-line1" style="font-weight:700;font-size:14px"></div>
+    <div id="pointToast-line2" style="opacity:.9;margin-top:2px"></div>
+    <div id="pointToast-line3" style="opacity:.8;font-size:11px;margin-top:2px"></div>
   </div>
 
   <div id="pumpList">
@@ -788,11 +871,37 @@ async function submitReport() {
   }
 
   closeModal('reportModal');
-  document.getElementById('notif-text').textContent = '✅ Thank you! Report sent. Nearby users notified.';
   if(btn){ btn.textContent = '📤 Submit Report — Notify Nearby Users'; btn.disabled = false; }
+  // Refresh points balance after report
+  try {
+    const pts = await fetch('/api/points/balance', {headers:{'x-auth-token':TOKEN}});
+    if(pts.ok) {
+      const pd = await pts.json();
+      const el = document.getElementById('user-points');
+      if(el) el.textContent = (pd.total_points || 0) + ' pts';
+    }
+  } catch(e) {}
+  // Parse points from server response and show toast
+  try {
+    const rData = resp ? await resp.clone().json().catch(()=>null) : null;
+    if(rData?.points?.awarded) {
+      showPointToast(rData.points);
+    } else {
+      document.getElementById('notif-text').textContent = '✅ Thank you! Report sent. Nearby users notified.';
+    }
+  } catch(e) {
+    document.getElementById('notif-text').textContent = '✅ Thank you! Report sent. Nearby users notified.';
+  }
 
   // Update card instantly — ONLY after server confirms save ✅
-  const card = document.querySelector('.pump-card[data-pump-id="' + pid + '"]');
+  // For external pumps (gpl_), find by data-pump-id OR by matching name
+  let card = document.querySelector('.pump-card[data-pump-id="' + pid + '"]');
+  if(!card && pid) {
+    // Try finding by partial match for external pumps
+    document.querySelectorAll('.pump-card').forEach(c => {
+      if(c.getAttribute('data-pump-id') === pid) card = c;
+    });
+  }
   if(card){
     // Update tags
     card.querySelectorAll('.tag[data-fuel]').forEach(tag => {
@@ -1065,6 +1174,147 @@ function fillProfileModal(){
     document.getElementById('prof-mobile').textContent = mobile;
 }
 document.addEventListener('DOMContentLoaded', fillProfileModal);
+
+// ══ POINTS & TEMPTATION PLATE ═══════════════════════════════════════════
+
+let _userPoints = null; // cache
+
+async function loadUserPoints() {
+  try {
+    const resp = await fetch('/api/points/balance', { headers:{'x-auth-token':TOKEN} });
+    if(!resp.ok) return;
+    _userPoints = await resp.json();
+    // Update trophy badge
+    const total = _userPoints.total || 0;
+    const badge = document.getElementById('trophy-pts');
+    if(badge){
+      badge.textContent = total + 'pts';
+      badge.style.display = total > 0 ? 'inline' : 'none';
+    }
+    renderTemptationPlate(_userPoints);
+  } catch(e) { console.log('Points load error:', e.message); }
+}
+
+function renderTemptationPlate(pts) {
+  const plate = document.getElementById('temptPlate');
+  if(!plate) return;
+  const total    = pts.total || 0;
+  const todayPts = pts.today_points || 0;
+  const discRs   = parseFloat(pts.discount_rs || 0);
+  const remain   = Math.max(0, 100 - total);
+  const pct      = Math.min(100, (total / 100) * 100);
+
+  // Hide all states
+  ['tp-new','tp-progress','tp-close','tp-ready','tp-cap'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+
+  plate.style.display = 'block';
+
+  if(todayPts >= 5) {
+    // State 5: Daily cap
+    document.getElementById('tp-cap').style.display = 'block';
+  } else if(total >= 100) {
+    // State 4: Reward ready
+    document.getElementById('tp-ready').style.display = 'block';
+    const rs = discRs.toFixed(2);
+    ['tp-ready-rs','tp-ready-rs2'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.textContent = rs;
+    });
+    const ptsEl = document.getElementById('tp-ready-pts');
+    if(ptsEl) ptsEl.textContent = total;
+  } else if(total >= 75) {
+    // State 3: So close
+    document.getElementById('tp-close').style.display = 'block';
+    const el = document.getElementById('tp-close-remain');
+    if(el) el.textContent = remain;
+    const rs = document.getElementById('tp-close-rs');
+    if(rs) rs.textContent = discRs.toFixed(2);
+    const bar = document.getElementById('tp-bar-close');
+    if(bar) setTimeout(()=>{ bar.style.width = pct + '%'; }, 100);
+  } else if(total > 0) {
+    // State 2: Progressing
+    document.getElementById('tp-progress').style.display = 'block';
+    const ptsEl = document.getElementById('tp-pts');
+    if(ptsEl) ptsEl.textContent = total;
+    const rsEl = document.getElementById('tp-rs');
+    if(rsEl) rsEl.textContent = discRs.toFixed(2);
+    const remEl = document.getElementById('tp-remain');
+    if(remEl) remEl.textContent = remain;
+    const bar = document.getElementById('tp-bar');
+    if(bar) setTimeout(()=>{ bar.style.width = pct + '%'; }, 100);
+  } else {
+    // State 1: New user
+    document.getElementById('tp-new').style.display = 'block';
+  }
+}
+
+function showPointToast(pointsData) {
+  if(!pointsData || !pointsData.awarded) return;
+  const toast  = document.getElementById('pointToast');
+  const line1  = document.getElementById('pointToast-line1');
+  const line2  = document.getElementById('pointToast-line2');
+  const line3  = document.getElementById('pointToast-line3');
+  if(!toast) return;
+  const total  = pointsData.month_points || 0;
+  const discRs = (total * 0.05).toFixed(2);
+  const remain = Math.max(0, 100 - total);
+  line1.textContent  = '✅ +1 Point Earned!';
+  line2.textContent  = '⭐ Total: ' + total + ' pts → ₹' + discRs;
+  line3.textContent  = remain > 0 ? remain + ' more reports = ₹5 max reward!' : '🎉 ₹5 Discount Ready! Go subscribe!';
+  toast.style.display = 'block';
+  // Update plate immediately
+  if(_userPoints) {
+    _userPoints.month_points = total;
+    _userPoints.total = total + (_userPoints.carried_points||0);
+    _userPoints.discount_rs = discRs;
+    _userPoints.today_points = (_userPoints.today_points||0) + 1;
+    renderTemptationPlate(_userPoints);
+    const badge = document.getElementById('trophy-pts');
+    if(badge){ badge.textContent = _userPoints.total + 'pts'; badge.style.display = 'inline'; }
+  }
+  // Auto-hide after 4 seconds
+  setTimeout(() => { toast.style.display = 'none'; }, 4000);
+}
+
+async function toggleLeaderboard() {
+  const panel = document.getElementById('leaderboardPanel');
+  if(!panel) return;
+  if(panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  // Load leaderboard
+  try {
+    const d = await fetch('/api/points/leaderboard').then(r=>r.json());
+    const medals = ['🥇','🥈','🥉'];
+    const list = document.getElementById('lb-list');
+    if(!d.leaders || d.leaders.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:16px;color:#aaa;font-size:13px">No reporters yet — be the first! ⭐</div>';
+    } else {
+      list.innerHTML = d.leaders.map((u,i) => {
+        const medal  = medals[i] || (i+1 + '.');
+        const name   = u.name || ('User ' + (u.mobile||'').slice(-4));
+        const pts    = (u.month_points||0) + '';
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid #f5f5f5">'
+          + '<div style="font-size:18px;min-width:28px">' + medal + '</div>'
+          + '<div style="flex:1">'
+            + '<div style="font-size:13px;font-weight:600;color:#222">' + name + '</div>'
+          + '</div>'
+          + '<div style="font-size:13px;font-weight:700;color:#1a6b2e">⭐ ' + pts + ' pts</div>'
+        + '</div>';
+      }).join('');
+    }
+    // Show user rank
+    const rankEl = document.getElementById('lb-my-rank');
+    if(rankEl && _userPoints) {
+      const myPts = _userPoints.total || 0;
+      rankEl.textContent = myPts > 0 ? '📍 Your points this month: ' + _userPoints.month_points + ' pts · ₹' + parseFloat(_userPoints.discount_rs||0).toFixed(2) + ' discount' : '📍 Start reporting to earn points & rank!';
+    }
+  } catch(e) { console.log('Leaderboard error:', e); }
+}
+
+// Load points on page open
+if(TOKEN) { loadUserPoints(); }
 
 // Auto-load nearby pumps on page open
 // ── Leaflet Map Init ──────────────────────────────────────────

@@ -16,8 +16,12 @@ const nodemailer = require('nodemailer');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-const DB_PATH     = path.join(__dirname, 'indhan.db');
-const UPLOAD_PATH = path.join(__dirname, 'uploads', 'pump-docs');
+const DB_PATH     = process.env.NODE_ENV === 'production'
+  ? '/data/indhan.db'
+  : path.join(__dirname, 'indhan.db');
+const UPLOAD_PATH = process.env.NODE_ENV === 'production'
+  ? '/data/uploads/pump-docs'
+  : path.join(__dirname, 'uploads', 'pump-docs');
 const PUBLIC_PATH = path.join(__dirname, 'public');
 
 if (!fs.existsSync(UPLOAD_PATH)) fs.mkdirSync(UPLOAD_PATH, { recursive: true });
@@ -279,6 +283,7 @@ async function initDB() {
     `ALTER TABLE users ADD COLUMN profile_complete INTEGER DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN qr_code_data TEXT`,
     `ALTER TABLE users ADD COLUMN qr_image_b64 TEXT`,
+    `ALTER TABLE users ADD COLUMN user_code TEXT`,
     `ALTER TABLE petrol_pumps ADD COLUMN staff_password TEXT`,
     `CREATE TABLE IF NOT EXISTS pump_staff (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -317,6 +322,46 @@ async function initDB() {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
     catch(e) { /* column already exists — ignore */ }
   });
+
+  // ── User Code Generator (4 letters A-Z no I/O + 4 digits 1-9 no 0) ──
+  function generateUserCode() {
+    const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 letters, no I, no O
+    const D = '123456789';                 // 9 digits, no 0
+    let code = '';
+    for (let i = 0; i < 4; i++) code += L[Math.floor(Math.random() * L.length)];
+    for (let i = 0; i < 4; i++) code += D[Math.floor(Math.random() * D.length)];
+    return code; // e.g. BKTM7293
+  }
+
+  // ── Backfill: assign user_code to all existing users who don't have one ──
+  try {
+    const usersWithoutCode = db.exec(`SELECT id FROM users WHERE user_code IS NULL OR user_code = ''`);
+    if (usersWithoutCode.length && usersWithoutCode[0].values.length) {
+      let assigned = 0;
+      for (const row of usersWithoutCode[0].values) {
+        const uid = row[0];
+        let code, attempts = 0;
+        do {
+          code = generateUserCode();
+          attempts++;
+        } while (dbGet('SELECT id FROM users WHERE user_code=?', [code]) && attempts < 100);
+        db.run('UPDATE users SET user_code=? WHERE id=?', [code, uid]);
+        assigned++;
+      }
+      db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
+      console.log(`[USER_CODE] Backfilled ${assigned} users with unique codes.`);
+    }
+    // ── Force QR re-generation with new black QR style ──
+    // Clear qr_image_b64 for users whose qr_code_data matches user_code (green QR already generated)
+    // Next profile load will regenerate with black QR automatically
+    const needsBlackQR = db.exec(`SELECT COUNT(*) as c FROM users WHERE user_code IS NOT NULL AND user_code != '' AND qr_image_b64 IS NOT NULL AND length(qr_image_b64) > 100`);
+    const count = needsBlackQR?.[0]?.values?.[0]?.[0] || 0;
+    if(count > 0) {
+      db.run(`UPDATE users SET qr_image_b64=NULL WHERE user_code IS NOT NULL AND user_code != ''`);
+      db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
+      console.log(`[QR REGEN] Cleared ${count} old QR images → black QR will regenerate on next profile load`);
+    }
+  } catch(e) { console.error('[USER_CODE] Backfill error:', e.message); }
 
   // Sample pumps
   const pumps = [
@@ -377,8 +422,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   if(req.path.startsWith('/api/')) return next();
-  express.static(PUBLIC_PATH)(req, res, next);
+  express.static(PUBLIC_PATH, { index: false })(req, res, next);
 });
+
+// ── Landing / Splash / Privacy routes ──
+app.get('/', (req, res) => {
+  res.sendFile(path.join(PUBLIC_PATH, 'landing.html'));
+});
+app.get('/splash', (req, res) => {
+  res.sendFile(path.join(PUBLIC_PATH, 'splash.html'));
+});
+app.get('/privacy',  (req,res) => res.sendFile(path.join(PUBLIC_PATH,'privacy.html')));
+app.get('/terms',    (req,res) => res.sendFile(path.join(PUBLIC_PATH,'terms.html')));
+app.get('/shipping', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'shipping.html')));
+app.get('/contact',  (req,res) => res.sendFile(path.join(PUBLIC_PATH,'contact.html')));
+app.get('/refunds',  (req,res) => res.sendFile(path.join(PUBLIC_PATH,'refunds.html')));
 
 // ── Email — ZeptoMail (switch to Gmail: comment ZEPTO_PASS in .env, uncomment Gmail lines) ──
 const mailer = nodemailer.createTransport({
@@ -949,7 +1007,7 @@ async function callAnthropicAPI(prompt, imageBase64, mimeType) {
   const url = 'https://api.anthropic.com/v1/messages';
   const content = [{ type:'text', text: prompt }];
   if(imageBase64) content.unshift({ type:'image', source:{ type:'base64', media_type: mimeType||'image/jpeg', data: imageBase64 } });
-  const body = { model:'claude-haiku-4-5-20251001', max_tokens:512, messages:[{ role:'user', content }] };
+  const body = { model:'claude-haiku-4-5', max_tokens:512, messages:[{ role:'user', content }] };
   const resp = await fetch(url, { method:'POST',
     headers:{ 'Content-Type':'application/json', 'x-api-key': apiKey, 'anthropic-version':'2023-06-01' },
     body: JSON.stringify(body) });
@@ -1236,7 +1294,7 @@ async function applyAIVerdict(job, verdict, score, reason) {
 async function sendAIEscalationEmail(job) {
   const adminEmail = getSetting('admin_email') || process.env.EMAIL_USER;
   if(!adminEmail) return;
-  const verifyUrl = `http://localhost:${process.env.PORT||3000}/verify`;
+  const verifyUrl = `${process.env.APP_URL || 'http://localhost:3000'}/verify`;
   await sendEmail(adminEmail,
     `⚠️ IndhanShodhak — Manual Review Needed (AI Score: borderline)`,
     `<div style="font-family:sans-serif;max-width:480px">
@@ -1736,6 +1794,28 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
     const pump = dbGet('SELECT * FROM petrol_pumps WHERE owner_user_id=? AND is_active=1',[req.user.id]);
     if(!pump) return res.status(404).json({error:'No pump linked'});
 
+    // ── Universal resolver: user_code / INDHAN: prefix / legacy base64 ──
+    function resolveUser(raw) {
+      let input = (raw||'').trim();
+      if (input.toUpperCase().startsWith('INDHAN:')) input = input.slice(7).trim();
+      // New format: 4 uppercase letters (no I/O) + 4 digits (1-9)
+      if (/^[A-HJ-NP-Z]{4}[1-9]{4}$/i.test(input)) {
+        const u = dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE user_code=?', [input.toUpperCase()]);
+        return { user: u, fa: u ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u.id]) : null };
+      }
+      // Legacy: base64 JSON
+      try {
+        const decoded = JSON.parse(Buffer.from(input, 'base64').toString('utf8'));
+        const uid = decoded.uid || decoded.id;
+        const u = uid ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE id=?', [parseInt(uid)]) : null;
+        return { user: u, fa: u ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u.id]) : null };
+      } catch(_) {}
+      // Legacy: pipe-separated
+      const uid2 = parseInt((input.split('|')[0])||'0');
+      const u2 = uid2 ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE id=?', [uid2]) : null;
+      return { user: u2, fa: u2 ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u2.id]) : null };
+    }
+
     const premium    = isPumpOwnerPremium(req.user);
     const FREE_LIMIT = 10;
     const WARN_AT    = 8;
@@ -1757,55 +1837,43 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
       }
       scanCount++;
       dbRun('UPDATE petrol_pumps SET scan_count_free=? WHERE id=?',[scanCount,pump.id]);
-      const qrParts = qr_data.split('|');
-      const userId  = parseInt(qrParts[0]);
-      const user    = userId ? dbGet('SELECT * FROM users WHERE id=?',[userId]) : null;
-      const fa      = user  ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?',[userId]) : null;
+      const { user, fa } = resolveUser(qr_data);
       const remaining = FREE_LIMIT - scanCount;
       return res.json({
         allowed:!!fa, is_premium:false, scan_count:scanCount, remaining,
         warning: scanCount>=WARN_AT ? `⚠️ ${remaining} scan${remaining===1?'':'s'} left today!` : null,
         subscribe_url: remaining<=2 ? '/subscribe.html' : null,
-        user_name:user?.name||'Unknown', vehicle:fa?.vehicle_number||'—',
+        user_name:user?.name||'Unknown', vehicle:(fa?.vehicle_number||'').trim()||(user?.vehicle_number||'').trim()||'—',
+        user_code:user?.user_code||'—',
         category:fa?.category||'P5', fuel_type:fa?.fuel_type||'petrol',
         litres_allowed:getLitresForCategory(fa?.category||'P5'),
-        message:fa?'✅ Valid Fuel ID':'❌ Invalid QR'
+        message:fa?'✅ Valid Fuel ID':'❌ Invalid QR or Code'
       });
     }
-    const qrParts = qr_data.split('|');
-    const userId  = parseInt(qrParts[0]);
-    const user    = userId ? dbGet('SELECT * FROM users WHERE id=?',[userId]) : null;
-    const fa      = user  ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?',[userId]) : null;
 
-    // Crisis mode enforcement
+    const { user, fa } = resolveUser(qr_data);
     const rationingOn    = getSetting('rationing_mode')    === '1';
     const verificationOn = getSetting('verification_mode') === '1';
 
-    // FULL CRISIS: Block non-QR users at API level
     if(rationingOn && verificationOn && !fa) {
       return res.json({
-        allowed:      false,
-        denied:       true,
-        crisis_block: true,
-        user_name:    user?.name || 'Unknown',
-        vehicle:      '—',
-        category:     null,
-        litres_allowed: 0,
-        message: '🚨 Full Crisis Mode — Fuel ID required. This user has no Fuel ID and cannot get fuel.',
-        action:  'Direct user to register at IndhanShodhak app',
+        allowed:false, denied:true, crisis_block:true,
+        user_name:user?.name||'Unknown', user_code:user?.user_code||'—',
+        vehicle:'—', category:null, litres_allowed:0,
+        message:'🚨 Full Crisis Mode — Fuel ID required. This user has no Fuel ID and cannot get fuel.',
+        action:'Direct user to register at IndhanShodhak app',
       });
     }
 
-    // EMERGENCY (Rationing only): Allow with P5 limit for non-QR users
     const effectiveCategory = fa?.category || (rationingOn ? 'P5' : null);
     res.json({
       allowed:      !!fa || !verificationOn,
       is_premium:   true,
-      scan_count:   null,
-      remaining:    null,
+      scan_count:   null, remaining:null,
       warning:      (!fa && rationingOn) ? '⚠️ No Fuel ID — Emergency limit: 10 litres (P5)' : null,
       user_name:    user?.name||'Unknown',
-      vehicle:      fa?.vehicle_number||'—',
+      user_code:    user?.user_code||'—',
+      vehicle:      (fa?.vehicle_number||'').trim()||(user?.vehicle_number||'').trim()||'—',
       category:     effectiveCategory || 'P5',
       fuel_type:    fa?.fuel_type||'petrol',
       litres_allowed: getLitresForCategory(effectiveCategory || 'P5'),
@@ -2126,7 +2194,7 @@ app.post('/api/verify/pump-applications/:id/approve', requireAuth(['doc_verifier
         </div>
         <div style="background:#fff3e0;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#e65100;line-height:1.7">
           ⚠️ <b>Important:</b><br>
-          → Login at: <b>localhost:3000/login.html?role=pump</b><br>
+          → Login at: <b>${process.env.APP_URL||'https://www.indhanshodhak.in'}/login.html?role=pump</b><br>
           → Share these credentials with your pump staff<br>
           → Change password after first login from pump dashboard<br>
           → Keep credentials safe — do not share publicly
@@ -2634,7 +2702,13 @@ function isUserPremium(user) {
 }
 function isPumpOwnerPremium(user) {
   if(!user) return false;
-  if(user.subscription_status === 'active') return true;
+  if(user.subscription_status === 'active') {
+    if(user.subscription_paid_at) {
+      const daysSince = Math.floor((Date.now() - new Date(user.subscription_paid_at).getTime()) / 86400000);
+      if(daysSince > 30) return false;
+    }
+    return true;
+  }
   if(user.subscription_status === 'trial') {
     const td = parseInt(getSetting('trial_days') || '10');
     if(td === 0) return false;
@@ -2908,7 +2982,6 @@ app.post('/api/auth/verify-otp', (req, res) => {
       [mobile, name || 'User_' + String(mobile).slice(-4), userEmail||'']);
     user = dbGet(`SELECT * FROM users WHERE mobile=?`, [mobile]);
     if(userEmail) {
-      sendOTPEmail(userEmail, '------', user.name).catch(()=>{});
       mailer.sendMail({
         from: MAIL_FROM,
         to:   userEmail,
@@ -2974,36 +3047,45 @@ app.get('/api/admin/users', requireAuth(['super_admin']), (req, res) => {
 // ============================================================
 app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
   const { aadhaar_number, vehicle_number, name, fuel_type } = req.body;
-  if (!aadhaar_number || aadhaar_number.length !== 12)
-    return res.status(400).json({ error: 'Valid 12-digit Aadhaar number required' });
   if (!vehicle_number)
     return res.status(400).json({ error: 'Vehicle number required' });
-  const existing = dbGet(
-    `SELECT id FROM users WHERE aadhaar_number=? AND id!=?`,
-    [aadhaar_number, req.user.id]
-  );
-  if (existing)
-    return res.status(409).json({ error: 'This Aadhaar is already registered. Contact support.' });
+
+  // Always save name + vehicle (no aadhaar required)
   if (name) dbRun(`UPDATE users SET name=? WHERE id=?`, [name, req.user.id]);
-  dbRun(`UPDATE users SET aadhaar_number=?, aadhaar_verified=1, vehicle_number=?,
-         profile_complete=1 WHERE id=?`,
-    [aadhaar_number, vehicle_number.toUpperCase(), req.user.id]);
-  const qrPayload = {
-    uid:     req.user.id,
-    veh:     vehicle_number.toUpperCase(),
-    cat:     'P5',
-    fuel:    fuel_type || 'petrol',
-    ts:      Date.now(),
-  };
-  const qrStr  = JSON.stringify(qrPayload);
-  const sig    = crypto.createHmac('sha256','indhan_qr_2026').update(qrStr).digest('hex').slice(0,16);
-  const qrData = Buffer.from(JSON.stringify({...qrPayload, sig})).toString('base64');
+  dbRun(`UPDATE users SET vehicle_number=?, profile_complete=1 WHERE id=?`,
+    [vehicle_number.toUpperCase(), req.user.id]);
+
+  // Save aadhaar only if provided and valid
+  if (aadhaar_number && aadhaar_number.length === 12) {
+    const existing = dbGet(`SELECT id FROM users WHERE aadhaar_number=? AND id!=?`,
+      [aadhaar_number, req.user.id]);
+    if (existing)
+      return res.status(409).json({ error: 'This Aadhaar is already registered. Contact support.' });
+    dbRun(`UPDATE users SET aadhaar_number=?, aadhaar_verified=1 WHERE id=?`,
+      [aadhaar_number, req.user.id]);
+  }
+  // ── Assign user_code if not already set ──
+  let userRec = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
+  if (!userRec?.user_code) {
+    const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ', D = '123456789';
+    let code, attempts = 0;
+    do {
+      code = Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('') +
+             Array.from({length:4},()=>D[Math.floor(Math.random()*D.length)]).join('');
+      attempts++;
+    } while(dbGet('SELECT id FROM users WHERE user_code=?',[code]) && attempts<100);
+    dbRun('UPDATE users SET user_code=? WHERE id=?', [code, req.user.id]);
+    userRec = { user_code: code };
+  }
+  const userCode = userRec.user_code;
+  // ── New simple QR: INDHAN:XXXX9999 ──
+  const qrData = userCode;
   let qrImageBase64 = '';
   try {
     const QRCode = require('qrcode');
-    qrImageBase64 = await QRCode.toDataURL('INDHAN:' + qrData, {
+    qrImageBase64 = await QRCode.toDataURL('INDHAN:' + userCode, {
       width: 300, margin: 2,
-      color: { dark: '#1a6b2e', light: '#ffffff' }
+      color: { dark: '#000000', light: '#ffffff' }
     });
   } catch(e) { console.error('QR gen error:', e.message); }
   dbRun(`UPDATE users SET qr_code_data=?, qr_image_b64=? WHERE id=?`,
@@ -3014,31 +3096,67 @@ app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
     profile_complete: true,
     category:         'P5',
     vehicle_number:   vehicle_number.toUpperCase(),
+    user_code:        userCode,
     qr_code_data:     qrData,
     qr_image_b64:     qrImageBase64,
-    message:          'Profile complete! P5 QR code generated.',
+    message:          'Profile complete! P5 QR code generated. Your code: ' + userCode,
   });
 });
 
-app.get('/api/user/profile', requireAuth(), (req, res) => {
-  const user = dbGet(`SELECT id,mobile,name,role,email,subscription_status,
-                      aadhaar_verified,vehicle_number,profile_complete,
-                      qr_code_data,qr_image_b64,created_at,category,original_category
-                      FROM users WHERE id=?`, [req.user.id]);
-  if(!user) return res.status(404).json({error:'User not found'});
-  const premium   = isUserPremium(user);
-  const trialDays = parseInt(getSetting('trial_days')||'10');
-  const elapsed   = Math.floor((Date.now()-new Date(user.created_at||Date.now()).getTime())/86400000);
-  const trialLeft = Math.max(0, trialDays - elapsed);
-  const fa = dbGet('SELECT category,vehicle_number,fuel_type FROM fuel_accounts WHERE user_id=?',[user.id]);
-  const origCat = user.original_category || fa?.category || 'P5';
-  const effCat  = (!premium && fa?.category && fa.category!=='P5') ? 'P5' : (fa?.category||'P5');
-  res.json({
-    user, profile_complete:!!user.profile_complete,
-    is_premium:premium, trial_remaining:trialLeft, trial_days:trialDays,
-    effective_category:effCat, original_category:origCat,
-    show_upgrade_prompt:!premium && origCat!=='P5',
-  });
+app.get('/api/user/profile', requireAuth(), async (req, res) => {
+  try {
+    let user = dbGet(`SELECT id,mobile,name,role,email,subscription_status,
+                        aadhaar_verified,vehicle_number,profile_complete,
+                        qr_code_data,qr_image_b64,created_at,category,original_category,user_code
+                        FROM users WHERE id=?`, [req.user.id]);
+    if(!user) return res.status(404).json({error:'User not found'});
+
+    // ── Assign user_code if missing (new users without Aadhaar) ──
+    if(!user.user_code) {
+      const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ', D = '123456789';
+      let newCode, att = 0;
+      do {
+        newCode = Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('') +
+                  Array.from({length:4},()=>D[Math.floor(Math.random()*D.length)]).join('');
+        att++;
+      } while(dbGet('SELECT id FROM users WHERE user_code=?',[newCode]) && att<100);
+      dbRun('UPDATE users SET user_code=? WHERE id=?', [newCode, user.id]);
+      user.user_code = newCode;
+      console.log(`[USER_CODE] Assigned new code ${newCode} to user ${user.id} (${user.name})`);
+    }
+
+    // ── Generate/regenerate QR if missing or old format ──
+    if(!user.qr_image_b64 || user.qr_code_data !== user.user_code) {
+      try {
+        const QRCode = require('qrcode');
+        const newQrImage = await QRCode.toDataURL('INDHAN:' + user.user_code, {
+          width: 300, margin: 2,
+          color: { dark: '#000000', light: '#ffffff' }
+        });
+        dbRun(`UPDATE users SET qr_code_data=?, qr_image_b64=? WHERE id=?`,
+          [user.user_code, newQrImage, user.id]);
+        user.qr_code_data = user.user_code;
+        user.qr_image_b64 = newQrImage;
+        console.log(`[QR REGEN] User ${user.id} (${user.name}) → INDHAN:${user.user_code}`);
+      } catch(qrErr) {
+        console.error('[QR REGEN] Error:', qrErr.message);
+      }
+    }
+
+    const premium   = isUserPremium(user);
+    const trialDays = parseInt(getSetting('trial_days')||'10');
+    const elapsed   = Math.floor((Date.now()-new Date(user.created_at||Date.now()).getTime())/86400000);
+    const trialLeft = Math.max(0, trialDays - elapsed);
+    const fa = dbGet('SELECT category,vehicle_number,fuel_type FROM fuel_accounts WHERE user_id=?',[user.id]);
+    const origCat = user.original_category || fa?.category || 'P5';
+    const effCat  = (!premium && fa?.category && fa.category!=='P5') ? 'P5' : (fa?.category||'P5');
+    res.json({
+      user, profile_complete:!!user.profile_complete,
+      is_premium:premium, trial_remaining:trialLeft, trial_days:trialDays,
+      effective_category:effCat, original_category:origCat,
+      show_upgrade_prompt:!premium && origCat!=='P5',
+    });
+  } catch(e) { res.status(500).json({error:e.message}); }
 });
 
 app.post('/api/user/update-name', requireAuth(), (req, res) => {
@@ -3074,11 +3192,21 @@ app.post('/api/verify/fuel-applications/:id/approve', requireAuth(['doc_verifier
          VALUES (?,?,?,?,?)`,
     [row.user_id, row.vehicle_number, row.fuel_type, finalCategory, row.profession||null]);
   const acct = dbGet(`SELECT id FROM fuel_accounts WHERE user_id=?`, [row.user_id]);
-  const crypto2 = require('crypto');
-  const qrPayload = { id: acct?.id, uid: row.user_id, veh: row.vehicle_number, cat: finalCategory, ts: Date.now() };
-  const qrStr = JSON.stringify(qrPayload);
-  const sig   = crypto2.createHmac('sha256','indhan_qr_2026').update(qrStr).digest('hex').slice(0,16);
-  const qrData = Buffer.from(JSON.stringify({...qrPayload, sig})).toString('base64');
+  // ── Use existing user_code or assign new one ──
+  let approvedUser = dbGet('SELECT user_code FROM users WHERE id=?', [row.user_id]);
+  if (!approvedUser?.user_code) {
+    const L2 = 'ABCDEFGHJKLMNPQRSTUVWXYZ', D2 = '123456789';
+    let code2, att2 = 0;
+    do {
+      code2 = Array.from({length:4},()=>L2[Math.floor(Math.random()*L2.length)]).join('') +
+              Array.from({length:4},()=>D2[Math.floor(Math.random()*D2.length)]).join('');
+      att2++;
+    } while(dbGet('SELECT id FROM users WHERE user_code=?',[code2]) && att2<100);
+    dbRun('UPDATE users SET user_code=? WHERE id=?', [code2, row.user_id]);
+    approvedUser = { user_code: code2 };
+  }
+  const approvedCode = approvedUser.user_code;
+  const qrData = approvedCode;
   dbRun(`UPDATE users SET profile_complete=1, qr_code_data=?, category=? WHERE id=?`,
     [qrData, finalCategory, row.user_id]);
   dbRun(`UPDATE user_fuel_applications SET status='approved', reviewed_by=?, reviewed_at=datetime('now'), fuel_account_id=? WHERE id=?`,
@@ -3536,7 +3664,9 @@ app.post('/api/verify/reregister-community/:userId', requireAuth(['doc_verifier'
 
 
 // ── Pages
-app.get('/',                  (req,res) => res.sendFile(path.join(PUBLIC_PATH,'index.html')));
+app.get('/app',               (req,res) => res.sendFile(path.join(PUBLIC_PATH,'index.html')));
+app.get('/landing',           (req,res) => res.sendFile(path.join(PUBLIC_PATH,'landing.html')));
+app.get('/home',              (req,res) => res.sendFile(path.join(PUBLIC_PATH,'landing.html')));
 app.get('/login',             (req,res) => res.sendFile(path.join(PUBLIC_PATH,'login.html')));
 app.get('/login.html',        (req,res) => res.sendFile(path.join(PUBLIC_PATH,'login.html')));
 app.get('/login.html.html',   (req,res) => res.sendFile(path.join(PUBLIC_PATH,'login.html')));
@@ -3661,7 +3791,7 @@ initDB().then(() => {
           ${needsAttention ? `<div style="background:#fff3e0;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:12px">
             <b style="color:#e65100">⚠️ Action Required</b><br>
             <span style="font-size:12px;color:#555">${escalated} escalated · ${pending} pending jobs need attention.</span><br>
-            <a href="http://localhost:3000/verify" style="font-size:12px;color:#1a6b2e;font-weight:700">Open Verifier Panel →</a>
+            <a href="${process.env.APP_URL||'https://www.indhanshodhak.in'}/verify" style="font-size:12px;color:#1a6b2e;font-weight:700">Open Verifier Panel →</a>
           </div>` : ''}
 
           <p style="font-size:11px;color:#aaa;margin:0;border-top:1px solid #e0e0e0;padding-top:10px">
@@ -3685,7 +3815,7 @@ initDB().then(() => {
 ║   🚀 IndhanShodhak FIXED SERVER v2.0            ║
 ║   Node.js ${process.version} — sql.js (no compile)       ║
 ╠══════════════════════════════════════════════════╣
-║   http://localhost:${PORT}/           User App       ║
+║   http://localhost:${PORT}/           Landing Page   ║
 ║   http://localhost:${PORT}/admin      Admin Panel    ║
 ║   http://localhost:${PORT}/govt       Govt Dashboard ║
 ║   http://localhost:${PORT}/verify     Verifier Panel ║
