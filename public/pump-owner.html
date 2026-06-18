@@ -226,6 +226,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="result-label" data-t="fuel_type">FUEL TYPE</div>
         <div class="result-value" id="r-fuel">—</div>
       </div>
+      <div class="result-item" style="grid-column:1/-1;background:rgba(255,255,255,0.2);border-radius:10px;padding:10px">
+        <div class="result-label">FUEL CODE — Verify with customer</div>
+        <div class="result-value" id="r-code" style="font-family:monospace;font-size:20px;font-weight:800;letter-spacing:5px;color:#ffffff">—</div>
+      </div>
     </div>
     <div class="result-litres">
       <div class="litres-num" id="r-litres">—</div>
@@ -699,6 +703,7 @@ function showResult(d){
     document.getElementById('r-vehicle').textContent  = d.vehicle || '—';
     document.getElementById('r-priority').textContent = d.category || 'P5';
     document.getElementById('r-fuel').textContent     = d.fuel_type || 'Petrol';
+    document.getElementById('r-code').textContent     = d.user_code || '—';
     document.getElementById('r-litres').textContent   = d.no_limit ? '∞' : (d.litres_allowed||10)+' L';
     document.getElementById('result-cleared').style.display = 'block';
     // Re-apply translations to result labels
@@ -732,35 +737,10 @@ function denyFuel(){
 }
 
 function openCamera(){
-  // ── Appilix Native QR Scanner (Official API) ──
-  if (typeof appilix !== 'undefined') {
-    // Set up result listener BEFORE triggering scanner
-    appilix.onmessage = function(event) {
-      try {
-        const data = JSON.parse(event.data);
-        appilix.onmessage = null; // cleanup listener
-        if (data.response.status === 'success') {
-          verifyScan(data.response.result);
-        } else if (data.response.status === 'camera_permission_missing') {
-          alert('📷 Camera permission required.\nPlease allow camera access in Android Settings.');
-        } else if (data.response.status === 'cancel') {
-          // User cancelled — do nothing
-        } else {
-          alert('Scan failed. Please type Fuel Code manually.');
-        }
-      } catch(e) { console.error('QR result parse error:', e); }
-    };
-    // Trigger native Appilix QR scanner
-    appilix.postMessage(JSON.stringify({
-      type: "qr_scanner_init",
-      props: { enable_confirmation_popup: false }
-    }));
-  } else {
-    // ── Fallback: file input photo capture (desktop/non-Appilix) ──
-    const input = document.getElementById('cameraInput');
-    if(input){ input.value=''; input.click(); }
-    else { alert('QR Scanner not available. Please type the Fuel Code manually.'); }
-  }
+  // Photo capture approach — reliable in all webviews including Appilix
+  const input = document.getElementById('cameraInput');
+  input.value = ''; // reset so same file can be picked again
+  input.click();
 }
 
 function handleCameraCapture(input){
