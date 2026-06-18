@@ -1989,8 +1989,7 @@ app.get('/api/pump-owner/transactions/csv', async (req, res) => {
     // Accept token from query param for browser window.open
     const token = req.headers['x-auth-token'] || req.query.token;
     if(!token) return res.status(401).json({error:'Unauthorized'});
-    const decoded = jwt.verify(token, process.env.TOKEN_SECRET||'indhan_secret_2026');
-    const user = dbGet('SELECT * FROM users WHERE id=?', [decoded.id]);
+    const user = getUser(token);
     if(!user || !['pump_owner','super_admin'].includes(user.role))
       return res.status(403).json({error:'Forbidden'});
     const pump = dbGet('SELECT id,name FROM petrol_pumps WHERE owner_user_id=? AND is_active=1', [user.id]);
