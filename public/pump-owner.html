@@ -254,40 +254,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- TRANSACTIONS TAB -->
 <div class="tab-content" id="tab-transactions">
-  <div class="txn-card">
-    <div class="txn-left">
-      <div class="txn-name">Suresh Kumar</div>
-      <div class="txn-detail">MH-12 CD 5678 · P5 General</div>
+  <!-- Date filter + CSV download -->
+  <div style="background:#163854;border-radius:12px;padding:12px;margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <input type="date" id="txn-date" style="flex:1;padding:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:white;font-size:13px;outline:none">
+      <button onclick="loadTransactions()" style="padding:8px 14px;background:#1565c0;color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer">🔍 Filter</button>
     </div>
-    <div class="txn-right">
-      <div class="txn-litres">10L Petrol</div>
-      <div class="txn-time">2:15 PM</div>
+    <div style="display:flex;gap:6px">
+      <input type="date" id="csv-from" style="flex:1;padding:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:white;font-size:12px;outline:none">
+      <span style="color:rgba(255,255,255,.4);align-self:center;font-size:11px">to</span>
+      <input type="date" id="csv-to" style="flex:1;padding:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:white;font-size:12px;outline:none">
+      <button onclick="downloadCSV()" style="padding:7px 12px;background:#1a6b2e;color:white;border:none;border-radius:8px;font-size:12px;cursor:pointer">📥 CSV</button>
     </div>
+    <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:5px">📊 CSV = Submit to Govt Official if required</div>
   </div>
-  <div class="txn-card">
-    <div class="txn-left">
-      <div class="txn-name">Anjali Sharma</div>
-      <div class="txn-detail">MH-04 EF 9012 · P2 Essential</div>
-    </div>
-    <div class="txn-right">
-      <div class="txn-litres">20L Petrol</div>
-      <div class="txn-time">1:40 PM</div>
-    </div>
+  <!-- Transaction list -->
+  <div id="txn-list">
+    <div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px">🔄 Loading...</div>
   </div>
-  <div class="txn-card">
-    <div class="txn-left">
-      <div class="txn-name">Unknown Vehicle</div>
-      <div class="txn-detail">MH-16 XY 0000 · Blocked</div>
-    </div>
-    <div class="txn-right">
-      <div class="txn-litres txn-denied" data-t="denied">Denied</div>
-      <div class="txn-time">12:55 PM</div>
-    </div>
-  </div>
+  <!-- Daily total -->
   <div class="total-card">
-    <div class="total-num">415 <span style="font-size:18px">L</span></div>
+    <div class="total-num" id="txn-total-litres">0 <span style="font-size:18px">L</span></div>
     <div class="total-label" data-t="total_today">Total Fuel Dispensed Today</div>
-    <div style="font-size:12px;opacity:.7;margin-top:4px">20 <span data-t="vehicles">vehicles</span> · 3 <span data-t="denied_count">denied</span></div>
+    <div style="font-size:12px;opacity:.7;margin-top:4px"><span id="txn-count">0</span> <span data-t="vehicles">transactions</span></div>
   </div>
 </div>
 
@@ -719,16 +708,19 @@ function showDenied(reason){
 }
 
 async function confirmDispense(){
-  const litres = document.getElementById('r-litres').textContent.replace(' L','');
+  const litresText = document.getElementById('r-litres').textContent;
+  const litres = parseFloat(litresText.replace(' L','').replace('∞','999')) || 10;
+  const fuelType = document.getElementById('r-fuel').textContent.toLowerCase() || 'petrol';
   if(TOKEN){
     await fetch('/api/fuel-id/confirm-dispense',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
-      body: JSON.stringify({qr_data:lastQRData, litres_dispensed:parseFloat(litres)||10, fuel_type:'petrol'})
+      body: JSON.stringify({qr_data:lastQRData, litres_dispensed:litres, fuel_type:fuelType})
     }).catch(()=>{});
   }
   document.getElementById('result-cleared').style.display = 'none';
   document.getElementById('manualQR').value = '';
-  alert('✅ ' + litres + 'L dispensed & logged!');
+  alert('✅ ' + litres + 'L ' + fuelType + ' dispensed & logged!');
+  loadTransactions();
 }
 
 function denyFuel(){
@@ -799,10 +791,65 @@ function logout(){
   window.location.href='/login';
 }
 
+// ══════════════════════════════════════════
+// TRANSACTIONS — Real data from DB
+// ══════════════════════════════════════════
+async function loadTransactions(){
+  const dateEl = document.getElementById('txn-date');
+  const date   = dateEl?.value || new Date().toISOString().slice(0,10);
+  const r    = await fetch(`/api/pump-owner/transactions?date=${date}`, {headers:{'x-auth-token':TOKEN}}).catch(()=>null);
+  const data = r ? await r.json().catch(()=>null) : null;
+  const list = document.getElementById('txn-list');
+  const totalEl = document.getElementById('txn-total-litres');
+  const countEl = document.getElementById('txn-count');
+  if(!data?.txns?.length){
+    list.innerHTML = `<div style="color:rgba(255,255,255,.4);text-align:center;padding:20px;font-size:13px">📭 No transactions on ${date}</div>`;
+    if(totalEl) totalEl.innerHTML = '0 <span style="font-size:18px">L</span>';
+    if(countEl) countEl.textContent = '0';
+    return;
+  }
+  list.innerHTML = data.txns.map(t=>{
+    const time = t.dispensed_at ? new Date(t.dispensed_at+'Z').toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'}) : '—';
+    return `<div class="txn-card">
+      <div class="txn-left">
+        <div class="txn-name">${t.user_name||'Unknown'}</div>
+        <div class="txn-detail">${t.vehicle_number||'—'} · ${t.category||'P5'}</div>
+      </div>
+      <div class="txn-right">
+        <div class="txn-litres">${t.litres||0}L ${t.fuel_type||''}</div>
+        <div class="txn-time">${time}</div>
+      </div>
+    </div>`;
+  }).join('');
+  if(totalEl) totalEl.innerHTML = (data.total_litres||0)+' <span style="font-size:18px">L</span>';
+  if(countEl) countEl.textContent = data.count||0;
+}
+
+async function downloadCSV(){
+  const from = document.getElementById('csv-from')?.value;
+  const to   = document.getElementById('csv-to')?.value;
+  const today = new Date().toISOString().slice(0,10);
+  const f = from || today;
+  const t = to   || today;
+  window.open(`/api/pump-owner/transactions/csv?from=${f}&to=${t}&token=${TOKEN}`,'_blank');
+}
+
 // Init — set dropdown to saved language
 applyTranslations();
 const sel = document.getElementById('lang-select');
 if(sel) sel.value = currentLang;
+
+// Set default dates
+(function setDefaultDates(){
+  const today = new Date().toISOString().slice(0,10);
+  const d = document.getElementById('txn-date');
+  const f = document.getElementById('csv-from');
+  const t = document.getElementById('csv-to');
+  if(d) d.value = today;
+  if(f) f.value = today;
+  if(t) t.value = today;
+  loadTransactions();
+})();
 
 // Load pump name in header on page load
 (async function loadDashHeader(){

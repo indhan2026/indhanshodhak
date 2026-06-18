@@ -1935,6 +1935,90 @@ const CACHE_HOURS = {
 };
 
 // ══════════════════════════════════════════════════════════════
+// PUMP OWNER — Confirm Dispense + Transactions + CSV Download
+// ══════════════════════════════════════════════════════════════
+
+// POST /api/fuel-id/confirm-dispense — log actual fuel dispensed
+app.post('/api/fuel-id/confirm-dispense', requireAuth(['pump_owner','super_admin']), (req, res) => {
+  try {
+    const { qr_data, litres_dispensed, fuel_type } = req.body;
+    const pump = dbGet('SELECT id FROM petrol_pumps WHERE owner_user_id=? AND is_active=1', [req.user.id]);
+    if(!pump) return res.status(404).json({error:'No pump linked'});
+    // Resolve user from QR/code
+    let userId = null, vehicleNumber = null, category = 'P5';
+    let input = (qr_data||'').trim();
+    if(input.toUpperCase().startsWith('INDHAN:')) input = input.slice(7).trim();
+    if(/^[A-HJ-NP-Z]{4}[1-9]{4}$/i.test(input)) {
+      const u = dbGet('SELECT id,vehicle_number,category FROM users WHERE user_code=?', [input.toUpperCase()]);
+      if(u){ userId=u.id; vehicleNumber=u.vehicle_number; category=u.category||'P5'; }
+    }
+    dbRun(`INSERT INTO fuel_dispense_log (user_id,vehicle_number,pump_id,dispensed_by,litres,fuel_type,category)
+           VALUES (?,?,?,?,?,?,?)`,
+      [userId||0, vehicleNumber||qr_data, pump.id, req.user.id,
+       parseFloat(litres_dispensed)||10, fuel_type||'petrol', category]);
+    res.json({success:true, message:`${litres_dispensed}L logged`});
+  } catch(e){ res.status(500).json({error:e.message}); }
+});
+
+// GET /api/pump-owner/transactions — real dispensed fuel log
+app.get('/api/pump-owner/transactions', requireAuth(['pump_owner','super_admin']), (req, res) => {
+  try {
+    const pump = dbGet('SELECT id FROM petrol_pumps WHERE owner_user_id=? AND is_active=1', [req.user.id]);
+    if(!pump) return res.json({txns:[], total_litres:0});
+    const { date } = req.query; // optional YYYY-MM-DD filter
+    let sql = `SELECT l.*, u.name as user_name FROM fuel_dispense_log l
+               LEFT JOIN users u ON l.user_id = u.id
+               WHERE l.pump_id=?`;
+    const params = [pump.id];
+    if(date){
+      sql += ` AND date(l.dispensed_at)=?`;
+      params.push(date);
+    } else {
+      sql += ` AND date(l.dispensed_at)=date('now')`;
+    }
+    sql += ` ORDER BY l.dispensed_at DESC`;
+    const txns = dbAll(sql, params);
+    const total = txns.reduce((s,t)=>s+(t.litres||0),0);
+    res.json({txns, total_litres:Math.round(total*10)/10, count:txns.length});
+  } catch(e){ res.status(500).json({error:e.message}); }
+});
+
+// GET /api/pump-owner/transactions/csv — CSV download with date range
+app.get('/api/pump-owner/transactions/csv', async (req, res) => {
+  try {
+    // Accept token from query param for browser window.open
+    const token = req.headers['x-auth-token'] || req.query.token;
+    if(!token) return res.status(401).json({error:'Unauthorized'});
+    const decoded = jwt.verify(token, process.env.TOKEN_SECRET||'indhan_secret_2026');
+    const user = dbGet('SELECT * FROM users WHERE id=?', [decoded.id]);
+    if(!user || !['pump_owner','super_admin'].includes(user.role))
+      return res.status(403).json({error:'Forbidden'});
+    const pump = dbGet('SELECT id,name FROM petrol_pumps WHERE owner_user_id=? AND is_active=1', [user.id]);
+    if(!pump) return res.status(404).json({error:'No pump linked'});
+    const { from, to } = req.query;
+    const fromDate = from || new Date().toISOString().slice(0,10);
+    const toDate   = to   || new Date().toISOString().slice(0,10);
+    const txns = dbAll(`SELECT l.dispensed_at,u.name as user_name,l.vehicle_number,
+                               l.category,l.fuel_type,l.litres
+                        FROM fuel_dispense_log l
+                        LEFT JOIN users u ON l.user_id=u.id
+                        WHERE l.pump_id=? AND date(l.dispensed_at) BETWEEN ? AND ?
+                        ORDER BY l.dispensed_at ASC`,
+      [pump.id, fromDate, toDate]);
+    // Build CSV
+    const rows = ['Date/Time,Customer Name,Vehicle Number,Category,Fuel Type,Litres'];
+    txns.forEach(t=>{
+      const dt = t.dispensed_at ? new Date(t.dispensed_at+'Z').toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}) : '';
+      rows.push(`"${dt}","${t.user_name||'Unknown'}","${t.vehicle_number||''}","${t.category||'P5'}","${t.fuel_type||'petrol'}",${t.litres||0}`);
+    });
+    const csv = rows.join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="IndhanShodhak_${pump.name}_${fromDate}_to_${toDate}.csv"`);
+    res.send(csv);
+  } catch(e){ res.status(500).json({error:e.message}); }
+});
+
+// ══════════════════════════════════════════════════════════════
 // ROUTE 3: Admin — Clear location cache
 // ══════════════════════════════════════════════════════════════
 app.post('/api/admin/clear-location-cache', requireAuth(['super_admin']), (req, res) => {
