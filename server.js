@@ -284,6 +284,7 @@ async function initDB() {
     `ALTER TABLE users ADD COLUMN qr_code_data TEXT`,
     `ALTER TABLE users ADD COLUMN qr_image_b64 TEXT`,
     `ALTER TABLE users ADD COLUMN user_code TEXT`,
+    `ALTER TABLE users ADD COLUMN fuel_type TEXT DEFAULT 'petrol'`,
     `ALTER TABLE petrol_pumps ADD COLUMN staff_password TEXT`,
     `CREATE TABLE IF NOT EXISTS pump_staff (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1800,19 +1801,19 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
       if (input.toUpperCase().startsWith('INDHAN:')) input = input.slice(7).trim();
       // New format: 4 uppercase letters (no I/O) + 4 digits (1-9)
       if (/^[A-HJ-NP-Z]{4}[1-9]{4}$/i.test(input)) {
-        const u = dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE user_code=?', [input.toUpperCase()]);
+        const u = dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,fuel_type,category,profile_complete FROM users WHERE user_code=?', [input.toUpperCase()]);
         return { user: u, fa: u ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u.id]) : null };
       }
       // Legacy: base64 JSON
       try {
         const decoded = JSON.parse(Buffer.from(input, 'base64').toString('utf8'));
         const uid = decoded.uid || decoded.id;
-        const u = uid ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE id=?', [parseInt(uid)]) : null;
+        const u = uid ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,fuel_type,category,profile_complete FROM users WHERE id=?', [parseInt(uid)]) : null;
         return { user: u, fa: u ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u.id]) : null };
       } catch(_) {}
       // Legacy: pipe-separated
       const uid2 = parseInt((input.split('|')[0])||'0');
-      const u2 = uid2 ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE id=?', [uid2]) : null;
+      const u2 = uid2 ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,fuel_type,category,profile_complete FROM users WHERE id=?', [uid2]) : null;
       return { user: u2, fa: u2 ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u2.id]) : null };
     }
 
@@ -1845,7 +1846,7 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
         subscribe_url: remaining<=2 ? '/subscribe.html' : null,
         user_name:user?.name||'Unknown', vehicle:(fa?.vehicle_number||'').trim()||(user?.vehicle_number||'').trim()||'—',
         user_code:user?.user_code||'—',
-        category:fa?.category||'P5', fuel_type:fa?.fuel_type||'petrol',
+        category:fa?.category||'P5', fuel_type:fa?.fuel_type||user?.fuel_type||'petrol',
         litres_allowed:getLitresForCategory(fa?.category||'P5'),
         message:fa?'✅ Valid Fuel ID':'❌ Invalid QR or Code'
       });
@@ -1875,7 +1876,7 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
       user_code:    user?.user_code||'—',
       vehicle:      (fa?.vehicle_number||'').trim()||(user?.vehicle_number||'').trim()||'—',
       category:     effectiveCategory || 'P5',
-      fuel_type:    fa?.fuel_type||'petrol',
+      fuel_type:    fa?.fuel_type||user?.fuel_type||'petrol',
       litres_allowed: getLitresForCategory(effectiveCategory || 'P5'),
       message:      fa ? '✅ Valid Fuel ID' : (rationingOn ? '⚠️ No Fuel ID — Emergency limit applied' : '❌ No Fuel ID'),
     });
@@ -3050,10 +3051,10 @@ app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
   if (!vehicle_number)
     return res.status(400).json({ error: 'Vehicle number required' });
 
-  // Always save name + vehicle (no aadhaar required)
+  // Always save name + vehicle + fuel_type (no aadhaar required)
   if (name) dbRun(`UPDATE users SET name=? WHERE id=?`, [name, req.user.id]);
-  dbRun(`UPDATE users SET vehicle_number=?, profile_complete=1 WHERE id=?`,
-    [vehicle_number.toUpperCase(), req.user.id]);
+  dbRun(`UPDATE users SET vehicle_number=?, fuel_type=?, profile_complete=1 WHERE id=?`,
+    [vehicle_number.toUpperCase(), fuel_type || 'petrol', req.user.id]);
 
   // Save aadhaar only if provided and valid
   if (aadhaar_number && aadhaar_number.length === 12) {
