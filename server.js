@@ -3047,20 +3047,23 @@ app.get('/api/admin/users', requireAuth(['super_admin']), (req, res) => {
 // ============================================================
 app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
   const { aadhaar_number, vehicle_number, name, fuel_type } = req.body;
-  if (!aadhaar_number || aadhaar_number.length !== 12)
-    return res.status(400).json({ error: 'Valid 12-digit Aadhaar number required' });
   if (!vehicle_number)
     return res.status(400).json({ error: 'Vehicle number required' });
-  const existing = dbGet(
-    `SELECT id FROM users WHERE aadhaar_number=? AND id!=?`,
-    [aadhaar_number, req.user.id]
-  );
-  if (existing)
-    return res.status(409).json({ error: 'This Aadhaar is already registered. Contact support.' });
+
+  // Always save name + vehicle (no aadhaar required)
   if (name) dbRun(`UPDATE users SET name=? WHERE id=?`, [name, req.user.id]);
-  dbRun(`UPDATE users SET aadhaar_number=?, aadhaar_verified=1, vehicle_number=?,
-         profile_complete=1 WHERE id=?`,
-    [aadhaar_number, vehicle_number.toUpperCase(), req.user.id]);
+  dbRun(`UPDATE users SET vehicle_number=?, profile_complete=1 WHERE id=?`,
+    [vehicle_number.toUpperCase(), req.user.id]);
+
+  // Save aadhaar only if provided and valid
+  if (aadhaar_number && aadhaar_number.length === 12) {
+    const existing = dbGet(`SELECT id FROM users WHERE aadhaar_number=? AND id!=?`,
+      [aadhaar_number, req.user.id]);
+    if (existing)
+      return res.status(409).json({ error: 'This Aadhaar is already registered. Contact support.' });
+    dbRun(`UPDATE users SET aadhaar_number=?, aadhaar_verified=1 WHERE id=?`,
+      [aadhaar_number, req.user.id]);
+  }
   // ── Assign user_code if not already set ──
   let userRec = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
   if (!userRec?.user_code) {
