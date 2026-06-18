@@ -737,10 +737,33 @@ function denyFuel(){
 }
 
 function openCamera(){
-  // Photo capture approach — reliable in all webviews including Appilix
-  const input = document.getElementById('cameraInput');
-  input.value = ''; // reset so same file can be picked again
-  input.click();
+  // ── Appilix Native QR Scanner (Official API) ──
+  if (typeof appilix !== 'undefined') {
+    appilix.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        appilix.onmessage = null;
+        if (data.response.status === 'success') {
+          verifyScan(data.response.result);
+        } else if (data.response.status === 'camera_permission_missing') {
+          alert('📷 Camera permission required.\nAllow camera in Android Settings.');
+        } else if (data.response.status === 'cancel') {
+          // cancelled — do nothing
+        } else {
+          alert('Scan failed. Type Fuel Code manually.');
+        }
+      } catch(e) { console.error('QR result error:', e); }
+    };
+    appilix.postMessage(JSON.stringify({
+      type: "qr_scanner_init",
+      props: { enable_confirmation_popup: false }
+    }));
+  } else {
+    // Fallback: file input (desktop/browser)
+    const input = document.getElementById('cameraInput');
+    if(input){ input.value=''; input.click(); }
+    else { alert('QR Scanner not available. Use manual Fuel Code entry.'); }
+  }
 }
 
 function handleCameraCapture(input){
