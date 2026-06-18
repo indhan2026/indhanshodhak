@@ -1800,19 +1800,19 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
       if (input.toUpperCase().startsWith('INDHAN:')) input = input.slice(7).trim();
       // New format: 4 uppercase letters (no I/O) + 4 digits (1-9)
       if (/^[A-HJ-NP-Z]{4}[1-9]{4}$/i.test(input)) {
-        const u = dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,fuel_type,profile_complete FROM users WHERE user_code=?', [input.toUpperCase()]);
+        const u = dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE user_code=?', [input.toUpperCase()]);
         return { user: u, fa: u ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u.id]) : null };
       }
       // Legacy: base64 JSON
       try {
         const decoded = JSON.parse(Buffer.from(input, 'base64').toString('utf8'));
         const uid = decoded.uid || decoded.id;
-        const u = uid ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,fuel_type FROM users WHERE id=?', [parseInt(uid)]) : null;
+        const u = uid ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE id=?', [parseInt(uid)]) : null;
         return { user: u, fa: u ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u.id]) : null };
       } catch(_) {}
       // Legacy: pipe-separated
       const uid2 = parseInt((input.split('|')[0])||'0');
-      const u2 = uid2 ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,fuel_type FROM users WHERE id=?', [uid2]) : null;
+      const u2 = uid2 ? dbGet('SELECT id,name,mobile,email,role,user_code,vehicle_number,category,profile_complete FROM users WHERE id=?', [uid2]) : null;
       return { user: u2, fa: u2 ? dbGet('SELECT * FROM fuel_accounts WHERE user_id=?', [u2.id]) : null };
     }
 
@@ -2703,10 +2703,9 @@ function isUserPremium(user) {
 function isPumpOwnerPremium(user) {
   if(!user) return false;
   if(user.subscription_status === 'active') {
-    // 30-day expiry check
     if(user.subscription_paid_at) {
       const daysSince = Math.floor((Date.now() - new Date(user.subscription_paid_at).getTime()) / 86400000);
-      if(daysSince > 30) return false; // expired — falls to free tier
+      if(daysSince > 30) return false;
     }
     return true;
   }
