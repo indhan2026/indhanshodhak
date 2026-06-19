@@ -2556,12 +2556,18 @@ app.get('/api/admin/daily-stats', requireAuth(['super_admin']), (req, res) => {
     daily_growth,
     revenue: (() => {
       const price   = parseFloat(getSetting('subscription_price') || '14.99');
-      const paying  = parseInt(dbGet(`SELECT COUNT(*) as c FROM users WHERE subscription_status='active'`)?.c || 0);
+      // Count active subscribers — from subscription_status OR recent payment_log (last 30 days)
+      const byStatus  = parseInt(dbGet(`SELECT COUNT(*) as c FROM users WHERE subscription_status='active'`)?.c || 0);
+      const byPayment = parseInt(dbGet(`SELECT COUNT(DISTINCT user_id) as c FROM payment_log WHERE status='captured' AND paid_at >= datetime('now', '-30 days')`)?.c || 0);
+      const paying  = Math.max(byStatus, byPayment); // use whichever is higher
       const gross   = paying * price;
       const rzp_cut = gross * 0.02;
       const net     = gross - rzp_cut;
       const daily   = gross / 30;
       const yearly  = gross * 12;
+      // Total captured all time from payment_log
+      const totalCaptured = parseInt(dbGet(
+        `SELECT COALESCE(SUM(amount),0) as t FROM payment_log WHERE status='captured'`)?.t || 0) / 100;
       // Today's captured amount from payment_log
       const todayCaptured = parseInt(dbGet(
         `SELECT COALESCE(SUM(amount),0) as t FROM payment_log WHERE DATE(paid_at)=DATE('now') AND status='captured'`)?.t || 0) / 100;
@@ -2581,6 +2587,7 @@ app.get('/api/admin/daily-stats', requireAuth(['super_admin']), (req, res) => {
         google_cut:     (gross * 0.15).toFixed(2),
         yearly_est:     yearly.toFixed(2),
         captured_today: todayCaptured.toFixed(2),
+        total_captured: totalCaptured.toFixed(2),
         recent_txns,
       };
     })(),

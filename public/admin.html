@@ -723,6 +723,7 @@ async function loadGovtCreds(){
   if(s.ai_provider){ const el=document.getElementById('set-ai-provider'); if(el) el.value=s.ai_provider; }
   if(s.ai_approve_score){ const el=document.getElementById('set-ai-approve'); if(el) el.value=s.ai_approve_score; }
   if(s.ai_reject_score){  const el=document.getElementById('set-ai-reject');  if(el) el.value=s.ai_reject_score; }
+  if(s.ai_workers){       const el=document.getElementById('set-ai-workers'); if(el) el.value=s.ai_workers; }
   // Load Razorpay keys into fields
   if(s.razorpay_key_id) {
     document.getElementById('rzp-key').value = s.razorpay_key_id;
