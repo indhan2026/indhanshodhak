@@ -1884,8 +1884,10 @@ app.post('/api/fuel-id/scan', requireAuth(['pump_owner','super_admin']), (req, r
 });
 
 function getLitresForCategory(cat){
-  const lim={P1:9999,P2:20,P3:50,P4:30,P5:10};
-  return lim[cat]||10;
+  const fromSettings = parseInt(getSetting('tier_'+(cat||'P5')+'_litres'));
+  if(fromSettings && fromSettings > 0) return fromSettings;
+  const defaults = {P1:9999, P2:20, P3:50, P4:30, P5:10};
+  return defaults[cat] || 10;
 }
 
 app.get('/api/pump-owner/scan-status', requireAuth(['pump_owner','super_admin']), (req,res)=>{

@@ -473,23 +473,26 @@ async function saveBasic(){
         `<img src="${u2.qr_image_b64}" style="width:140px;height:140px;border-radius:6px">`;
       document.getElementById('qrName').textContent    = u2.name || name;
       document.getElementById('qrVehicle').textContent = '🚗 ' + (u2.vehicle_number || vehicle);
-      document.getElementById('qrLimit').textContent   = '10L / 72hrs';
+      // Use admin-configured tier limit (not hardcoded)
+      await loadTierLimits();
+      const userCat = u2.category || 'P5';
+      const tierInfo = TIER_LABELS[userCat] || TIER_LABELS.P5;
+      document.getElementById('qrLimit').textContent   = tierInfo.limit;
       document.getElementById('downloadBtn').style.display = 'inline-block';
-      const t = TIER_LABELS['P5'] || {};
       const badge = document.getElementById('qrTierBadge');
-      if(badge){ badge.textContent = t.label||'P5 — General Public'; badge.className = 'qr-tier-badge '+(t.cls||''); }
+      if(badge){ badge.textContent = tierInfo.label||'P5 — General Public'; badge.className = 'qr-tier-badge '+(tierInfo.cls||''); }
       if(u2.user_code){
         document.getElementById('qrCodeText').textContent = u2.user_code;
         document.getElementById('qrCodeBox').style.display = 'block';
       }
-      showMsg('ok-basic', '✅ QR Code generated! Show this QR at fuel pump.');
+      showMsg('ok-basic', `✅ QR Code generated! Fuel limit: ${tierInfo.limit}`);
       return; // ← stop here, no local QR needed
     }
   }
 
   // Fallback: local QR only if not logged in or server failed
   generateQR(name, vehicle, 'P5', fuel);
-  showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated — 10L / 72hrs');
+  showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated.');
 }
 
 // ══════════════════════════════════════════
@@ -743,6 +746,9 @@ async function loadProfile(){
   if(u.mobile)         document.getElementById('p-mobile').value  = u.mobile;
   if(u.email)          document.getElementById('p-email').value   = u.email;
   if(u.vehicle_number) document.getElementById('p-vehicle').value = u.vehicle_number;
+
+  // Ensure tier limits from admin are loaded before showing limit
+  await loadTierLimits();
 
   // Show server QR (has HMAC signature — more secure)
   const tier = u.category || 'P5';
