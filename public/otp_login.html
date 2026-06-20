@@ -40,6 +40,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .form-input:focus{border-color:#1a6b2e;background:white}
 .email-note{font-size:13px;color:#138808;font-weight:700;margin-top:-7px;margin-bottom:10px;letter-spacing:0.2px}
 
+/* Mobile number row with country code */
+.mobile-row{display:flex;gap:0;margin-bottom:10px}
+.cc-wrap{position:relative}
+.cc-btn{padding:11px 10px;border:1.5px solid #e0e0e0;border-right:none;
+  border-radius:11px 0 0 11px;background:white;font-size:14px;font-weight:700;
+  color:#1a6b2e;cursor:pointer;white-space:nowrap;outline:none;
+  display:flex;align-items:center;gap:4px;height:100%}
+.cc-btn:focus{border-color:#1a6b2e}
+.cc-arrow{font-size:9px;color:#888}
+.mobile-num{flex:1;padding:11px 13px;border:1.5px solid #e0e0e0;
+  border-radius:0 11px 11px 0;font-size:15px;background:white;outline:none;
+  transition:border-color .2s;width:100%}
+.mobile-num:focus{border-color:#1a6b2e;background:white}
+.cc-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;
+  background:white;border:1.5px solid #c8e6c9;border-radius:10px;
+  box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:100;min-width:180px;overflow:hidden}
+.cc-dropdown.open{display:block}
+.cc-option{padding:10px 14px;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;color:#333}
+.cc-option:hover{background:#f1f8e9}
+.cc-option.active{background:#e8f5e9;font-weight:700;color:#1a6b2e}
+
 /* OTP Button with countdown */
 .btn-otp{width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;
   font-weight:700;cursor:pointer;background:linear-gradient(135deg,#1a6b2e,#2e7d32);
@@ -120,10 +142,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
           <div class="user-section-title">👤 Login / Register with OTP</div>
           <div class="err-box" id="err1"></div>
           <label class="form-label">Mobile Number *</label>
-          <input class="form-input" type="tel" id="mobile" inputmode="numeric"
-            placeholder="10-digit mobile" maxlength="10"
-            oninput="this.value=this.value.replace(/\D/g,'')"
-            onkeypress="if(event.key==='Enter')document.getElementById('email').focus()">
+          <div class="mobile-row">
+            <div class="cc-wrap">
+              <button class="cc-btn" id="ccBtn" onclick="toggleCC(event)" type="button">
+                <span id="ccFlag">🇮🇳</span>
+                <span id="ccCode">+91</span>
+                <span class="cc-arrow">▼</span>
+              </button>
+              <div class="cc-dropdown" id="ccDropdown">
+                <div class="cc-option active" onclick="selectCC('+91','🇮🇳','IN')">
+                  🇮🇳 +91 &nbsp;India
+                </div>
+                <!-- Future countries added here -->
+              </div>
+            </div>
+            <input class="mobile-num" type="tel" id="mobile" inputmode="numeric"
+              placeholder="10-digit mobile" maxlength="10"
+              oninput="cleanMobile(this)"
+              onkeypress="if(event.key==='Enter')document.getElementById('email').focus()">
+          </div>
           <label class="form-label">Email Address <span style="color:#e53935;font-weight:600">* Required</span></label>
           <input class="form-input" type="email" id="email"
             placeholder="yourname@email.com"
@@ -259,6 +296,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <script>
 let mob='', emailId='', timerInt=null, timerSec=600, savedToken='';
 let otpCooldown=null;
+let selectedCC='+91';
+
+function cleanMobile(el){
+  el.value=el.value.replace(/\D/g,'');
+  // Auto-strip country code if autofill pasted e.g. 919876543210 (12 digits starting with 91)
+  if(selectedCC==='+91' && el.value.length===12 && el.value.startsWith('91')){
+    el.value=el.value.slice(2);
+  }
+}
+
+function toggleCC(e){
+  e.stopPropagation();
+  const dd=document.getElementById('ccDropdown');
+  dd.classList.toggle('open');
+}
+
+function selectCC(code,flag,country){
+  selectedCC=code;
+  document.getElementById('ccCode').textContent=code;
+  document.getElementById('ccFlag').textContent=flag;
+  document.getElementById('ccDropdown').classList.remove('open');
+  // Update active state
+  document.querySelectorAll('.cc-option').forEach(o=>o.classList.remove('active'));
+  event.target.closest('.cc-option').classList.add('active');
+  document.getElementById('mobile').focus();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.cc-wrap')){
+    document.getElementById('ccDropdown').classList.remove('open');
+  }
+});
 
 // Redirect if already logged in
 const tok=localStorage.getItem('indhan_token');
