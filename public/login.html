@@ -206,9 +206,15 @@ async function roleLogin(role){
   errEl.style.display = 'none';
   if(!loginId||!pwd){ errEl.textContent='Enter Login ID and password'; errEl.style.display='block'; return; }
   try {
-    const r = await fetch('/api/auth/login',{
+    // Govt uses a separate shared-credential endpoint
+    const isGovt = (role === 'govt');
+    const url  = isGovt ? '/api/auth/govt-login' : '/api/auth/login';
+    const body = isGovt
+      ? JSON.stringify({govt_id: loginId, password: pwd})
+      : JSON.stringify({mobile: loginId, password: pwd});
+    const r = await fetch(url,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({mobile:loginId, password:pwd})
+      body
     });
     const d = await r.json();
     if(d.token){
