@@ -55,12 +55,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .mobile-num:focus{border-color:#1a6b2e;background:white}
 .cc-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;
   background:white;border:1.5px solid #c8e6c9;border-radius:10px;
-  box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:100;min-width:180px;overflow:hidden}
+  box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:100;min-width:220px;overflow:hidden}
 .cc-dropdown.open{display:block}
-.cc-option{padding:10px 14px;font-size:14px;cursor:pointer;
+.cc-search{width:100%;padding:9px 12px;border:none;border-bottom:1.5px solid #e8f5e9;
+  font-size:13px;outline:none;background:#f9fdf9;box-sizing:border-box}
+.cc-list{max-height:220px;overflow-y:auto}
+.cc-option{padding:9px 14px;font-size:13px;cursor:pointer;
   display:flex;align-items:center;gap:8px;color:#333}
 .cc-option:hover{background:#f1f8e9}
 .cc-option.active{background:#e8f5e9;font-weight:700;color:#1a6b2e}
+.cc-empty{padding:10px 14px;font-size:12px;color:#aaa;text-align:center}
 
 /* OTP Button with countdown */
 .btn-otp{width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;
@@ -150,10 +154,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
                 <span class="cc-arrow">▼</span>
               </button>
               <div class="cc-dropdown" id="ccDropdown">
-                <div class="cc-option active" onclick="selectCC('+91','🇮🇳','IN')">
-                  🇮🇳 +91 &nbsp;India
-                </div>
-                <!-- Future countries added here -->
+                <input class="cc-search" id="ccSearch" type="text" placeholder="🔍 Search country..."
+                  oninput="filterCC(this.value)" onclick="event.stopPropagation()">
+                <div class="cc-list" id="ccList"></div>
               </div>
             </div>
             <input class="mobile-num" type="tel" id="mobile" inputmode="numeric"
@@ -298,9 +301,92 @@ let mob='', emailId='', timerInt=null, timerSec=600, savedToken='';
 let otpCooldown=null;
 let selectedCC='+91';
 
+const COUNTRIES=[
+  {f:'🇮🇳',c:'+91',n:'India'},{f:'🇦🇫',c:'+93',n:'Afghanistan'},{f:'🇦🇱',c:'+355',n:'Albania'},
+  {f:'🇩🇿',c:'+213',n:'Algeria'},{f:'🇦🇩',c:'+376',n:'Andorra'},{f:'🇦🇴',c:'+244',n:'Angola'},
+  {f:'🇦🇬',c:'+1268',n:'Antigua & Barbuda'},{f:'🇦🇷',c:'+54',n:'Argentina'},
+  {f:'🇦🇲',c:'+374',n:'Armenia'},{f:'🇦🇺',c:'+61',n:'Australia'},{f:'🇦🇹',c:'+43',n:'Austria'},
+  {f:'🇦🇿',c:'+994',n:'Azerbaijan'},{f:'🇧🇸',c:'+1242',n:'Bahamas'},{f:'🇧🇭',c:'+973',n:'Bahrain'},
+  {f:'🇧🇩',c:'+880',n:'Bangladesh'},{f:'🇧🇧',c:'+1246',n:'Barbados'},{f:'🇧🇾',c:'+375',n:'Belarus'},
+  {f:'🇧🇪',c:'+32',n:'Belgium'},{f:'🇧🇿',c:'+501',n:'Belize'},{f:'🇧🇯',c:'+229',n:'Benin'},
+  {f:'🇧🇹',c:'+975',n:'Bhutan'},{f:'🇧🇴',c:'+591',n:'Bolivia'},{f:'🇧🇦',c:'+387',n:'Bosnia & Herzegovina'},
+  {f:'🇧🇼',c:'+267',n:'Botswana'},{f:'🇧🇷',c:'+55',n:'Brazil'},{f:'🇧🇳',c:'+673',n:'Brunei'},
+  {f:'🇧🇬',c:'+359',n:'Bulgaria'},{f:'🇧🇫',c:'+226',n:'Burkina Faso'},{f:'🇧🇮',c:'+257',n:'Burundi'},
+  {f:'🇨🇻',c:'+238',n:'Cabo Verde'},{f:'🇰🇭',c:'+855',n:'Cambodia'},{f:'🇨🇲',c:'+237',n:'Cameroon'},
+  {f:'🇨🇦',c:'+1',n:'Canada'},{f:'🇨🇫',c:'+236',n:'Central African Republic'},
+  {f:'🇹🇩',c:'+235',n:'Chad'},{f:'🇨🇱',c:'+56',n:'Chile'},{f:'🇨🇳',c:'+86',n:'China'},
+  {f:'🇨🇴',c:'+57',n:'Colombia'},{f:'🇰🇲',c:'+269',n:'Comoros'},{f:'🇨🇩',c:'+243',n:'Congo (DRC)'},
+  {f:'🇨🇬',c:'+242',n:'Congo (Republic)'},{f:'🇨🇷',c:'+506',n:'Costa Rica'},
+  {f:'🇭🇷',c:'+385',n:'Croatia'},{f:'🇨🇺',c:'+53',n:'Cuba'},{f:'🇨🇾',c:'+357',n:'Cyprus'},
+  {f:'🇨🇿',c:'+420',n:'Czech Republic'},{f:'🇩🇰',c:'+45',n:'Denmark'},{f:'🇩🇯',c:'+253',n:'Djibouti'},
+  {f:'🇩🇲',c:'+1767',n:'Dominica'},{f:'🇩🇴',c:'+1809',n:'Dominican Republic'},
+  {f:'🇪🇨',c:'+593',n:'Ecuador'},{f:'🇪🇬',c:'+20',n:'Egypt'},{f:'🇸🇻',c:'+503',n:'El Salvador'},
+  {f:'🇬🇶',c:'+240',n:'Equatorial Guinea'},{f:'🇪🇷',c:'+291',n:'Eritrea'},
+  {f:'🇪🇪',c:'+372',n:'Estonia'},{f:'🇸🇿',c:'+268',n:'Eswatini'},{f:'🇪🇹',c:'+251',n:'Ethiopia'},
+  {f:'🇫🇯',c:'+679',n:'Fiji'},{f:'🇫🇮',c:'+358',n:'Finland'},{f:'🇫🇷',c:'+33',n:'France'},
+  {f:'🇬🇦',c:'+241',n:'Gabon'},{f:'🇬🇲',c:'+220',n:'Gambia'},{f:'🇬🇪',c:'+995',n:'Georgia'},
+  {f:'🇩🇪',c:'+49',n:'Germany'},{f:'🇬🇭',c:'+233',n:'Ghana'},{f:'🇬🇷',c:'+30',n:'Greece'},
+  {f:'🇬🇩',c:'+1473',n:'Grenada'},{f:'🇬🇹',c:'+502',n:'Guatemala'},{f:'🇬🇳',c:'+224',n:'Guinea'},
+  {f:'🇬🇼',c:'+245',n:'Guinea-Bissau'},{f:'🇬🇾',c:'+592',n:'Guyana'},{f:'🇭🇹',c:'+509',n:'Haiti'},
+  {f:'🇭🇳',c:'+504',n:'Honduras'},{f:'🇭🇺',c:'+36',n:'Hungary'},{f:'🇮🇸',c:'+354',n:'Iceland'},
+  {f:'🇮🇩',c:'+62',n:'Indonesia'},{f:'🇮🇷',c:'+98',n:'Iran'},{f:'🇮🇶',c:'+964',n:'Iraq'},
+  {f:'🇮🇪',c:'+353',n:'Ireland'},{f:'🇮🇱',c:'+972',n:'Israel'},{f:'🇮🇹',c:'+39',n:'Italy'},
+  {f:'🇯🇲',c:'+1876',n:'Jamaica'},{f:'🇯🇵',c:'+81',n:'Japan'},{f:'🇯🇴',c:'+962',n:'Jordan'},
+  {f:'🇰🇿',c:'+7',n:'Kazakhstan'},{f:'🇰🇪',c:'+254',n:'Kenya'},{f:'🇰🇮',c:'+686',n:'Kiribati'},
+  {f:'🇰🇼',c:'+965',n:'Kuwait'},{f:'🇰🇬',c:'+996',n:'Kyrgyzstan'},{f:'🇱🇦',c:'+856',n:'Laos'},
+  {f:'🇱🇻',c:'+371',n:'Latvia'},{f:'🇱🇧',c:'+961',n:'Lebanon'},{f:'🇱🇸',c:'+266',n:'Lesotho'},
+  {f:'🇱🇷',c:'+231',n:'Liberia'},{f:'🇱🇾',c:'+218',n:'Libya'},{f:'🇱🇮',c:'+423',n:'Liechtenstein'},
+  {f:'🇱🇹',c:'+370',n:'Lithuania'},{f:'🇱🇺',c:'+352',n:'Luxembourg'},{f:'🇲🇬',c:'+261',n:'Madagascar'},
+  {f:'🇲🇼',c:'+265',n:'Malawi'},{f:'🇲🇾',c:'+60',n:'Malaysia'},{f:'🇲🇻',c:'+960',n:'Maldives'},
+  {f:'🇲🇱',c:'+223',n:'Mali'},{f:'🇲🇹',c:'+356',n:'Malta'},{f:'🇲🇭',c:'+692',n:'Marshall Islands'},
+  {f:'🇲🇷',c:'+222',n:'Mauritania'},{f:'🇲🇺',c:'+230',n:'Mauritius'},{f:'🇲🇽',c:'+52',n:'Mexico'},
+  {f:'🇫🇲',c:'+691',n:'Micronesia'},{f:'🇲🇩',c:'+373',n:'Moldova'},{f:'🇲🇨',c:'+377',n:'Monaco'},
+  {f:'🇲🇳',c:'+976',n:'Mongolia'},{f:'🇲🇪',c:'+382',n:'Montenegro'},{f:'🇲🇦',c:'+212',n:'Morocco'},
+  {f:'🇲🇿',c:'+258',n:'Mozambique'},{f:'🇲🇲',c:'+95',n:'Myanmar'},{f:'🇳🇦',c:'+264',n:'Namibia'},
+  {f:'🇳🇷',c:'+674',n:'Nauru'},{f:'🇳🇵',c:'+977',n:'Nepal'},{f:'🇳🇱',c:'+31',n:'Netherlands'},
+  {f:'🇳🇿',c:'+64',n:'New Zealand'},{f:'🇳🇮',c:'+505',n:'Nicaragua'},{f:'🇳🇪',c:'+227',n:'Niger'},
+  {f:'🇳🇬',c:'+234',n:'Nigeria'},{f:'🇰🇵',c:'+850',n:'North Korea'},{f:'🇲🇰',c:'+389',n:'North Macedonia'},
+  {f:'🇳🇴',c:'+47',n:'Norway'},{f:'🇴🇲',c:'+968',n:'Oman'},{f:'🇵🇰',c:'+92',n:'Pakistan'},
+  {f:'🇵🇼',c:'+680',n:'Palau'},{f:'🇵🇦',c:'+507',n:'Panama'},{f:'🇵🇬',c:'+675',n:'Papua New Guinea'},
+  {f:'🇵🇾',c:'+595',n:'Paraguay'},{f:'🇵🇪',c:'+51',n:'Peru'},{f:'🇵🇭',c:'+63',n:'Philippines'},
+  {f:'🇵🇱',c:'+48',n:'Poland'},{f:'🇵🇹',c:'+351',n:'Portugal'},{f:'🇶🇦',c:'+974',n:'Qatar'},
+  {f:'🇷🇴',c:'+40',n:'Romania'},{f:'🇷🇺',c:'+7',n:'Russia'},{f:'🇷🇼',c:'+250',n:'Rwanda'},
+  {f:'🇰🇳',c:'+1869',n:'Saint Kitts & Nevis'},{f:'🇱🇨',c:'+1758',n:'Saint Lucia'},
+  {f:'🇻🇨',c:'+1784',n:'Saint Vincent'},{f:'🇼🇸',c:'+685',n:'Samoa'},{f:'🇸🇲',c:'+378',n:'San Marino'},
+  {f:'🇸🇹',c:'+239',n:'Sao Tome & Principe'},{f:'🇸🇦',c:'+966',n:'Saudi Arabia'},
+  {f:'🇸🇳',c:'+221',n:'Senegal'},{f:'🇷🇸',c:'+381',n:'Serbia'},{f:'🇸🇨',c:'+248',n:'Seychelles'},
+  {f:'🇸🇱',c:'+232',n:'Sierra Leone'},{f:'🇸🇬',c:'+65',n:'Singapore'},{f:'🇸🇰',c:'+421',n:'Slovakia'},
+  {f:'🇸🇮',c:'+386',n:'Slovenia'},{f:'🇸🇧',c:'+677',n:'Solomon Islands'},{f:'🇸🇴',c:'+252',n:'Somalia'},
+  {f:'🇿🇦',c:'+27',n:'South Africa'},{f:'🇰🇷',c:'+82',n:'South Korea'},{f:'🇸🇸',c:'+211',n:'South Sudan'},
+  {f:'🇪🇸',c:'+34',n:'Spain'},{f:'🇱🇰',c:'+94',n:'Sri Lanka'},{f:'🇸🇩',c:'+249',n:'Sudan'},
+  {f:'🇸🇷',c:'+597',n:'Suriname'},{f:'🇸🇪',c:'+46',n:'Sweden'},{f:'🇨🇭',c:'+41',n:'Switzerland'},
+  {f:'🇸🇾',c:'+963',n:'Syria'},{f:'🇹🇼',c:'+886',n:'Taiwan'},{f:'🇹🇯',c:'+992',n:'Tajikistan'},
+  {f:'🇹🇿',c:'+255',n:'Tanzania'},{f:'🇹🇭',c:'+66',n:'Thailand'},{f:'🇹🇱',c:'+670',n:'Timor-Leste'},
+  {f:'🇹🇬',c:'+228',n:'Togo'},{f:'🇹🇴',c:'+676',n:'Tonga'},{f:'🇹🇹',c:'+1868',n:'Trinidad & Tobago'},
+  {f:'🇹🇳',c:'+216',n:'Tunisia'},{f:'🇹🇷',c:'+90',n:'Turkey'},{f:'🇹🇲',c:'+993',n:'Turkmenistan'},
+  {f:'🇹🇻',c:'+688',n:'Tuvalu'},{f:'🇺🇬',c:'+256',n:'Uganda'},{f:'🇺🇦',c:'+380',n:'Ukraine'},
+  {f:'🇦🇪',c:'+971',n:'UAE'},{f:'🇬🇧',c:'+44',n:'UK'},{f:'🇺🇸',c:'+1',n:'USA'},
+  {f:'🇺🇾',c:'+598',n:'Uruguay'},{f:'🇺🇿',c:'+998',n:'Uzbekistan'},{f:'🇻🇺',c:'+678',n:'Vanuatu'},
+  {f:'🇻🇦',c:'+379',n:'Vatican'},{f:'🇻🇪',c:'+58',n:'Venezuela'},{f:'🇻🇳',c:'+84',n:'Vietnam'},
+  {f:'🇾🇪',c:'+967',n:'Yemen'},{f:'🇿🇲',c:'+260',n:'Zambia'},{f:'🇿🇼',c:'+263',n:'Zimbabwe'}
+];
+
+function renderCC(list){
+  const el=document.getElementById('ccList');
+  if(!list.length){el.innerHTML='<div class="cc-empty">No country found</div>';return;}
+  el.innerHTML=list.map(o=>
+    `<div class="cc-option${o.c===selectedCC?' active':''}" onclick="selectCC('${o.c}','${o.f}','${o.n}')">
+      ${o.f} ${o.c} &nbsp;${o.n}</div>`
+  ).join('');
+}
+
+function filterCC(q){
+  const s=q.toLowerCase();
+  renderCC(s?COUNTRIES.filter(o=>o.n.toLowerCase().includes(s)||o.c.includes(s)):COUNTRIES);
+}
+
 function cleanMobile(el){
   el.value=el.value.replace(/\D/g,'');
-  // Auto-strip country code if autofill pasted e.g. 919876543210 (12 digits starting with 91)
   if(selectedCC==='+91' && el.value.length===12 && el.value.startsWith('91')){
     el.value=el.value.slice(2);
   }
@@ -309,26 +395,37 @@ function cleanMobile(el){
 function toggleCC(e){
   e.stopPropagation();
   const dd=document.getElementById('ccDropdown');
+  const opening=!dd.classList.contains('open');
   dd.classList.toggle('open');
+  if(opening){
+    document.getElementById('ccSearch').value='';
+    renderCC(COUNTRIES);
+    setTimeout(()=>document.getElementById('ccSearch').focus(),50);
+    // Scroll active item into view
+    setTimeout(()=>{
+      const active=document.querySelector('#ccList .cc-option.active');
+      if(active) active.scrollIntoView({block:'center'});
+    },80);
+  }
 }
 
-function selectCC(code,flag,country){
+function selectCC(code,flag,name){
   selectedCC=code;
   document.getElementById('ccCode').textContent=code;
   document.getElementById('ccFlag').textContent=flag;
   document.getElementById('ccDropdown').classList.remove('open');
-  // Update active state
-  document.querySelectorAll('.cc-option').forEach(o=>o.classList.remove('active'));
-  event.target.closest('.cc-option').classList.add('active');
+  renderCC(COUNTRIES);
   document.getElementById('mobile').focus();
 }
 
-// Close dropdown on outside click
 document.addEventListener('click',function(e){
   if(!e.target.closest('.cc-wrap')){
     document.getElementById('ccDropdown').classList.remove('open');
   }
 });
+
+// Init render
+renderCC(COUNTRIES);
 
 // Redirect if already logged in
 const tok=localStorage.getItem('indhan_token');
