@@ -16,7 +16,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .live-dot{width:8px;height:8px;border-radius:50%;background:#69f0ae;animation:pulse 2s infinite;margin-left:4px;display:inline-block}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .header-right{margin-left:auto;display:flex;gap:6px;align-items:center}
-.hbtn{background:rgba(255,255,255,.15);border:none;color:white;font-size:11px;padding:5px 9px;border-radius:20px;cursor:pointer}
+.hbtn{background:rgba(255,255,255,.15);border:none;color:white;font-size:13px;padding:8px 14px;border-radius:20px;cursor:pointer;min-height:44px;min-width:44px;font-weight:600;letter-spacing:0.3px}
 .notif-bar{background:#155724;padding:8px 14px;display:flex;align-items:center;gap:8px}
 .notif-bar span{color:rgba(255,255,255,.9);font-size:12px}
 /* Trial banner - only shows when trial ending */
@@ -84,9 +84,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fuelid-btn{background:#1a6b2e;color:white;border:none;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer}
 /* Bottom nav */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;background:white;border-top:1px solid #e0e0e0;z-index:100}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px;cursor:pointer;text-decoration:none}
-.nav-item span:first-child{font-size:20px}
-.nav-item span:last-child{font-size:10px;color:#aaa;margin-top:2px}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px;cursor:pointer;text-decoration:none;min-height:56px;justify-content:center}
+.nav-item span:first-child{font-size:26px}
+.nav-item span:last-child{font-size:12px;color:#aaa;margin-top:3px;font-weight:500}
 .nav-item.active span:last-child{color:#1a6b2e}
 .content-wrap{padding-bottom:70px}
 /* Modals */
@@ -145,7 +145,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="hbtn" onclick="toggleLeaderboard()" id="btn-trophy" style="position:relative">
       🏆 <span id="trophy-pts" style="font-size:10px;background:#ffd700;color:#333;border-radius:8px;padding:1px 5px;margin-left:2px;font-weight:700;display:none">0</span>
     </button>
-    <button class="hbtn" onclick="userLogout()" id="btn-logout" style="background:rgba(255,255,255,.15)">🚪</button>
   </div>
 </div>
 
@@ -278,9 +277,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </a>
   <a class="nav-item" href="/profile_setup" onclick="return goToFuelId()">
     <span>🎫</span><span id="nav-qr">My QR</span>
-  </a>
-  <a class="nav-item" href="#" onclick="openReport('',0)">
-    <span>📝</span><span id="nav-report">Report</span>
   </a>
   <a class="nav-item" href="#" onclick="openModal('profileModal')">
     <span>👤</span><span id="nav-profile">Profile</span>
