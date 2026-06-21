@@ -1743,7 +1743,7 @@ app.post('/api/pump-owner/change-password', requireAuth(['pump_owner','super_adm
 app.get('/api/pump-owner/subscription-status', requireAuth(['pump_owner','super_admin']), (req, res) => {
   try {
     const user = dbGet(
-      'SELECT subscription_status, created_at, pump_login_id, plain_password FROM users WHERE id=?',
+      'SELECT subscription_status, created_at, pump_login_id, plain_password, subscription_paid_at, razorpay_payment_id FROM users WHERE id=?',
       [req.user.id]
     );
     const pump = dbGet(
@@ -1768,6 +1768,8 @@ app.get('/api/pump-owner/subscription-status', requireAuth(['pump_owner','super_
       trial_left:    trialLeft,
       trial_days:    trialDays,
       price:         price,
+      paid_at:       user.subscription_paid_at || null,
+      payment_id:    user.razorpay_payment_id  || null,
       login_id:      user.pump_login_id || pump?.license_number || '—',
       pump: pump ? {
         name:          pump.name,

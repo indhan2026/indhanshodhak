@@ -888,6 +888,18 @@ async function openProfileModal(){
       sEl.textContent='✅ Active';sEl.style.color='#81c784';
       document.getElementById('prof-trial-row').style.display='none';
       subBtn.style.display='none';
+      document.getElementById('prof-paid-banner').style.display='block';
+      if(d.paid_at){
+        const paidDate    = new Date(d.paid_at+'Z');
+        const renewalDate = new Date(paidDate.getTime()+30*86400000);
+        const fmt=(dt)=>{const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return dt.getDate()+' '+m[dt.getMonth()]+' '+dt.getFullYear();};
+        document.getElementById('prof-paid-on-row').style.display='flex';
+        document.getElementById('prof-paid-on').textContent=fmt(paidDate);
+        document.getElementById('prof-amount-row').style.display='flex';
+        document.getElementById('prof-amount').textContent='₹'+parseFloat(d.price||'14.99').toFixed(2);
+        document.getElementById('prof-renewal-row').style.display='flex';
+        document.getElementById('prof-renewal').textContent=fmt(renewalDate);
+      }
     } else if(d.is_premium&&d.status==='trial'){
       sEl.textContent=`⏳ Trial (${d.trial_left} day${d.trial_left===1?'':'s'} left)`;
       sEl.style.color='#ffd700';
@@ -1026,6 +1038,11 @@ async function changePassword(){
       <div style="background:rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:12px">
         <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;
           text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">💳 Subscription</div>
+        <div id="prof-paid-banner" style="display:none;background:rgba(26,107,46,.35);border:1px solid #4caf50;border-radius:10px;padding:10px 12px;margin-bottom:10px;text-align:center">
+          <div style="font-size:15px;margin-bottom:2px">✅</div>
+          <div style="font-size:12px;font-weight:700;color:#81c784">Successfully Subscribed!</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px">Thank you for supporting IndhanShodhak 🇮🇳</div>
+        </div>
         <div style="display:grid;gap:8px">
           <div style="display:flex;justify-content:space-between">
             <span style="font-size:12px;color:rgba(255,255,255,.6)">Status</span>
@@ -1034,6 +1051,18 @@ async function changePassword(){
           <div style="display:flex;justify-content:space-between" id="prof-trial-row">
             <span style="font-size:12px;color:rgba(255,255,255,.6)">Trial Left</span>
             <span style="font-size:12px;font-weight:600;color:#ffd700" id="prof-trial-left">—</span>
+          </div>
+          <div id="prof-paid-on-row" style="display:none;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Paid On</span>
+            <span style="font-size:12px;font-weight:600;color:#81c784" id="prof-paid-on">—</span>
+          </div>
+          <div id="prof-amount-row" style="display:none;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Amount Paid</span>
+            <span style="font-size:12px;font-weight:600;color:#81c784" id="prof-amount">—</span>
+          </div>
+          <div id="prof-renewal-row" style="display:none;justify-content:space-between">
+            <span style="font-size:12px;color:rgba(255,255,255,.6)">Next Renewal</span>
+            <span style="font-size:12px;font-weight:600;color:#ffd700" id="prof-renewal">—</span>
           </div>
           <div style="display:flex;justify-content:space-between">
             <span style="font-size:12px;color:rgba(255,255,255,.6)">Green Tick ✅</span>
