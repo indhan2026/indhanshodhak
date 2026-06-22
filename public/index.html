@@ -966,7 +966,7 @@ async function useGPS(){
       }).addTo(window.indhanMap).bindPopup('📍 You are here').openPopup();
     }
     try{
-      const r=await fetch('/api/pumps/locations?v='+Math.floor(Date.now()/7200000)+'&lat='+lat+'&lng='+lng,{
+      const r=await fetch('/api/pumps/locations?lat='+lat+'&lng='+lng,{
         headers:TOKEN?{'x-auth-token':TOKEN}:{}
       });
       const d=await r.json();
@@ -990,7 +990,7 @@ async function searchPumps(){
   document.getElementById('pumpList').innerHTML=
     '<div style="padding:16px;text-align:center;color:#888">🔍 Searching...</div>';
   try{
-    const r=await fetch('/api/pumps/locations?v='+Math.floor(Date.now()/7200000)+'&pin='+pin,{
+    const r=await fetch('/api/pumps/locations?pin='+pin,{
       headers:TOKEN?{'x-auth-token':TOKEN}:{}
     });
     const d=await r.json();
@@ -1351,7 +1351,7 @@ async function autoLoadPumps(){
     navigator.geolocation.getCurrentPosition(async pos=>{
       const lat=pos.coords.latitude,lng=pos.coords.longitude;
       try{
-        const r=await fetch('/api/pumps/locations?v='+Math.floor(Date.now()/7200000)+'&lat='+lat+'&lng='+lng,{
+        const r=await fetch('/api/pumps/locations?lat='+lat+'&lng='+lng,{
           headers:TOKEN?{'x-auth-token':TOKEN}:{}
         });
         const d=await r.json();
