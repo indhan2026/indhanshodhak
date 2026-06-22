@@ -2283,7 +2283,7 @@ app.post('/api/verify/pump-applications/:id/approve', requireAuth(['doc_verifier
   console.log('[CACHE CLEAR] Cleared after pump approval — green tick shows immediately');
   purgeCloudflareCache(); // purge Cloudflare CDN — new pump visible to all users immediately
   dbRun(`UPDATE pump_applications SET status='approved', reviewed_by=?, reviewed_at=datetime('now') WHERE id=?`,[req.user.id,row.id]);
-  if (row.doc_aadhaar&&fs.existsSync(row.doc_aadhaar)) fs.unlinkSync(row.doc_aadhaar);
+  ['doc_license','doc_aadhaar','doc_selfie'].forEach(f => { if(row[f]&&fs.existsSync(row[f])) fs.unlinkSync(row[f]); }); // free disk after approval
   const userRow = dbGet(`SELECT mobile FROM users WHERE id=?`,[row.user_id]);
   if (row.applicant_email) await sendEmail(row.applicant_email,
     '[IndhanShodhak] ✅ Pump Verified — Your Login Details!',
@@ -3846,6 +3846,13 @@ initDB().then(() => {
   // ── Session cleanup ────────────────────────────────────────────────────
   try { dbRun(`DELETE FROM sessions WHERE expires_at < datetime('now')`); } catch(e){}
   setInterval(()=>{ try{dbRun(`DELETE FROM sessions WHERE expires_at<datetime('now')`)}catch(e){} }, 6*60*60*1000);
+
+  // ── 90-day data retention — keeps DB size flat forever ───────
+  setInterval(() => {
+    try { dbRun(`DELETE FROM fuel_reports WHERE created_at < datetime('now','-90 days')`); } catch(e){}
+    try { dbRun(`DELETE FROM fuel_dispense_log WHERE dispensed_at < datetime('now','-90 days')`); } catch(e){}
+  }, 6*60*60*1000); // runs every 6 hours
+  // ─────────────────────────────────────────────────────────────
 
   // ── Hourly RAM cleanup — clears stale IP rate-limit entries ──
   setInterval(() => {
