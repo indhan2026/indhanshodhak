@@ -32,6 +32,7 @@ let SQL, db;
 // ✅ FIX: Move otpStore to top for availability
 const otpStore        = {};   // OTP storage per mobile
 const otpRequestCount = {};   // 60s rate limiting per mobile
+const otpIPCount      = {};   // IP rate limit: max 5 OTPs per IP per hour
 
 async function initDB() {
   SQL = await initSqlJs();
@@ -899,9 +900,8 @@ app.get('/api/pumps/locations', async (req, res) => {
   cacheSet(cacheKey, result, cacheHours);
   console.log(`[CACHE SET] ${cacheKey} → ${allPumps.length} pumps (DB:${dbPumps.length} MMI:${mmiPumps.length}) | ${cacheHours}hrs`);
 
-  // Cloudflare cache headers — 1 year for pump locations
-  // Short TTL so new verified pumps appear quickly. Server locationCache handles performance.
-  res.setHeader('Cache-Control', 'public, max-age=7200');
+  // Cloudflare cache: s-maxage=1yr (CDN), max-age=2hr (browser)
+  res.setHeader('Cache-Control', 'public, s-maxage=31536000, max-age=7200');
   res.setHeader('Vary', 'Accept-Encoding');
   res.json({ ...result, from_cache: false });
 });
@@ -1932,6 +1932,33 @@ function cacheClear(pattern) {
   }
 }
 
+// ── Cloudflare Cache Purge — called on pump approval ─────────
+async function purgeCloudflareCache() {
+  const zoneId = process.env.CF_ZONE_ID;
+  const token  = process.env.CF_CACHE_TOKEN;
+  if(!zoneId || !token) {
+    console.log('[CF PURGE] Skipped — CF_ZONE_ID or CF_CACHE_TOKEN not set');
+    return;
+  }
+  try {
+    const resp = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purge_everything: true }),
+        signal: AbortSignal.timeout(10000)
+      }
+    );
+    const data = await resp.json();
+    if(data.success) console.log('[CF PURGE] ✅ Cloudflare cache purged — new pump visible immediately');
+    else console.error('[CF PURGE] ❌ Failed:', JSON.stringify(data.errors));
+  } catch(e) {
+    console.error('[CF PURGE] ❌ Error:', e.message);
+  }
+}
+// ─────────────────────────────────────────────────────────────
+
 const CACHE_HOURS = {
   PIN:  8760,  // 1 year — pump locations rarely change
   GPS:  8760,  // 1 year — pump locations rarely change
@@ -2254,6 +2281,7 @@ app.post('/api/verify/pump-applications/:id/approve', requireAuth(['doc_verifier
   cacheClear('pin:');
   cacheClear('gps:');
   console.log('[CACHE CLEAR] Cleared after pump approval — green tick shows immediately');
+  purgeCloudflareCache(); // purge Cloudflare CDN — new pump visible to all users immediately
   dbRun(`UPDATE pump_applications SET status='approved', reviewed_by=?, reviewed_at=datetime('now') WHERE id=?`,[req.user.id,row.id]);
   if (row.doc_aadhaar&&fs.existsSync(row.doc_aadhaar)) fs.unlinkSync(row.doc_aadhaar);
   const userRow = dbGet(`SELECT mobile FROM users WHERE id=?`,[row.user_id]);
@@ -3013,6 +3041,16 @@ app.post('/api/auth/send-otp', async (req, res) => {
     return res.status(400).json({ error: 'Valid 10-digit mobile number required' });
   if (!email || !email.includes('@'))
     return res.status(400).json({ error: 'Valid email address required to receive OTP' });
+
+  // IP-based rate limit: max 5 OTPs per IP per hour (Cloudflare-aware)
+  const clientIP = (req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
+  if(!otpIPCount[clientIP] || Date.now() - otpIPCount[clientIP].windowStart > 3600000) {
+    otpIPCount[clientIP] = { count: 0, windowStart: Date.now() };
+  }
+  otpIPCount[clientIP].count++;
+  if(otpIPCount[clientIP].count > 5) {
+    return res.status(429).json({ error: 'Too many OTP requests from your network. Please try after 1 hour.' });
+  }
 
   // 60 second rate limit per mobile
   const lastReq = otpRequestCount[mobile];
@@ -3808,6 +3846,18 @@ initDB().then(() => {
   // ── Session cleanup ────────────────────────────────────────────────────
   try { dbRun(`DELETE FROM sessions WHERE expires_at < datetime('now')`); } catch(e){}
   setInterval(()=>{ try{dbRun(`DELETE FROM sessions WHERE expires_at<datetime('now')`)}catch(e){} }, 6*60*60*1000);
+
+  // ── Hourly RAM cleanup — clears stale IP rate-limit entries ──
+  setInterval(() => {
+    const now = Date.now();
+    Object.keys(otpIPCount).forEach(ip => {
+      if(now - otpIPCount[ip].windowStart > 3600000) delete otpIPCount[ip];
+    });
+    Object.keys(otpRequestCount).forEach(mobile => {
+      if(now - otpRequestCount[mobile] > 3600000) delete otpRequestCount[mobile];
+    });
+  }, 3600000);
+  // ─────────────────────────────────────────────────────────────
 
   // ── Daily AI Summary Email — runs at 8 PM IST every day ──────────────────
   function scheduleDailySummary() {
