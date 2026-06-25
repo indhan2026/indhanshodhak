@@ -929,6 +929,34 @@ footer {
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 .reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── CLICK HINT POINTER ── */
+.btn-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.click-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  animation: pointerBounce 0.65s ease-in-out infinite;
+}
+.click-hint .hint-emoji {
+  font-size: 1.6rem;
+}
+.click-hint .hint-text {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--saffron);
+  text-transform: uppercase;
+}
+@keyframes pointerBounce {
+  0%, 100% { transform: translateX(0px); }
+  50%       { transform: translateX(7px); }
+}
 </style>
 </head>
 <body>
@@ -968,8 +996,20 @@ footer {
     <div class="hero-hindi">इंधन शोधक</div>
     <p class="hero-sub">India's first community-powered fuel availability platform. Real-time pump status, verified data, and crisis-ready alerts — in 12 Indian languages.</p>
     <div class="hero-buttons">
-      <a href="/app" class="btn-primary"><i class="fas fa-map-marker-alt"></i> Find Nearest Pump</a>
-      <a href="#download" class="btn-secondary"><i class="fas fa-download"></i> Get the App</a>
+      <div class="btn-wrapper">
+        <div class="click-hint">
+          <span class="hint-emoji">👉</span>
+          <span class="hint-text">Click Here</span>
+        </div>
+        <a href="/app" class="btn-primary"><i class="fas fa-map-marker-alt"></i> Find Nearest Pump</a>
+      </div>
+      <div class="btn-wrapper">
+        <div class="click-hint">
+          <span class="hint-emoji">👉</span>
+          <span class="hint-text">Click Here</span>
+        </div>
+        <a href="#download" class="btn-secondary"><i class="fas fa-download"></i> Get the App</a>
+      </div>
     </div>
     <div class="hero-stats">
       <div class="hero-stat-item">
