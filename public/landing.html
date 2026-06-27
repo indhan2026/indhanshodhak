@@ -1707,7 +1707,6 @@ function renderCard(cardEl, pump) {
     : `<span class="pump-badge badge-community">⭐ Community</span>`;
 
   const time = TIMES[Math.floor(Math.random()*TIMES.length)];
-  const dist = (parseFloat(pump.dist) + (Math.random()*0.4 - 0.2)).toFixed(1);
 
   cardEl.className = `pump-card ${cardClass}`;
   cardEl.style.opacity = '0';
@@ -1718,7 +1717,7 @@ function renderCard(cardEl, pump) {
     <div class="pump-card-header">
       <div>
         <div class="pump-name">${pump.name}</div>
-        <div class="pump-dist"><i class="fas fa-location-dot"></i> ${pump.city || ""} · ${dist} km away</div>
+        <div class="pump-dist"><i class="fas fa-location-dot"></i> ${pump.city || ""}</div>
       </div>
       ${badge}
     </div>
