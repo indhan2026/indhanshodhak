@@ -534,7 +534,7 @@ async function sendOTP(){
     const d=await r.json();
     if(d.success){
       document.getElementById('otp-info').textContent=
-        `OTP sent to ${mob.slice(0,2)}XXXXXX${mob.slice(-2)} via email`;
+        `OTP sent to ${emailId.replace(/(.{2})[^@]+(@.+)/,'$1***$2')}`;
       if(d.otp_for_testing){
         document.getElementById('testBadge').style.display='block';
         document.getElementById('testOTP').textContent=d.otp_for_testing;
