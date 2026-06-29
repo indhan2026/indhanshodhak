@@ -145,14 +145,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </select>
       </div>
     </div>
-    <div class="field"><label>Mobile Number</label>
-      <input type="tel" id="p-mobile" placeholder="10-digit mobile" maxlength="10"
-             oninput="this.value=this.value.replace(/\D/g,'')">
-    </div>
-    <div class="field"><label>Email Address</label>
-      <input type="email" id="p-email" placeholder="your@email.com">
-    </div>
     <button class="save-btn" onclick="saveBasic()">🎫 Save & Generate P5 QR Code</button>
+    <button class="save-btn" id="findPumpsBtn" onclick="window.location.href='/app'"
+      disabled
+      style="margin-top:8px;background:#aaa;cursor:not-allowed;opacity:0.55;">
+      📍 Find Nearby Pumps
+    </button>
   </div>
 
   <!-- ③ AADHAAR — Optional -->
@@ -430,8 +428,6 @@ async function saveBasic(){
   const name    = document.getElementById('p-name').value.trim();
   const vehicle = document.getElementById('p-vehicle').value.trim().toUpperCase();
   const fuel    = document.getElementById('p-fuel').value;
-  const mobile  = document.getElementById('p-mobile').value.trim();
-  const email   = document.getElementById('p-email').value.trim();
 
   hideMsg('err-basic'); hideMsg('ok-basic');
 
@@ -441,8 +437,6 @@ async function saveBasic(){
   // Save to localStorage
   localStorage.setItem('indhan_name',    name);
   localStorage.setItem('indhan_vehicle', vehicle);
-  if(mobile) localStorage.setItem('indhan_mobile', mobile);
-  if(email)  localStorage.setItem('indhan_email',  email);
 
   // Show loading state while fetching server QR
   document.getElementById('qrCanvas').innerHTML =
@@ -453,7 +447,7 @@ async function saveBasic(){
     // Update name on server
     await safeFetch('/api/user/update-name',{
       method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
-      body: JSON.stringify({name, email})
+      body: JSON.stringify({name})
     });
     // Save vehicle + generate QR on server
     const profileResult = await safeFetch('/api/user/complete-profile',{
@@ -486,13 +480,23 @@ async function saveBasic(){
         document.getElementById('qrCodeBox').style.display = 'block';
       }
       showMsg('ok-basic', `✅ QR Code generated! Fuel limit: ${tierInfo.limit}`);
-      return; // ← stop here, no local QR needed
+      const fb1 = document.getElementById('findPumpsBtn');
+      fb1.disabled = false;
+      fb1.style.background = '#0f4d22';
+      fb1.style.cursor = 'pointer';
+      fb1.style.opacity = '1';
+      return;
     }
   }
 
   // Fallback: local QR only if not logged in or server failed
   generateQR(name, vehicle, 'P5', fuel);
   showMsg('ok-basic', '✅ Basic info saved! P5 QR Code generated.');
+  const fb2 = document.getElementById('findPumpsBtn');
+  fb2.disabled = false;
+  fb2.style.background = '#0f4d22';
+  fb2.style.cursor = 'pointer';
+  fb2.style.opacity = '1';
 }
 
 // ══════════════════════════════════════════
@@ -721,14 +725,10 @@ async function loadProfile(){
   // Load from localStorage first (instant, no login needed)
   const savedName    = localStorage.getItem('indhan_name');
   const savedVehicle = localStorage.getItem('indhan_vehicle');
-  const savedMobile  = localStorage.getItem('indhan_mobile');
-  const savedEmail   = localStorage.getItem('indhan_email');
   const savedQR      = localStorage.getItem('indhan_qr');
 
   if(savedName)    document.getElementById('p-name').value    = savedName;
   if(savedVehicle) document.getElementById('p-vehicle').value = savedVehicle;
-  if(savedMobile)  document.getElementById('p-mobile').value  = savedMobile;
-  if(savedEmail)   document.getElementById('p-email').value   = savedEmail;
 
   // Show QR from localStorage if exists
   if(savedQR && savedName && savedVehicle){
@@ -743,8 +743,6 @@ async function loadProfile(){
 
   // Update fields from server
   if(u.name)           document.getElementById('p-name').value    = u.name;
-  if(u.mobile)         document.getElementById('p-mobile').value  = u.mobile;
-  if(u.email)          document.getElementById('p-email').value   = u.email;
   if(u.vehicle_number) document.getElementById('p-vehicle').value = u.vehicle_number;
 
   // Ensure tier limits from admin are loaded before showing limit
