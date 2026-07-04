@@ -189,10 +189,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="scanner-icon">📷</div>
     <div class="scanner-title" data-t="scan_title">Scan Customer QR Code</div>
     <div class="scanner-sub" data-t="scan_sub">For fuel rationing mode — scan to verify priority and dispense fuel</div>
-    <button class="camera-btn" onclick="openCamera()" data-t="open_camera">📷 Open Camera Scanner</button>
+    <button class="camera-btn" id="openScannerBtn" onclick="openCamera()" data-t="open_camera">📷 Open Camera Scanner</button>
+    <button class="camera-btn" id="stopScannerBtn" onclick="stopCameraScanner()" style="display:none;background:#c62828;">⏹ Stop Scanner</button>
+    <div id="scanStatus" style="display:none;color:#64b5f6;font-size:13px;margin:6px 0;text-align:center;">🔍 Scanning for QR code...</div>
     <input type="file" id="cameraInput" accept="image/*" capture="environment"
            style="display:none" onchange="handleCameraCapture(this)">
-    <video id="cameraVideo" autoplay playsinline style="display:none"></video>
+    <video id="cameraVideo" autoplay playsinline muted style="display:none;border-radius:10px;width:100%;margin-top:8px"></video>
     <canvas id="cameraCanvas" style="display:none"></canvas>
     <div class="manual-row" style="margin-top:8px">
       <input class="manual-input" id="manualQR" data-t-placeholder="manual_placeholder" placeholder="Or enter QR ID manually...">
@@ -728,8 +730,12 @@ function denyFuel(){
   document.getElementById('manualQR').value = '';
 }
 
+// ── Camera state ──
+let cameraStream = null;
+let scanningInterval = null;
+
 function openCamera(){
-  // ── Appilix Native QR Scanner (Official API) ──
+  // ── Appilix Native QR Scanner ──
   if (typeof appilix !== 'undefined') {
     appilix.onmessage = function(event) {
       try {
@@ -751,11 +757,95 @@ function openCamera(){
       props: { enable_confirmation_popup: false }
     }));
   } else {
-    // Fallback: file input (desktop/browser)
-    const input = document.getElementById('cameraInput');
-    if(input){ input.value=''; input.click(); }
-    else { alert('QR Scanner not available. Use manual Fuel Code entry.'); }
+    // ── Bubblewrap TWA / Chrome — Live Camera Scanner ──
+    startLiveCameraScanner();
   }
+}
+
+async function startLiveCameraScanner() {
+  const video    = document.getElementById('cameraVideo');
+  const stopBtn  = document.getElementById('stopScannerBtn');
+  const openBtn  = document.getElementById('openScannerBtn');
+  const status   = document.getElementById('scanStatus');
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    cameraStream = stream;
+    video.srcObject = stream;
+    video.style.display = 'block';
+    if(stopBtn)  stopBtn.style.display  = 'block';
+    if(openBtn)  openBtn.style.display  = 'none';
+    if(status)   status.style.display   = 'block';
+    await video.play();
+
+    // Use BarcodeDetector (Chrome native) if available
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      scanWithBarcodeDetector(detector, video);
+    } else {
+      // Fallback: jsQR every 300ms
+      scanWithJsQR(video);
+    }
+  } catch(e) {
+    // getUserMedia failed → fallback to file input photo
+    stopCameraScanner();
+    const input = document.getElementById('cameraInput');
+    if(input){ input.value = ''; input.click(); }
+    else { alert('Camera not available. Please enter Fuel Code manually.'); }
+  }
+}
+
+function stopCameraScanner() {
+  if(cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  if(scanningInterval) {
+    clearInterval(scanningInterval);
+    scanningInterval = null;
+  }
+  const video   = document.getElementById('cameraVideo');
+  const stopBtn = document.getElementById('stopScannerBtn');
+  const openBtn = document.getElementById('openScannerBtn');
+  const status  = document.getElementById('scanStatus');
+  if(video)   { video.srcObject = null; video.style.display = 'none'; }
+  if(stopBtn)  stopBtn.style.display  = 'none';
+  if(openBtn)  openBtn.style.display  = 'block';
+  if(status)   status.style.display   = 'none';
+}
+
+function scanWithBarcodeDetector(detector, video) {
+  scanningInterval = setInterval(async () => {
+    if(!cameraStream) return;
+    try {
+      const barcodes = await detector.detect(video);
+      if(barcodes.length > 0) {
+        stopCameraScanner();
+        verifyScan(barcodes[0].rawValue);
+      }
+    } catch(e) { /* keep scanning */ }
+  }, 300);
+}
+
+function scanWithJsQR(video) {
+  const canvas = document.getElementById('cameraCanvas');
+  const ctx    = canvas.getContext('2d');
+  scanningInterval = setInterval(() => {
+    if(!cameraStream || video.readyState < 2) return;
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'attemptBoth'
+    });
+    if(code) {
+      stopCameraScanner();
+      verifyScan(code.data);
+    }
+  }, 300);
 }
 
 function handleCameraCapture(input){
@@ -777,7 +867,7 @@ function handleCameraCapture(input){
       if(code){
         verifyScan(code.data);
       } else {
-        alert('❌ QR not detected in photo.\nTips:\n• Hold phone steady\n• Good lighting\n• QR fills most of frame\n\nOr type Fuel Code manually below.');
+        alert('❌ QR not detected.\nTips:\n• Good lighting\n• QR fills most of frame\n\nOr type Fuel Code manually.');
       }
     };
     img.src = e.target.result;
