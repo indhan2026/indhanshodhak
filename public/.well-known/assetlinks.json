@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "in.indhanshodhak.app",
+    "sha256_cert_fingerprints": [
+      "BD:89:B5:B0:CB:9F:00:4B:47:DD:EC:53:E9:25:7A:32:33:F5:67:C8:59:7D:34:BB:62:DC:F5:21:14:4B:B7:DB"
+    ]
+  }
+}]
