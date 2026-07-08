@@ -435,6 +435,23 @@ app.get('/splash', (req, res) => {
   res.sendFile(path.join(PUBLIC_PATH, 'splash.html'));
 });
 app.get('/privacy',  (req,res) => res.sendFile(path.join(PUBLIC_PATH,'privacy.html')));
+app.get('/gallery',  (req,res) => res.sendFile(path.join(PUBLIC_PATH,'gallery.html')));
+app.get('/api/gallery', (req,res) => {
+  const galleryPath = path.join(PUBLIC_PATH, 'gallery');
+  const fs = require('fs');
+  try {
+    if (!fs.existsSync(galleryPath)) {
+      fs.mkdirSync(galleryPath, { recursive: true });
+      return res.json({ images: [] });
+    }
+    const files = fs.readdirSync(galleryPath)
+      .filter(f => /\.(jpg|jpeg|png|gif|webp)$/i.test(f))
+      .sort();
+    res.json({ images: files });
+  } catch(e) {
+    res.json({ images: [] });
+  }
+});
 app.get('/terms',    (req,res) => res.sendFile(path.join(PUBLIC_PATH,'terms.html')));
 app.get('/shipping', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'shipping.html')));
 app.get('/contact',  (req,res) => res.sendFile(path.join(PUBLIC_PATH,'contact.html')));
