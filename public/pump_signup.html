@@ -238,6 +238,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       </div>
     </div>
 
+    <!-- REFERRAL CODE -->
+    <div style="background:#fff3e0;border-radius:12px;padding:14px;margin-bottom:14px;border:1.5px dashed #e65100">
+      <div class="section-title" style="color:#e65100">🛵 MR Referral Code (Optional)</div>
+      <div style="font-size:12px;color:#888;margin-bottom:10px">
+        If an IndhanShodhak field agent gave you a code, enter it below.
+      </div>
+      <label class="form-label">Referral Code</label>
+      <input class="form-input" type="text" id="referralCode"
+             placeholder="e.g. MR001"
+             maxlength="10"
+             oninput="this.value=this.value.toUpperCase().replace(/\s/g,'')">
+      <div style="font-size:11px;color:#aaa;margin-top:6px">Leave blank if not given by an MR agent.</div>
+    </div>
+
     <button class="submit-btn" id="submitBtn" onclick="submitApplication()">
       📤 Submit for Verification
     </button>
@@ -406,6 +420,8 @@ async function submitApplication(){
   fd.append('license_number',licenseNo);
   fd.append('lat',           lat);
   fd.append('lng',           lng);
+  const refCode = document.getElementById('referralCode')?.value?.trim() || '';
+  if(refCode) fd.append('referral_code', refCode);
   fd.append('license',       licFile);
   fd.append('aadhaar',       aadhaarFile);
   fd.append('selfie',        selfieFile);

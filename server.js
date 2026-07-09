@@ -319,6 +319,18 @@ async function initDB() {
       processed_at TEXT
     )`,
     `ALTER TABLE ai_verify_queue ADD COLUMN retry_count INTEGER DEFAULT 0`,
+    // ── MR Field Agent system ──
+    `CREATE TABLE IF NOT EXISTS mr_agents (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      mr_code       TEXT UNIQUE NOT NULL,
+      mr_name       TEXT NOT NULL,
+      mr_phone      TEXT,
+      status        TEXT DEFAULT 'active',
+      assigned_date TEXT DEFAULT (datetime('now')),
+      notes         TEXT
+    )`,
+    `ALTER TABLE pump_applications ADD COLUMN referral_code TEXT`,
+    `ALTER TABLE petrol_pumps ADD COLUMN referral_code TEXT`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -1653,7 +1665,7 @@ app.post('/api/pump-owner/register',
     try {
       const { owner_name, mobile, email, pump_name, oil_company,
               pin_code, address, district, state, license_number,
-              lat, lng } = req.body;
+              lat, lng, referral_code } = req.body;
 
       if(!owner_name||!mobile||!email||!pump_name||!license_number||!pin_code)
         return res.status(400).json({ error:'All fields are required' });
@@ -1701,12 +1713,25 @@ app.post('/api/pump-owner/register',
           console.log(`[GPS SAVED] ${pump_name} → lat:${pumpLat} lng:${pumpLng} ✅`);
       }
 
+      // Validate referral code if provided
+      let validatedRef = null;
+      if(referral_code && referral_code.trim()) {
+        const mrRow = dbGet(`SELECT mr_code FROM mr_agents WHERE mr_code=? AND status='active'`,
+          [referral_code.trim().toUpperCase()]);
+        validatedRef = mrRow ? referral_code.trim().toUpperCase() : `UNRECOGNIZED:${referral_code.trim()}`;
+      }
+
       dbRun(`INSERT INTO pump_applications
              (user_id, pump_id, applicant_name, applicant_email,
-              license_number, doc_license, doc_aadhaar, doc_selfie)
-             VALUES (?,?,?,?,?,?,?,?)`,
+              license_number, doc_license, doc_aadhaar, doc_selfie, referral_code)
+             VALUES (?,?,?,?,?,?,?,?,?)`,
         [user.id, pump.id, owner_name, email,
-         license_number.toUpperCase(), licPath, aadhaarPath, selfiePath]);
+         license_number.toUpperCase(), licPath, aadhaarPath, selfiePath, validatedRef]);
+
+      // Also tag the pump record with referral code
+      if(validatedRef && !validatedRef.startsWith('UNRECOGNIZED')) {
+        dbRun(`UPDATE petrol_pumps SET referral_code=? WHERE id=?`, [validatedRef, pump.id]);
+      }
 
       const appRow = dbGet(
         `SELECT id FROM pump_applications WHERE user_id=? ORDER BY applied_at DESC LIMIT 1`,
@@ -1730,6 +1755,125 @@ app.post('/api/pump-owner/register',
 
 app.get('/pump-signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
 app.get('/pump_signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
+
+// ── MR Field Agent Management ─────────────────────────────────────────────
+
+// GET all MR agents (admin only)
+app.get('/api/admin/mr-agents', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const agents = dbAll(`SELECT * FROM mr_agents ORDER BY assigned_date DESC`);
+    res.json({ success: true, agents });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST create new MR agent (admin only)
+app.post('/api/admin/mr-agents', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const { mr_name, mr_phone, notes } = req.body;
+    if(!mr_name || !mr_phone)
+      return res.status(400).json({ error: 'Name and phone are required' });
+
+    // Auto-generate sequential MR code: MR001, MR002 etc.
+    const last = dbGet(`SELECT mr_code FROM mr_agents ORDER BY id DESC LIMIT 1`);
+    let nextNum = 1;
+    if(last?.mr_code) {
+      const num = parseInt(last.mr_code.replace('MR','')) || 0;
+      nextNum = num + 1;
+    }
+    const mr_code = 'MR' + String(nextNum).padStart(3, '0');
+
+    dbRun(`INSERT INTO mr_agents (mr_code, mr_name, mr_phone, notes) VALUES (?,?,?,?)`,
+      [mr_code, mr_name.trim(), mr_phone.trim(), notes||null]);
+
+    const agent = dbGet(`SELECT * FROM mr_agents WHERE mr_code=?`, [mr_code]);
+    console.log(`[MR AGENT] Created: ${mr_code} — ${mr_name}`);
+    res.json({ success: true, agent });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PATCH update MR agent status (admin only)
+app.patch('/api/admin/mr-agents/:id', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const { status, mr_name, mr_phone, notes } = req.body;
+    const { id } = req.params;
+    dbRun(`UPDATE mr_agents SET status=COALESCE(?,status), mr_name=COALESCE(?,mr_name),
+           mr_phone=COALESCE(?,mr_phone), notes=COALESCE(?,notes) WHERE id=?`,
+      [status||null, mr_name||null, mr_phone||null, notes||null, id]);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET MR stats — pumps enrolled per MR with date filter
+app.get('/api/admin/mr-stats', requireAuth(['super_admin','doc_verifier']), (req, res) => {
+  try {
+    const { mr_code, from_date, to_date } = req.query;
+
+    let whereClauses = ['pa.referral_code IS NOT NULL'];
+    const params = [];
+
+    if(mr_code && mr_code !== 'ALL') {
+      whereClauses.push('pa.referral_code = ?');
+      params.push(mr_code);
+    }
+    if(from_date) {
+      whereClauses.push('date(pa.applied_at) >= ?');
+      params.push(from_date);
+    }
+    if(to_date) {
+      whereClauses.push('date(pa.applied_at) <= ?');
+      params.push(to_date);
+    }
+
+    const where = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
+
+    const pumps = dbAll(`
+      SELECT
+        pa.id as app_id,
+        pa.referral_code,
+        pa.applicant_name as owner_name,
+        pa.applicant_email,
+        pa.status as app_status,
+        pa.applied_at,
+        pp.name as pump_name,
+        pp.address,
+        pp.district,
+        pp.oil_company,
+        pp.is_verified,
+        m.mr_name
+      FROM pump_applications pa
+      LEFT JOIN petrol_pumps pp ON pp.id = pa.pump_id
+      LEFT JOIN mr_agents m ON m.mr_code = pa.referral_code
+      ${where}
+      ORDER BY pa.applied_at DESC
+    `, params);
+
+    // Summary counts per MR
+    const summary = dbAll(`
+      SELECT
+        pa.referral_code,
+        m.mr_name,
+        COUNT(*) as total,
+        SUM(CASE WHEN pa.status='approved' THEN 1 ELSE 0 END) as verified,
+        SUM(CASE WHEN pa.status='pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN pa.status='rejected' THEN 1 ELSE 0 END) as rejected
+      FROM pump_applications pa
+      LEFT JOIN mr_agents m ON m.mr_code = pa.referral_code
+      WHERE pa.referral_code IS NOT NULL AND pa.referral_code NOT LIKE 'UNRECOGNIZED:%'
+      GROUP BY pa.referral_code
+      ORDER BY total DESC
+    `);
+
+    res.json({ success: true, pumps, summary });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.post('/api/pump-owner/change-password', requireAuth(['pump_owner','super_admin']), (req, res) => {
   try {

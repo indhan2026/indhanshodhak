@@ -309,6 +309,44 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       ✅ Green tick activated on pump after approval
     </div>
   </div>
+
+  <!-- ── MR Field Agent Report ── -->
+  <div style="background:white;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-top:14px">
+    <div style="font-size:13px;font-weight:700;color:#e65100;margin-bottom:12px">🛵 MR Field Agent — Pump Enrollment Report</div>
+
+    <!-- Summary cards -->
+    <div id="mr-summary-cards" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+
+    <!-- Filters -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:11px;color:#888;margin-bottom:4px">Select MR Agent</div>
+        <select id="mr-filter-code" onchange="loadMRStats()"
+          style="width:100%;padding:9px 10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;outline:none">
+          <option value="ALL">All Agents</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#888;margin-bottom:4px">From Date</div>
+        <input type="date" id="mr-filter-from" onchange="loadMRStats()"
+          style="padding:9px 10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;outline:none">
+      </div>
+      <div>
+        <div style="font-size:11px;color:#888;margin-bottom:4px">To Date</div>
+        <input type="date" id="mr-filter-to" onchange="loadMRStats()"
+          style="padding:9px 10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;outline:none">
+      </div>
+      <button onclick="clearMRFilters()"
+        style="padding:9px 14px;background:#f5f5f5;border:none;border-radius:10px;font-size:12px;cursor:pointer;color:#555">
+        🔄 Reset
+      </button>
+    </div>
+
+    <!-- Results table -->
+    <div id="mr-stats-table" style="font-size:12px;color:#aaa;text-align:center;padding:16px">
+      ⏳ Loading MR data...
+    </div>
+  </div>
 </div>
 
 <!-- GUIDE -->
@@ -569,6 +607,9 @@ async function submitReject(){
 document.getElementById('reasonModal').addEventListener('click',e=>{ if(e.target===document.getElementById('reasonModal')) closeReject(); });
 
 async function loadAll(){
+  // Load MR agent dropdown + stats
+  loadMRAgentDropdown().then(() => loadMRStats());
+
   // Pump applications
   const [pp,pa,pr] = await Promise.all([
     api('/api/verify/pump-applications?status=pending'),
@@ -739,6 +780,110 @@ async function reregisterEntity(type, id, name) {
 }
 
 // ── Community Users Search ────────────────────────────────────────────
+// ── MR Field Agent Stats ─────────────────────────────────────
+async function loadMRAgentDropdown(){
+  try {
+    const d = await api('/api/admin/mr-agents');
+    const sel = document.getElementById('mr-filter-code');
+    if(!sel || !d?.agents) return;
+    // Remove all options except "All Agents"
+    while(sel.options.length > 1) sel.remove(1);
+    d.agents.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.mr_code;
+      opt.textContent = `${a.mr_code} — ${a.mr_name} ${a.status==='inactive'?'(Inactive)':''}`;
+      sel.appendChild(opt);
+    });
+  } catch(e){}
+}
+
+async function loadMRStats(){
+  const el = document.getElementById('mr-stats-table');
+  const summaryEl = document.getElementById('mr-summary-cards');
+  if(!el) return;
+  el.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">⏳ Loading...</div>';
+
+  const mrCode = document.getElementById('mr-filter-code')?.value || 'ALL';
+  const from   = document.getElementById('mr-filter-from')?.value || '';
+  const to     = document.getElementById('mr-filter-to')?.value   || '';
+
+  let url = `/api/admin/mr-stats?mr_code=${mrCode}`;
+  if(from) url += `&from_date=${from}`;
+  if(to)   url += `&to_date=${to}`;
+
+  try {
+    const d = await api(url);
+    if(!d?.success){ el.innerHTML = '<div style="color:#b71c1c;text-align:center">Error loading data</div>'; return; }
+
+    // Summary cards
+    if(summaryEl && d.summary?.length){
+      summaryEl.innerHTML = d.summary.map(s => `
+        <div style="background:#fff3e0;border-radius:10px;padding:10px 14px;min-width:120px;text-align:center;border:1px solid #ffe0b2">
+          <div style="font-size:12px;font-weight:700;color:#e65100;font-family:monospace">${s.mr_code}</div>
+          <div style="font-size:11px;color:#555;margin-bottom:4px">${s.mr_name||'—'}</div>
+          <div style="font-size:20px;font-weight:700;color:#1a6b2e">${s.verified}</div>
+          <div style="font-size:10px;color:#888">verified / ${s.total} enrolled</div>
+        </div>
+      `).join('');
+    } else if(summaryEl){
+      summaryEl.innerHTML = '';
+    }
+
+    // Detail table
+    if(!d.pumps?.length){
+      el.innerHTML = '<div style="color:#aaa;text-align:center;padding:16px">No pumps found for selected filter</div>';
+      return;
+    }
+    el.innerHTML = `
+      <div style="overflow-x:auto">
+        <div style="font-size:11px;color:#888;margin-bottom:8px">${d.pumps.length} pump(s) found</div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#fff3e0">
+              <th style="padding:8px;font-size:11px;color:#888;text-align:left;font-weight:600">MR Code</th>
+              <th style="padding:8px;font-size:11px;color:#888;text-align:left;font-weight:600">MR Name</th>
+              <th style="padding:8px;font-size:11px;color:#888;text-align:left;font-weight:600">Pump Name</th>
+              <th style="padding:8px;font-size:11px;color:#888;text-align:left;font-weight:600">Owner</th>
+              <th style="padding:8px;font-size:11px;color:#888;text-align:left;font-weight:600">District</th>
+              <th style="padding:8px;font-size:11px;color:#888;text-align:center;font-weight:600">Status</th>
+              <th style="padding:8px;font-size:11px;color:#888;text-align:left;font-weight:600">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${d.pumps.map(p => `
+              <tr style="border-bottom:1px solid #f5f5f5">
+                <td style="padding:8px;font-size:12px;font-family:monospace;font-weight:700;color:#e65100">${p.referral_code||'—'}</td>
+                <td style="padding:8px;font-size:12px;color:#333">${p.mr_name||'—'}</td>
+                <td style="padding:8px;font-size:12px;color:#222;font-weight:500">${p.pump_name||'—'}</td>
+                <td style="padding:8px;font-size:12px;color:#555">${p.owner_name||'—'}</td>
+                <td style="padding:8px;font-size:12px;color:#888">${p.district||'—'}</td>
+                <td style="padding:8px;text-align:center">
+                  <span style="padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;
+                    background:${p.app_status==='approved'?'#e8f5e9':p.app_status==='pending'?'#fff3e0':'#ffebee'};
+                    color:${p.app_status==='approved'?'#1a6b2e':p.app_status==='pending'?'#e65100':'#b71c1c'}">
+                    ${p.app_status==='approved'?'✅ Verified':p.app_status==='pending'?'⏳ Pending':'❌ Rejected'}
+                  </span>
+                </td>
+                <td style="padding:8px;font-size:11px;color:#aaa">${(p.applied_at||'').split('T')[0]}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch(e){ el.innerHTML = '<div style="color:#b71c1c;text-align:center">Error: '+e.message+'</div>'; }
+}
+
+function clearMRFilters(){
+  const sel = document.getElementById('mr-filter-code');
+  if(sel) sel.value = 'ALL';
+  const fd = document.getElementById('mr-filter-from');
+  if(fd) fd.value = '';
+  const td = document.getElementById('mr-filter-to');
+  if(td) td.value = '';
+  loadMRStats();
+}
+
 // Community browse state
 let _allCommunityUsers = [];
 

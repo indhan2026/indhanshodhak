@@ -298,6 +298,37 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
   <!-- Settings content — hidden until unlocked -->
   <div id="settingsContent" style="display:none">
 
+    <!-- ═══ MR FIELD AGENTS ═══ -->
+    <div class="card" style="border:1.5px solid #e65100">
+      <div class="card-title" style="color:#e65100">🛵 MR Field Agents — Referral Management</div>
+      <div style="font-size:12px;color:#888;margin-bottom:12px">
+        Add MRs who will enroll pumps on ground. Each MR gets a unique code (MR001, MR002...) to give pump owners at registration time.
+      </div>
+
+      <!-- Add MR Form -->
+      <div style="background:#fff3e0;border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#e65100;margin-bottom:10px">➕ Add New MR Agent</div>
+        <div class="form-group">
+          <label class="form-label">MR Full Name</label>
+          <input class="form-input" type="text" id="mr-name" placeholder="e.g. Ramesh Patil">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <input class="form-input" type="tel" id="mr-phone" placeholder="10-digit mobile" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes (optional)</label>
+          <input class="form-input" type="text" id="mr-notes" placeholder="e.g. Covers Nevasa + Shrirampur route">
+        </div>
+        <button class="form-submit" style="background:#e65100" onclick="addMRAgent()">🛵 Add MR Agent</button>
+        <div id="mr-add-msg" style="font-size:12px;margin-top:8px;text-align:center"></div>
+      </div>
+
+      <!-- MR List -->
+      <div style="font-size:12px;font-weight:600;color:#333;margin-bottom:8px">👥 Current MR Agents</div>
+      <div id="mr-agents-list" style="font-size:12px;color:#aaa;text-align:center;padding:12px">⏳ Loading...</div>
+    </div>
+
     <!-- ═══ CREATE ACCOUNTS — inside Settings ═══ -->
     <div class="card" style="border:1.5px solid #2e7d32">
       <div class="card-title" style="color:#2e7d32">🔍 Create Document Verifier Login</div>
@@ -889,8 +920,71 @@ function showTab(name,el){
       // Already unlocked — refresh accounts table
       loadUsers();
       loadGovtCreds();
+      loadMRAgents();
     }
   }
+}
+
+// ── MR Agent Functions ────────────────────────────────────────
+async function loadMRAgents(){
+  const el = document.getElementById('mr-agents-list');
+  if(!el) return;
+  try {
+    const r = await fetch('/api/admin/mr-agents', {headers:{'x-session-token':localStorage.getItem('adminToken')||''}});
+    const d = await r.json();
+    if(!d.agents || d.agents.length === 0){
+      el.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">No MR agents added yet. Add your first MR above.</div>';
+      return;
+    }
+    el.innerHTML = d.agents.map(a => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${a.status==='active'?'#e8f5e9':'#f5f5f5'};border-radius:10px;margin-bottom:8px;flex-wrap:wrap">
+        <div style="background:${a.status==='active'?'#e65100':'#9e9e9e'};color:white;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;font-family:monospace">${a.mr_code}</div>
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:13px;font-weight:600;color:#222">${a.mr_name}</div>
+          <div style="font-size:11px;color:#888">📱 ${a.mr_phone} ${a.notes?'· '+a.notes:''}</div>
+        </div>
+        <div style="font-size:11px;color:${a.status==='active'?'#1a6b2e':'#b71c1c'};font-weight:600">${a.status==='active'?'✅ Active':'⛔ Inactive'}</div>
+        <button onclick="toggleMRStatus(${a.id},'${a.status==='active'?'inactive':'active'}')"
+          style="font-size:11px;padding:4px 10px;border:none;border-radius:8px;cursor:pointer;background:${a.status==='active'?'#ffebee':'#e8f5e9'};color:${a.status==='active'?'#b71c1c':'#1a6b2e'}">
+          ${a.status==='active'?'Deactivate':'Activate'}
+        </button>
+      </div>
+    `).join('');
+  } catch(e){ el.innerHTML = '<div style="color:#b71c1c;text-align:center">Error loading agents</div>'; }
+}
+
+async function addMRAgent(){
+  const name = document.getElementById('mr-name').value.trim();
+  const phone = document.getElementById('mr-phone').value.trim();
+  const notes = document.getElementById('mr-notes').value.trim();
+  const msg = document.getElementById('mr-add-msg');
+  if(!name||!phone){ msg.style.color='#b71c1c'; msg.textContent='Name and phone are required'; return; }
+  if(phone.length!==10){ msg.style.color='#b71c1c'; msg.textContent='Enter 10-digit mobile number'; return; }
+  try {
+    const r = await fetch('/api/admin/mr-agents',{
+      method:'POST', headers:{'Content-Type':'application/json','x-session-token':localStorage.getItem('adminToken')||''},
+      body: JSON.stringify({mr_name:name, mr_phone:phone, notes})
+    });
+    const d = await r.json();
+    if(d.success){
+      msg.style.color='#1a6b2e';
+      msg.textContent = `✅ ${d.agent.mr_name} added with code ${d.agent.mr_code}`;
+      document.getElementById('mr-name').value='';
+      document.getElementById('mr-phone').value='';
+      document.getElementById('mr-notes').value='';
+      loadMRAgents();
+    } else { msg.style.color='#b71c1c'; msg.textContent = d.error||'Error adding agent'; }
+  } catch(e){ msg.style.color='#b71c1c'; msg.textContent='Server error'; }
+}
+
+async function toggleMRStatus(id, newStatus){
+  try {
+    await fetch(`/api/admin/mr-agents/${id}`,{
+      method:'PATCH', headers:{'Content-Type':'application/json','x-session-token':localStorage.getItem('adminToken')||''},
+      body: JSON.stringify({status:newStatus})
+    });
+    loadMRAgents();
+  } catch(e){ alert('Error updating status'); }
 }
 
 async function unlockSettings(){
@@ -904,6 +998,7 @@ async function unlockSettings(){
     document.getElementById('settingsContent').style.display='block';
     settingsUnlocked = true;
     loadSettings();
+    loadMRAgents();
     return;
   }
   try {
