@@ -930,7 +930,7 @@ async function loadMRAgents(){
   const el = document.getElementById('mr-agents-list');
   if(!el) return;
   try {
-    const r = await fetch('/api/admin/mr-agents', {headers:{'x-session-token':localStorage.getItem('adminToken')||''}});
+    const r = await fetch('/api/admin/mr-agents', {headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'}});
     const d = await r.json();
     if(!d.agents || d.agents.length === 0){
       el.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">No MR agents added yet. Add your first MR above.</div>';
@@ -962,7 +962,7 @@ async function addMRAgent(){
   if(phone.length!==10){ msg.style.color='#b71c1c'; msg.textContent='Enter 10-digit mobile number'; return; }
   try {
     const r = await fetch('/api/admin/mr-agents',{
-      method:'POST', headers:{'Content-Type':'application/json','x-session-token':localStorage.getItem('adminToken')||''},
+      method:'POST', headers:{'Content-Type':'application/json','x-auth-token':TOKEN},
       body: JSON.stringify({mr_name:name, mr_phone:phone, notes})
     });
     const d = await r.json();
@@ -980,7 +980,7 @@ async function addMRAgent(){
 async function toggleMRStatus(id, newStatus){
   try {
     await fetch(`/api/admin/mr-agents/${id}`,{
-      method:'PATCH', headers:{'Content-Type':'application/json','x-session-token':localStorage.getItem('adminToken')||''},
+      method:'PATCH', headers:{'Content-Type':'application/json','x-auth-token':TOKEN},
       body: JSON.stringify({status:newStatus})
     });
     loadMRAgents();
