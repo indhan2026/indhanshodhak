@@ -212,11 +212,13 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
   <!-- Row 3: Pump Statistics -->
   <div class="card">
     <div class="card-title">⛽ Pump Statistics</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
       <div style="background:#f9f9f9;border-radius:10px;padding:10px;text-align:center"><div id="p-total" style="font-size:20px;font-weight:700">—</div><div style="font-size:11px;color:#888">Total Pumps</div></div>
       <div style="background:#e8f5e9;border-radius:10px;padding:10px;text-align:center"><div id="p-verified" style="font-size:20px;font-weight:700;color:#1a6b2e">—</div><div style="font-size:11px;color:#888">Owner Verified</div></div>
       <div style="background:#e3f2fd;border-radius:10px;padding:10px;text-align:center"><div id="p-today" style="font-size:20px;font-weight:700;color:#1565c0">—</div><div style="font-size:11px;color:#888">Added Today</div></div>
+      <div style="background:#fff3e0;border-radius:10px;padding:10px;text-align:center"><div id="p-subscribers" style="font-size:20px;font-weight:700;color:#e65100">—</div><div style="font-size:11px;color:#888">Pump Subscribers</div></div>
     </div>
+    <div id="p-sub-revenue" style="font-size:11px;color:#888;text-align:center;margin-top:8px">—</div>
   </div>
 
   <!-- Daily growth moved to Settings section -->
@@ -898,6 +900,9 @@ async function init(){
   document.getElementById('p-total').textContent   = ps.total||0;
   document.getElementById('p-verified').textContent= ps.verified||0;
   document.getElementById('p-today').textContent   = ps.added_today||0;
+  document.getElementById('p-subscribers').textContent = rv.pump_paying_users||0;
+  document.getElementById('p-sub-revenue').textContent =
+    (rv.pump_paying_users||0)+' pump subscribers × ₹'+(rv.pump_price_per_user||'299')+'/month · ₹'+parseFloat(rv.pump_gross_monthly||0).toLocaleString('en-IN')+'/month gross';
   if(d.govt_shared_id) document.getElementById('govtId').textContent=d.govt_shared_id;
   // Growth chart
   const gc=document.getElementById('growthChart');

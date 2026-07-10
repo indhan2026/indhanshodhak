@@ -2826,24 +2826,31 @@ app.get('/api/admin/daily-stats', requireAuth(['super_admin']), (req, res) => {
     daily_growth,
     revenue: (() => {
       const price   = parseFloat(getSetting('subscription_price') || '14.99');
-      // Count active subscribers — from subscription_status OR recent payment_log (last 30 days)
-      const byStatus  = parseInt(dbGet(`SELECT COUNT(*) as c FROM users WHERE subscription_status='active'`)?.c || 0);
-      const byPayment = parseInt(dbGet(`SELECT COUNT(DISTINCT user_id) as c FROM payment_log WHERE status='captured' AND paid_at >= datetime('now', '-30 days')`)?.c || 0);
-      const paying  = Math.max(byStatus, byPayment); // use whichever is higher
+      const pumpPrice = parseFloat(getSetting('pump_subscription_price') || '299');
+      // Active USER subscribers — canonical source (same field isUserPremium() checks)
+      const paying  = parseInt(dbGet(`SELECT COUNT(*) as c FROM users WHERE subscription_status='active'`)?.c || 0);
       const gross   = paying * price;
       const rzp_cut = gross * 0.02;
       const net     = gross - rzp_cut;
       const daily   = gross / 30;
       const yearly  = gross * 12;
-      // Total captured all time from payment_log
+      // Active PUMP subscribers — canonical source (same fields isPumpOwnerPremium() checks)
+      const pumpPaying = parseInt(dbGet(
+        `SELECT COUNT(*) as c FROM petrol_pumps WHERE pump_plan='active' AND pump_plan_expiry > datetime('now')`)?.c || 0);
+      const pumpGross   = pumpPaying * pumpPrice;
+      const pumpRzpCut  = pumpGross * 0.02;
+      const pumpNet     = pumpGross - pumpRzpCut;
+      const pumpYearly  = pumpGross * 12;
+      // Total captured all time from payment_log (all plan types combined — historical record)
       const totalCaptured = parseInt(dbGet(
         `SELECT COALESCE(SUM(amount),0) as t FROM payment_log WHERE status='captured'`)?.t || 0) / 100;
       // Today's captured amount from payment_log
       const todayCaptured = parseInt(dbGet(
         `SELECT COALESCE(SUM(amount),0) as t FROM payment_log WHERE DATE(paid_at)=DATE('now') AND status='captured'`)?.t || 0) / 100;
-      // Last 30 transactions
+      // Last 30 transactions (both user + pump payments, tagged by plan_type)
       const recent_txns = dbAll(
         `SELECT pl.id, pl.payment_id, pl.order_id, pl.amount, pl.status, pl.paid_at,
+                COALESCE(pl.plan_type,'user') as plan_type,
                 u.name as user_name, u.mobile, u.email
          FROM payment_log pl LEFT JOIN users u ON u.id=pl.user_id
          ORDER BY pl.paid_at DESC LIMIT 30`);
@@ -2856,6 +2863,12 @@ app.get('/api/admin/daily-stats', requireAuth(['super_admin']), (req, res) => {
         razorpay_cut:   rzp_cut.toFixed(2),
         google_cut:     (gross * 0.15).toFixed(2),
         yearly_est:     yearly.toFixed(2),
+        // Pump subscriber stats — new, separate from user stats
+        pump_paying_users:  pumpPaying,
+        pump_price_per_user:pumpPrice.toFixed(2),
+        pump_gross_monthly: pumpGross.toFixed(2),
+        pump_net_revenue:   pumpNet.toFixed(2),
+        pump_yearly_est:    pumpYearly.toFixed(2),
         captured_today: todayCaptured.toFixed(2),
         total_captured: totalCaptured.toFixed(2),
         recent_txns,
