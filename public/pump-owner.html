@@ -603,6 +603,178 @@ const TRANSLATIONS = {
   },
 };
 
+// ── Subscription Urgency Card Translations ─────────────────────────────
+const SUB_T = {
+  en: {
+    trial_active:'🟢 Free Trial Active', days_left:'days remaining',
+    plan_active:'✅ Pro Plan Active — expires', plan_free:'Free',
+    lapsed_title:'⚠️ Your Free Trial Has Ended',
+    your_pump:'🔴 Your pump', last_updated:'Last updated',
+    hrs_ago:'hours ago', mins_ago:'mins ago', just_now:'just now',
+    below:'Showing BELOW competitors in search results',
+    nearby:'🟢 Nearby pump', top:'Appearing at TOP of search results',
+    no_data:'No recent update',
+    warning:'📉 Every hour you don\'t update = customers going to competitor pumps',
+    benefit:'✅ Subscribe → Update anytime → Appear at TOP → Get more customers',
+    sub_btn:'🔥 Subscribe Now', every_hour:'Every hour counts — don\'t lose customers',
+    next_free:'⏱️ Next free update in', hrs:'h', mins:'m',
+  },
+  hi: {
+    trial_active:'🟢 निःशुल्क परीक्षण सक्रिय', days_left:'दिन शेष',
+    plan_active:'✅ प्रो प्लान सक्रिय — समाप्ति', plan_free:'निःशुल्क',
+    lapsed_title:'⚠️ आपका निःशुल्क परीक्षण समाप्त हो गया',
+    your_pump:'🔴 आपका पंप', last_updated:'अंतिम अपडेट',
+    hrs_ago:'घंटे पहले', mins_ago:'मिनट पहले', just_now:'अभी-अभी',
+    below:'खोज परिणामों में प्रतिस्पर्धियों से नीचे दिख रहा है',
+    nearby:'🟢 पास का पंप', top:'खोज में सबसे ऊपर दिख रहा है',
+    no_data:'कोई हालिया अपडेट नहीं',
+    warning:'📉 हर घंटे की देरी = ग्राहक प्रतिस्पर्धी पंप पर जा रहे हैं',
+    benefit:'✅ सदस्यता लें → कभी भी अपडेट करें → सबसे ऊपर दिखें → अधिक ग्राहक पाएं',
+    sub_btn:'🔥 अभी सदस्यता लें', every_hour:'हर घंटा मायने रखता है — ग्राहक न खोएं',
+    next_free:'⏱️ अगला निःशुल्क अपडेट', hrs:'घं', mins:'मि',
+  },
+  mr: {
+    trial_active:'🟢 मोफत चाचणी सुरू', days_left:'दिवस शिल्लक',
+    plan_active:'✅ प्रो प्लान सक्रिय — समाप्ती', plan_free:'मोफत',
+    lapsed_title:'⚠️ तुमची मोफत चाचणी संपली',
+    your_pump:'🔴 तुमचा पंप', last_updated:'शेवटचे अपडेट',
+    hrs_ago:'तासांपूर्वी', mins_ago:'मिनिटांपूर्वी', just_now:'आत्ताच',
+    below:'शोधात प्रतिस्पर्ध्यांच्या खाली दिसत आहे',
+    nearby:'🟢 जवळचा पंप', top:'शोधात सर्वात वर दिसत आहे',
+    no_data:'कोणतेही अलीकडील अपडेट नाही',
+    warning:'📉 प्रत्येक तास उशीर = ग्राहक दुसऱ्या पंपावर जात आहेत',
+    benefit:'✅ सदस्यता घ्या → कधीही अपडेट करा → सर्वात वर दिसा → अधिक ग्राहक मिळवा',
+    sub_btn:'🔥 आत्ताच सदस्यता घ्या', every_hour:'प्रत्येक तास महत्त्वाचा — ग्राहक गमावू नका',
+    next_free:'⏱️ पुढील मोफत अपडेट', hrs:'त', mins:'मि',
+  },
+  te: {
+    trial_active:'🟢 ఉచిత ట్రయల్ సక్రియంగా ఉంది', days_left:'రోజులు మిగిలాయి',
+    plan_active:'✅ ప్రో ప్లాన్ సక్రియం — గడువు', plan_free:'ఉచితం',
+    lapsed_title:'⚠️ మీ ఉచిత ట్రయల్ ముగిసింది',
+    your_pump:'🔴 మీ పంప్', last_updated:'చివరి అప్‌డేట్',
+    hrs_ago:'గంటల క్రితం', mins_ago:'నిమిషాల క్రితం', just_now:'ఇప్పుడే',
+    below:'శోధనలో పోటీదారుల కంటే తక్కువగా కనిపిస్తోంది',
+    nearby:'🟢 సమీప పంప్', top:'శోధనలో అగ్రస్థానంలో కనిపిస్తోంది',
+    no_data:'ఇటీవల అప్‌డేట్ లేదు',
+    warning:'📉 ప్రతి గంట ఆలస్యం = కస్టమర్లు పోటీ పంప్‌కు వెళ్తున్నారు',
+    benefit:'✅ సభ్యత్వం తీసుకోండి → ఎప్పుడైనా అప్‌డేట్ చేయండి → అగ్రస్థానంలో కనిపించండి',
+    sub_btn:'🔥 ఇప్పుడే సభ్యత్వం', every_hour:'ప్రతి గంట ముఖ్యమైనది — కస్టమర్లను పోగొట్టుకోకండి',
+    next_free:'⏱️ తదుపరి ఉచిత అప్‌డేట్', hrs:'గం', mins:'ని',
+  },
+  ta: {
+    trial_active:'🟢 இலவச சோதனை செயலில் உள்ளது', days_left:'நாட்கள் மீதமுள்ளன',
+    plan_active:'✅ ப்ரோ திட்டம் செயலில் — காலாவதி', plan_free:'இலவசம்',
+    lapsed_title:'⚠️ உங்கள் இலவச சோதனை முடிந்தது',
+    your_pump:'🔴 உங்கள் பம்ப்', last_updated:'கடைசி புதுப்பிப்பு',
+    hrs_ago:'மணி நேரத்திற்கு முன்', mins_ago:'நிமிடங்களுக்கு முன்', just_now:'இப்போதுதான்',
+    below:'தேடலில் போட்டியாளர்களுக்கு கீழே தெரிகிறது',
+    nearby:'🟢 அருகிலுள்ள பம்ப்', top:'தேடலில் மேலே தெரிகிறது',
+    no_data:'சமீபத்திய புதுப்பிப்பு இல்லை',
+    warning:'📉 ஒவ்வொரு மணி நேரமும் தாமதம் = வாடிக்கையாளர்கள் போட்டி பம்பிற்கு செல்கிறார்கள்',
+    benefit:'✅ சந்தா எடுங்கள் → எப்போதும் புதுப்பிக்கவும் → மேலே தெரியுங்கள்',
+    sub_btn:'🔥 இப்போதே சந்தா', every_hour:'ஒவ்வொரு மணியும் முக்கியம் — வாடிக்கையாளர்களை இழக்காதீர்கள்',
+    next_free:'⏱️ அடுத்த இலவச புதுப்பிப்பு', hrs:'மணி', mins:'நி',
+  },
+  kn: {
+    trial_active:'🟢 ಉಚಿತ ಪ್ರಯೋಗ ಸಕ್ರಿಯ', days_left:'ದಿನಗಳು ಬಾಕಿ',
+    plan_active:'✅ ಪ್ರೋ ಪ್ಲಾನ್ ಸಕ್ರಿಯ — ಮುಕ್ತಾಯ', plan_free:'ಉಚಿತ',
+    lapsed_title:'⚠️ ನಿಮ್ಮ ಉಚಿತ ಪ್ರಯೋಗ ಮುಗಿದಿದೆ',
+    your_pump:'🔴 ನಿಮ್ಮ ಪಂಪ್', last_updated:'ಕೊನೆಯ ನವೀಕರಣ',
+    hrs_ago:'ಗಂಟೆಗಳ ಹಿಂದೆ', mins_ago:'ನಿಮಿಷಗಳ ಹಿಂದೆ', just_now:'ಈಗಷ್ಟೇ',
+    below:'ಹುಡುಕಾಟದಲ್ಲಿ ಪ್ರತಿಸ್ಪರ್ಧಿಗಳ ಕೆಳಗೆ ಕಾಣಿಸುತ್ತಿದೆ',
+    nearby:'🟢 ಹತ್ತಿರದ ಪಂಪ್', top:'ಹುಡುಕಾಟದಲ್ಲಿ ಮೇಲೆ ಕಾಣಿಸುತ್ತಿದೆ',
+    no_data:'ಇತ್ತೀಚಿನ ನವೀಕರಣ ಇಲ್ಲ',
+    warning:'📉 ಪ್ರತಿ ಗಂಟೆ ತಡ = ಗ್ರಾಹಕರು ಪ್ರತಿಸ್ಪರ್ಧಿ ಪಂಪ್‌ಗೆ ಹೋಗುತ್ತಿದ್ದಾರೆ',
+    benefit:'✅ ಚಂದಾ ಪಡೆಯಿರಿ → ಯಾವಾಗಲೂ ನವೀಕರಿಸಿ → ಮೇಲೆ ಕಾಣಿಸಿ',
+    sub_btn:'🔥 ಈಗಲೇ ಚಂದಾ', every_hour:'ಪ್ರತಿ ಗಂಟೆ ಮುಖ್ಯ — ಗ್ರಾಹಕರನ್ನು ಕಳೆದುಕೊಳ್ಳಬೇಡಿ',
+    next_free:'⏱️ ಮುಂದಿನ ಉಚಿತ ನವೀಕರಣ', hrs:'ಗಂ', mins:'ನಿ',
+  },
+  gu: {
+    trial_active:'🟢 નિઃશુલ્ક ટ્રાયલ સક્રિય', days_left:'દિવસ બાકી',
+    plan_active:'✅ પ્રો પ્લાન સક્રિય — સમાપ્તિ', plan_free:'મફત',
+    lapsed_title:'⚠️ તમારી નિઃશુલ્ક ટ્રાયલ સમાપ્ત થઈ',
+    your_pump:'🔴 તમારો પંપ', last_updated:'છેલ્લું અપડેટ',
+    hrs_ago:'કલાક પહેલા', mins_ago:'મિનિટ પહેલા', just_now:'હમણાં જ',
+    below:'શોધ પરિણામોમાં સ્પર્ધકો કરતા નીચે દેખાય છે',
+    nearby:'🟢 નજીકનો પંપ', top:'શોધમાં સૌથી ઉપર દેખાય છે',
+    no_data:'તાજેતરનો કોઈ અપડેટ નથી',
+    warning:'📉 દર કલાકની વિલંબ = ગ્રાહકો સ્પર્ધક પંપ પર જઈ રહ્યા છે',
+    benefit:'✅ સભ્યપદ લો → ગમે ત્યારે અપડેટ કરો → ઉપર દેખાઓ',
+    sub_btn:'🔥 હમણાં સભ્ય બનો', every_hour:'દર કલાક મહત્ત્વપૂર્ણ — ગ્રાહકો ન ગુમાવો',
+    next_free:'⏱️ આગળનો નિઃશુલ્ક અપડેટ', hrs:'ક', mins:'મિ',
+  },
+  pa: {
+    trial_active:'🟢 ਮੁਫ਼ਤ ਟ੍ਰਾਇਲ ਸਰਗਰਮ', days_left:'ਦਿਨ ਬਾਕੀ',
+    plan_active:'✅ ਪ੍ਰੋ ਪਲਾਨ ਸਰਗਰਮ — ਮਿਆਦ', plan_free:'ਮੁਫ਼ਤ',
+    lapsed_title:'⚠️ ਤੁਹਾਡਾ ਮੁਫ਼ਤ ਟ੍ਰਾਇਲ ਖਤਮ ਹੋ ਗਿਆ',
+    your_pump:'🔴 ਤੁਹਾਡਾ ਪੰਪ', last_updated:'ਆਖਰੀ ਅਪਡੇਟ',
+    hrs_ago:'ਘੰਟੇ ਪਹਿਲਾਂ', mins_ago:'ਮਿੰਟ ਪਹਿਲਾਂ', just_now:'ਹੁਣੇ',
+    below:'ਖੋਜ ਵਿੱਚ ਪ੍ਰਤੀਯੋਗੀਆਂ ਤੋਂ ਹੇਠਾਂ ਦਿਖ ਰਿਹਾ ਹੈ',
+    nearby:'🟢 ਨੇੜੇ ਦਾ ਪੰਪ', top:'ਖੋਜ ਵਿੱਚ ਸਭ ਤੋਂ ਉੱਪਰ ਦਿਖ ਰਿਹਾ ਹੈ',
+    no_data:'ਕੋਈ ਤਾਜ਼ਾ ਅਪਡੇਟ ਨਹੀਂ',
+    warning:'📉 ਹਰ ਘੰਟੇ ਦੀ ਦੇਰੀ = ਗਾਹਕ ਪ੍ਰਤੀਯੋਗੀ ਪੰਪ ਤੇ ਜਾ ਰਹੇ ਹਨ',
+    benefit:'✅ ਗਾਹਕੀ ਲਓ → ਕਦੇ ਵੀ ਅਪਡੇਟ ਕਰੋ → ਸਿਖਰ ਤੇ ਦਿਖੋ',
+    sub_btn:'🔥 ਹੁਣੇ ਗਾਹਕੀ ਲਓ', every_hour:'ਹਰ ਘੰਟਾ ਮਹੱਤਵਪੂਰਨ — ਗਾਹਕ ਨਾ ਗੁਆਓ',
+    next_free:'⏱️ ਅਗਲਾ ਮੁਫ਼ਤ ਅਪਡੇਟ', hrs:'ਘੰ', mins:'ਮਿ',
+  },
+  bn: {
+    trial_active:'🟢 বিনামূল্যে ট্রায়াল সক্রিয়', days_left:'দিন বাকি',
+    plan_active:'✅ প্রো প্ল্যান সক্রিয় — মেয়াদ', plan_free:'বিনামূল্যে',
+    lapsed_title:'⚠️ আপনার বিনামূল্যে ট্রায়াল শেষ হয়েছে',
+    your_pump:'🔴 আপনার পাম্প', last_updated:'সর্বশেষ আপডেট',
+    hrs_ago:'ঘন্টা আগে', mins_ago:'মিনিট আগে', just_now:'এইমাত্র',
+    below:'অনুসন্ধানে প্রতিযোগীদের নিচে দেখাচ্ছে',
+    nearby:'🟢 কাছের পাম্প', top:'অনুসন্ধানে সবার উপরে দেখাচ্ছে',
+    no_data:'সাম্প্রতিক কোনো আপডেট নেই',
+    warning:'📉 প্রতি ঘন্টার বিলম্ব = গ্রাহকরা প্রতিযোগী পাম্পে যাচ্ছেন',
+    benefit:'✅ সদস্যতা নিন → যেকোনো সময় আপডেট করুন → উপরে থাকুন',
+    sub_btn:'🔥 এখনই সদস্যতা নিন', every_hour:'প্রতিটি ঘন্টা গুরুত্বপূর্ণ — গ্রাহক হারাবেন না',
+    next_free:'⏱️ পরবর্তী বিনামূল্যে আপডেট', hrs:'ঘ', mins:'মি',
+  },
+  ml: {
+    trial_active:'🟢 സൗജന്യ ട്രയൽ സജീവം', days_left:'ദിവസം ശേഷിക്കുന്നു',
+    plan_active:'✅ പ്രോ പ്ലാൻ സജീവം — കാലഹരണം', plan_free:'സൗജന്യം',
+    lapsed_title:'⚠️ നിങ്ങളുടെ സൗജന്യ ട്രയൽ അവസാനിച്ചു',
+    your_pump:'🔴 നിങ്ങളുടെ പമ്പ്', last_updated:'അവസാന അപ്‌ഡേറ്റ്',
+    hrs_ago:'മണിക്കൂർ മുമ്പ്', mins_ago:'മിനിറ്റ് മുമ്പ്', just_now:'ഇപ്പോൾ',
+    below:'തിരയലിൽ എതിരാളികളേക്കാൾ താഴെ കാണിക്കുന്നു',
+    nearby:'🟢 സമീപ പമ്പ്', top:'തിരയലിൽ മുകളിൽ കാണിക്കുന്നു',
+    no_data:'സമീപകാല അപ്‌ഡേറ്റ് ഇല്ല',
+    warning:'📉 ഓരോ മണിക്കൂർ കാലതാമസം = ഉപഭോക്താക്കൾ എതിരാളി പമ്പിലേക്ക് പോകുന്നു',
+    benefit:'✅ സബ്‌സ്‌ക്രൈബ് ചെയ്യൂ → എപ്പോഴും അപ്‌ഡേറ്റ് ചെയ്യൂ → മുകളിൽ കാണിക്കൂ',
+    sub_btn:'🔥 ഇപ്പോൾ സബ്‌സ്‌ക്രൈബ് ചെയ്യൂ', every_hour:'ഓരോ മണിക്കൂറും പ്രധാനം — ഉപഭോക്താക്കളെ നഷ്ടപ്പെടുത്തരുത്',
+    next_free:'⏱️ അടുത്ത സൗജന്യ അപ്‌ഡേറ്റ്', hrs:'മണി', mins:'മി',
+  },
+  or: {
+    trial_active:'🟢 ମାଗଣା ଟ୍ରାୟଲ ସକ୍ରିୟ', days_left:'ଦିନ ବାକି',
+    plan_active:'✅ ପ୍ରୋ ପ୍ଲାନ ସକ୍ରିୟ — ସମାପ୍ତି', plan_free:'ମାଗଣା',
+    lapsed_title:'⚠️ ଆପଣଙ୍କ ମାଗଣା ଟ୍ରାୟଲ ଶେଷ ହୋଇଗଲା',
+    your_pump:'🔴 ଆପଣଙ୍କ ପମ୍ପ', last_updated:'ଶେଷ ଅପଡେଟ',
+    hrs_ago:'ଘଣ୍ଟା ପୂର୍ବେ', mins_ago:'ମିନିଟ ପୂର୍ବେ', just_now:'ଏବେ ମାତ୍ର',
+    below:'ଖୋଜ ଫଳାଫଳରେ ପ୍ରତିଯୋଗୀଙ୍କ ତଳେ ଦେଖାଯାଉଛି',
+    nearby:'🟢 ନିକଟ ପମ୍ପ', top:'ଖୋଜରେ ସବୁଠୁ ଉପରେ ଦେଖାଯାଉଛି',
+    no_data:'କୌଣସି ସ୍ୱଳ୍ପ ଅପଡେଟ ନାହିଁ',
+    warning:'📉 ପ୍ରତ୍ୟେକ ଘଣ୍ଟା ବିଳମ୍ବ = ଗ୍ରାହକ ପ୍ରତିଯୋଗୀ ପମ୍ପ ଆଡ଼କୁ ଯାଉଛନ୍ତି',
+    benefit:'✅ ସଦସ୍ୟ ହୁଅନ୍ତୁ → ଯେକୌଣସି ସମୟ ଅପଡେଟ ଦିଅନ୍ତୁ → ସବୁଠୁ ଉପରେ ଦେଖାଆନ୍ତୁ',
+    sub_btn:'🔥 ଏବେ ସଦସ୍ୟ ହୁଅନ୍ତୁ', every_hour:'ପ୍ରତ୍ୟେକ ଘଣ୍ଟା ଗୁରୁତ୍ୱପୂର୍ଣ — ଗ୍ରାହକ ହରାନ୍ତୁ ନାହିଁ',
+    next_free:'⏱️ ପରବର୍ତ୍ତୀ ମାଗଣା ଅପଡେଟ', hrs:'ଘ', mins:'ମି',
+  },
+  as: {
+    trial_active:'🟢 বিনামূলীয়া ট্ৰায়েল সক্ৰিয়', days_left:'দিন বাকী',
+    plan_active:'✅ প্ৰো প্লেন সক্ৰিয় — মিয়াদ', plan_free:'বিনামূলীয়া',
+    lapsed_title:'⚠️ আপোনাৰ বিনামূলীয়া ট্ৰায়েল শেষ হৈছে',
+    your_pump:'🔴 আপোনাৰ পাম্প', last_updated:'শেষ আপডেট',
+    hrs_ago:'ঘণ্টা আগত', mins_ago:'মিনিট আগত', just_now:'এইমাত্ৰ',
+    below:'সন্ধানত প্ৰতিযোগীতকৈ তলত দেখুৱাইছে',
+    nearby:'🟢 ওচৰৰ পাম্প', top:'সন্ধানত সৰ্বোচ্চত দেখুৱাইছে',
+    no_data:'শেহতীয়া আপডেট নাই',
+    warning:'📉 প্ৰতি ঘণ্টাৰ পলম = গ্ৰাহকসকল প্ৰতিযোগী পাম্পলৈ গৈছে',
+    benefit:'✅ চাবস্ক্ৰাইব কৰক → যিকোনো সময়ত আপডেট কৰক → ওপৰত দেখাওক',
+    sub_btn:'🔥 এতিয়াই চাবস্ক্ৰাইব কৰক', every_hour:'প্ৰতিটো ঘণ্টা গুৰুত্বপূৰ্ণ — গ্ৰাহক নেহেৰুৱাব',
+    next_free:'⏱️ পৰৱৰ্তী বিনামূলীয়া আপডেট', hrs:'ঘ', mins:'মি',
+  },
+};
+
 let currentLang = localStorage.getItem('pump_lang') || 'en';
 let scanStream = null;
 let lastQRData = '';
@@ -1009,7 +1181,115 @@ async function openProfileModal(){
     if(d.is_premium){scEl.textContent='♾️ Unlimited';scEl.style.color='#81c784';}
     else if(d.scanner_blocked){scEl.textContent=`🚫 Blocked (${d.scan_count}/${d.scan_limit})`;scEl.style.color='#ef9a9a';}
     else{scEl.textContent=`${d.scan_count}/${d.scan_limit} · ${d.scan_remaining} left`;scEl.style.color=d.scan_remaining<=2?'#ffd700':'#81c784';}
+    // Load urgency card
+    loadPumpSubCard(d);
   }catch(e){console.error('Profile error:',e);}
+}
+
+// ── Pump Subscription Urgency Card ──────────────────────────────────────
+async function loadPumpSubCard(subData) {
+  const card  = document.getElementById('pump-sub-card');
+  const inner = document.getElementById('pump-sub-inner');
+  if(!card || !inner) return;
+  const ST = SUB_T[currentLang] || SUB_T['en'];
+  const pumpPrice = subData.pump_price || '299';
+
+  // TRIAL ACTIVE — show green status only
+  if(subData.pump_premium && subData.pump_trial_left > 0) {
+    card.style.display = 'block';
+    card.style.borderColor = '#4caf50';
+    card.style.background = 'rgba(76,175,80,.08)';
+    inner.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#81c784;margin-bottom:4px">${ST.trial_active}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7)">${subData.pump_trial_left} ${ST.days_left}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:6px">Full access — update fuel status anytime</div>
+    `;
+    return;
+  }
+
+  // SUBSCRIBED (paid) — show plan info
+  if(subData.pump_plan === 'active' && subData.pump_plan_expiry) {
+    card.style.display = 'block';
+    card.style.borderColor = '#4caf50';
+    card.style.background = 'rgba(76,175,80,.08)';
+    inner.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#81c784;margin-bottom:4px">${ST.plan_active} ${subData.pump_plan_expiry.split('T')[0]}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4)">Full access — update anytime</div>
+    `;
+    return;
+  }
+
+  // LAPSED — show urgency card with real competitor data
+  card.style.display = 'block';
+  card.style.borderColor = '#e65100';
+  card.style.background = 'rgba(230,81,0,.08)';
+  inner.innerHTML = `<div style="font-size:13px;font-weight:700;color:#ff8a50;margin-bottom:12px">${ST.lapsed_title}</div><div id="comp-loading" style="font-size:12px;color:rgba(255,255,255,.5)">⏳ Loading competitor data...</div>`;
+
+  try {
+    const cr = await fetch('/api/pump-owner/nearby-competitors', {headers:{'x-auth-token':TOKEN}});
+    const cd = await cr.json();
+
+    // Format time ago helper
+    function timeAgo(hrs, mins) {
+      if(hrs === null) return ST.no_data;
+      if(hrs === 0 && mins < 5) return ST.just_now;
+      if(hrs === 0) return `${mins} ${ST.mins_ago}`;
+      return `${hrs} ${ST.hrs_ago}`;
+    }
+
+    // Build competitor rows
+    let myLine = '';
+    if(cd.my_hours_ago !== null) {
+      myLine = `<div style="background:rgba(183,28,28,.25);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:#ff8a50">${ST.your_pump}: ${timeAgo(cd.my_hours_ago, 0)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">${ST.below}</div>
+      </div>`;
+    }
+
+    let compLines = (cd.competitors||[]).map(c => `
+      <div style="background:rgba(26,107,46,.2);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:#81c784">${ST.nearby}: ${c.name||'Pump'}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px">${ST.last_updated}: ${timeAgo(c.hours_ago, c.mins_ago||0)}</div>
+        <div style="font-size:11px;color:#81c784;margin-top:2px">${ST.top}</div>
+      </div>
+    `).join('');
+
+    if(!compLines) compLines = `<div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:8px;font-style:italic">No nearby verified pumps found yet — subscribe to stay ready when competitors join.</div>`;
+
+    // Countdown timer to next free update
+    let countdownHtml = '';
+    if(cd.my_hours_ago !== null && cd.my_hours_ago < 12) {
+      const hoursLeft = Math.floor(12 - cd.my_hours_ago);
+      const minsLeft  = Math.round((12 - cd.my_hours_ago - hoursLeft) * 60);
+      countdownHtml = `<div style="background:rgba(255,255,255,.06);border-radius:10px;padding:10px;margin-top:8px;text-align:center">
+        <div style="font-size:11px;color:rgba(255,255,255,.5)">${ST.next_free}</div>
+        <div style="font-size:20px;font-weight:700;color:#ffd700;font-family:monospace">${hoursLeft}${ST.hrs} ${minsLeft}${ST.mins}</div>
+      </div>`;
+    }
+
+    document.getElementById('comp-loading').parentElement.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#ff8a50;margin-bottom:12px">${ST.lapsed_title}</div>
+      <div style="border-top:1px solid rgba(255,255,255,.1);margin-bottom:10px;padding-top:10px">
+        ${myLine}${compLines}
+      </div>
+      <div style="font-size:12px;color:#ffd700;margin-bottom:6px;font-weight:600">${ST.warning}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:12px">${ST.benefit}</div>
+      ${countdownHtml}
+      <button onclick="window.location.href='/subscribe.html'"
+        style="width:100%;margin-top:12px;padding:13px;background:linear-gradient(135deg,#e65100,#ff8a50);
+        color:white;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;
+        box-shadow:0 4px 15px rgba(230,81,0,.4)">
+        ${ST.sub_btn} ₹${pumpPrice}/month
+      </button>
+      <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.4);margin-top:8px">${ST.every_hour}</div>
+    `;
+  } catch(e) {
+    inner.innerHTML = `<div style="font-size:12px;color:#ff8a50">${ST.lapsed_title}<br><br>
+      <button onclick="window.location.href='/subscribe.html'"
+        style="width:100%;padding:12px;background:#e65100;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">
+        ${ST.sub_btn} ₹${pumpPrice}/month
+      </button></div>`;
+  }
 }
 
 function closeProfileModal(){
@@ -1168,6 +1448,11 @@ async function changePassword(){
           color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">
           💚 Subscribe / Renew
         </button>
+      </div>
+
+      <!-- Pump Owner Subscription Urgency Card -->
+      <div id="pump-sub-card" style="display:none;border-radius:14px;padding:16px;margin-bottom:12px;border:2px solid #e65100;background:rgba(230,81,0,.08)">
+        <div id="pump-sub-inner"></div>
       </div>
 
       <!-- Change Password -->

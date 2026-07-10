@@ -212,6 +212,7 @@ async function initDB() {
   // Default settings
   const settingsList = [
     ['subscription_price','14.99'], ['trial_days','10'],
+    ['pump_subscription_price','299'], ['pump_trial_days','45'],
     ['mapmyindia_token','NOT_SET'],
     ['tier_P1_litres','9999'], ['tier_P2_litres','20'],
     ['tier_P3_litres','50'],   ['tier_P4_litres','30'], ['tier_P5_litres','10'],
@@ -331,6 +332,9 @@ async function initDB() {
     )`,
     `ALTER TABLE pump_applications ADD COLUMN referral_code TEXT`,
     `ALTER TABLE petrol_pumps ADD COLUMN referral_code TEXT`,
+    `ALTER TABLE petrol_pumps ADD COLUMN verified_at TEXT`,
+    `ALTER TABLE petrol_pumps ADD COLUMN pump_plan TEXT DEFAULT 'free'`,
+    `ALTER TABLE petrol_pumps ADD COLUMN pump_plan_expiry TEXT`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -789,20 +793,29 @@ app.get('/api/pumps/search', (req,res) => {
   const price   = getSetting('subscription_price') || '14.99';
 
   if(!premium){
+    const userLat = parseFloat(lat) || 0;
+    const userLng = parseFloat(lng) || 0;
+    // Calculate distance (km) for each pump
     result = result.map(p => {
-      if(p.is_verified){
-        return {
-          id: p.id, name: p.name, oil_company: p.oil_company,
-          address: p.address, district: p.district, pin_code: p.pin_code,
-          is_verified: true, _locked: true, _locked_reason: 'verified',
-          message: `Subscribe ₹${price}/month to see verified pump fuel data`
-        };
-      }
-      return p;
-    });
-    const community = result.filter(p => !p._locked).slice(0,1);
-    const locked    = result.filter(p => p._locked);
-    result = [...community, ...locked];
+      const dlat = (p.lat||0) - userLat;
+      const dlng = (p.lng||0) - userLng;
+      const dist = Math.sqrt(dlat*dlat + dlng*dlng) * 111;
+      return { ...p, _dist: dist };
+    }).sort((a,b) => b._dist - a._dist); // farthest first
+
+    const hiddenCount = Math.max(0, result.length - 2);
+    // Show 2 farthest pumps (>=4.5km preferred, else just 2 farthest)
+    const farPumps = result.filter(p => p._dist >= 4.5).slice(0, 2);
+    const shown    = farPumps.length >= 2 ? farPumps : result.slice(0, 2);
+    result = shown;
+
+    if(hiddenCount > 0) {
+      result.push({
+        _info: true,
+        hidden_count: hiddenCount,
+        message: `${hiddenCount} pump${hiddenCount!==1?'s':''} within 2km hidden — Subscribe ₹${price}/month to see all nearby pumps`
+      });
+    }
   }
   res.json({ pumps:result, total:pumps.length, is_premium:premium, price });
 });
@@ -1285,7 +1298,7 @@ async function applyAIVerdict(job, verdict, score, reason) {
   if(verdict === 'approve' && job.app_table === 'pump') {
     const app = dbGet(`SELECT pump_id FROM pump_applications WHERE id=?`, [job.application_id]);
     if(app?.pump_id) {
-      dbRun(`UPDATE petrol_pumps SET is_verified=1 WHERE id=?`, [app.pump_id]);
+      dbRun(`UPDATE petrol_pumps SET is_verified=1, verified_at=datetime('now') WHERE id=?`, [app.pump_id]);
       cacheClear('gps:'); cacheClear('pin:');
     }
   }
@@ -1753,6 +1766,59 @@ app.post('/api/pump-owner/register',
   }
 );
 
+// ── Nearby Competitor Pumps — for urgency card on lapsed pump owner ──
+app.get('/api/pump-owner/nearby-competitors', requireAuth(['pump_owner','super_admin']), (req, res) => {
+  try {
+    const pump = dbGet(`SELECT * FROM petrol_pumps WHERE owner_user_id=? AND is_active=1`, [req.user.id]);
+    if(!pump || !pump.lat) return res.json({ competitors:[], my_last_update:null });
+
+    const R = 0.09; // ~10km box
+    const competitors = dbAll(`
+      SELECT pp.id, pp.name, pp.address,
+             (SELECT created_at FROM fuel_reports
+              WHERE pump_id=pp.id AND reporter_role='pump_owner'
+              ORDER BY created_at DESC LIMIT 1) as last_report_time
+      FROM petrol_pumps pp
+      WHERE pp.is_verified=1 AND pp.is_active=1 AND pp.id != ?
+        AND pp.lat BETWEEN ? AND ? AND pp.lng BETWEEN ? AND ?
+      ORDER BY last_report_time DESC
+      LIMIT 3
+    `, [pump.id, pump.lat-R, pump.lat+R, pump.lng-R, pump.lng+R]);
+
+    const myLastReport = dbGet(
+      `SELECT created_at FROM fuel_reports WHERE pump_id=? AND reporter_role='pump_owner' ORDER BY created_at DESC LIMIT 1`,
+      [pump.id]
+    );
+
+    // Hours since last update for each
+    const now = Date.now();
+    const withAge = competitors.map(c => {
+      const hrs = c.last_report_time
+        ? Math.floor((now - new Date(c.last_report_time+'Z').getTime()) / 3600000)
+        : null;
+      const mins = c.last_report_time
+        ? Math.round((now - new Date(c.last_report_time+'Z').getTime()) / 60000) % 60
+        : null;
+      return { ...c, hours_ago: hrs, mins_ago: mins };
+    });
+
+    const myHrsAgo = myLastReport?.created_at
+      ? Math.floor((now - new Date(myLastReport.created_at+'Z').getTime()) / 3600000)
+      : null;
+
+    res.json({
+      competitors: withAge,
+      my_last_update: myLastReport?.created_at || null,
+      my_hours_ago: myHrsAgo,
+      pump_premium: isPumpOwnerPremium(req.user, pump),
+      pump_trial_left: Math.max(0, parseInt(getSetting('pump_trial_days')||'45') -
+        (pump.verified_at ? Math.floor((now - new Date(pump.verified_at).getTime())/86400000) : 999))
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/pump-signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
 app.get('/pump_signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
 
@@ -1908,16 +1974,21 @@ app.get('/api/pump-owner/subscription-status', requireAuth(['pump_owner','super_
       [req.user.id]
     );
     const pump = dbGet(
-      'SELECT name, oil_company, address, pin_code, license_number, is_verified, scan_count_free, scan_period_start FROM petrol_pumps WHERE owner_user_id=? AND is_active=1',
+      'SELECT name, oil_company, address, pin_code, license_number, is_verified, scan_count_free, scan_period_start, verified_at, pump_plan, pump_plan_expiry FROM petrol_pumps WHERE owner_user_id=? AND is_active=1',
       [req.user.id]
     );
 
-    const premium    = isPumpOwnerPremium(user);
-    const trialDays  = parseInt(getSetting('trial_days') || '10');
-    const created    = new Date(user.created_at || Date.now());
-    const elapsed    = Math.floor((Date.now() - created.getTime()) / 86400000);
-    const trialLeft  = Math.max(0, trialDays - elapsed);
-    const price      = getSetting('subscription_price') || '14.99';
+    const premium        = isPumpOwnerPremium(user, pump);
+    const trialDays      = parseInt(getSetting('trial_days') || '10');
+    const created        = new Date(user.created_at || Date.now());
+    const elapsed        = Math.floor((Date.now() - created.getTime()) / 86400000);
+    const trialLeft      = Math.max(0, trialDays - elapsed);
+    const price          = getSetting('subscription_price') || '14.99';
+    const pumpPrice      = getSetting('pump_subscription_price') || '299';
+    const pumpTrialDays  = parseInt(getSetting('pump_trial_days') || '45');
+    const pumpVerifiedAt = pump?.verified_at ? new Date(pump.verified_at) : null;
+    const pumpElapsed    = pumpVerifiedAt ? Math.floor((Date.now() - pumpVerifiedAt.getTime()) / 86400000) : 999;
+    const pumpTrialLeft  = Math.max(0, pumpTrialDays - pumpElapsed);
 
     const periodStart = pump?.scan_period_start ? new Date(pump.scan_period_start) : null;
     let scanCount = pump?.scan_count_free || 0;
@@ -1945,6 +2016,12 @@ app.get('/api/pump-owner/subscription-status', requireAuth(['pump_owner','super_
       scan_limit:    10,
       scan_remaining:Math.max(0, 10 - scanCount),
       scanner_blocked:!premium && scanCount >= 10,
+      pump_premium:      premium,
+      pump_trial_left:   pumpTrialLeft,
+      pump_trial_days:   pumpTrialDays,
+      pump_price:        pumpPrice,
+      pump_plan:         pump?.pump_plan || 'free',
+      pump_plan_expiry:  pump?.pump_plan_expiry || null,
     });
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -2403,7 +2480,7 @@ app.post('/api/verify/pump-applications/:id/approve', requireAuth(['doc_verifier
 
   dbRun(`UPDATE users SET role='pump_owner', password_hash=?, pump_login_id=? WHERE id=?`,
     [hashPwd(autoPassword), licenseNo, row.user_id]);
-  dbRun(`UPDATE petrol_pumps SET owner_user_id=?, is_verified=1 WHERE id=?`,[row.user_id,row.pump_id]);
+  dbRun(`UPDATE petrol_pumps SET owner_user_id=?, is_verified=1, verified_at=datetime('now') WHERE id=?`,[row.user_id,row.pump_id]);
 
   // Auto-geocode if lat/lng missing — so pump appears on GPS search with green tick!
   const pumpRow = dbGet(`SELECT lat, lng, address, name, pin_code FROM petrol_pumps WHERE id=?`,[row.pump_id]);
@@ -2618,7 +2695,7 @@ app.get('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
 });
 
 app.post('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
-  const allowed=['subscription_price','trial_days','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers'];
+  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers'];
   const updated=[];
   for (const [k,v] of Object.entries(req.body)) {
     if (allowed.includes(k)) { dbRun(`INSERT OR REPLACE INTO settings(key,value)VALUES(?,?)`,[k,String(v)]); updated.push(k); }
@@ -2984,20 +3061,28 @@ function isUserPremium(user) {
   }
   return false;
 }
-function isPumpOwnerPremium(user) {
+function isPumpOwnerPremium(user, pump) {
   if(!user) return false;
+  // Pump-level subscription (paid plan)
+  if(pump?.pump_plan === 'active' && pump?.pump_plan_expiry) {
+    if(new Date(pump.pump_plan_expiry) > new Date()) return true;
+  }
+  // Pump trial: verified_at + pump_trial_days (admin-controlled)
+  const verifiedAt = pump?.verified_at;
+  if(verifiedAt) {
+    const pumpTd = parseInt(getSetting('pump_trial_days') || '45');
+    if(pumpTd > 0) {
+      const elapsed = Math.floor((Date.now() - new Date(verifiedAt).getTime()) / 86400000);
+      if(elapsed < pumpTd) return true;
+    }
+  }
+  // Legacy fallback: user-level subscription (backward compat)
   if(user.subscription_status === 'active') {
     if(user.subscription_paid_at) {
       const daysSince = Math.floor((Date.now() - new Date(user.subscription_paid_at).getTime()) / 86400000);
       if(daysSince > 30) return false;
     }
     return true;
-  }
-  if(user.subscription_status === 'trial') {
-    const td = parseInt(getSetting('trial_days') || '10');
-    if(td === 0) return false;
-    const elapsed = Math.floor((Date.now() - new Date(user.created_at||Date.now()).getTime()) / 86400000);
-    return elapsed < td;
   }
   return false;
 }
@@ -3682,6 +3767,29 @@ app.post('/api/pump-owner/update-fuel', requireAuth(['pump_owner','super_admin']
   const { petrol, diesel, cng, ev, queue_length, restock_note } = req.body;
   const pump = dbGet(`SELECT * FROM petrol_pumps WHERE owner_user_id=? AND is_active=1`, [req.user.id]);
   if(!pump) return res.status(404).json({ error:'No pump linked to your account' });
+
+  // ── 12hr restriction for lapsed pump owners ──────────────────────────
+  if(req.user.role === 'pump_owner' && !isPumpOwnerPremium(req.user, pump)) {
+    const lastReport = dbGet(
+      `SELECT created_at FROM fuel_reports WHERE pump_id=? AND reporter_role='pump_owner' ORDER BY created_at DESC LIMIT 1`,
+      [pump.id]
+    );
+    if(lastReport?.created_at) {
+      const hoursSince = (Date.now() - new Date(lastReport.created_at + 'Z').getTime()) / 3600000;
+      if(hoursSince < 12) {
+        const hoursLeft = Math.floor(12 - hoursSince);
+        const minsLeft  = Math.round((12 - hoursSince - hoursLeft) * 60);
+        return res.status(429).json({
+          error: 'trial_ended',
+          hours_left: hoursLeft,
+          mins_left:  minsLeft,
+          message:    `Trial ended. Subscribe ₹${getSetting('pump_subscription_price')||'299'}/month to update anytime. Next free update in ${hoursLeft}h ${minsLeft}m.`
+        });
+      }
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────
+
   dbRun(`INSERT INTO fuel_reports (pump_id,reported_by,reporter_role,petrol,diesel,cng,ev,queue_length,restock_note,expires_at)
          VALUES (?,?,?,?,?,?,?,?,?,datetime('now','+12 hours'))`,
     [pump.id, req.user.id, 'pump_owner', petrol?1:0, diesel?1:0, cng?1:0, ev?1:0,

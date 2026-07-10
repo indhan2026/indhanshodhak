@@ -505,6 +505,25 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
       </div>
     </div>
 
+    <!-- Pump Owner Subscription Settings -->
+    <div class="card" style="border:1.5px solid #e65100">
+      <div class="card-title" style="color:#e65100">🛵 Pump Owner Subscription Settings</div>
+      <div class="setting-row">
+        <div><div class="setting-label">Pump Subscription Price (₹)</div><div class="setting-note">Monthly fee for pump owners after trial ends</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="setting-input" type="number" id="set-pump-price" value="299" step="1">
+          <button class="save-btn" onclick="saveSetting('pump_subscription_price','set-pump-price')">Save</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Pump Free Trial Days</div><div class="setting-note">Days from verified (green badge) before update restriction kicks in</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="setting-input" type="number" id="set-pump-trial" value="45">
+          <button class="save-btn" onclick="saveSetting('pump_trial_days','set-pump-trial')">Save</button>
+        </div>
+      </div>
+    </div>
+
     <!-- AI Verification Settings -->
     <div class="card">
       <div class="card-title">🤖 AI Verification Settings</div>
@@ -901,6 +920,8 @@ async function init(){
     updateUI();
     document.getElementById('set-price').value=s.subscription_price||'14.99';
     document.getElementById('set-trial').value=s.trial_days||'10';
+    document.getElementById('set-pump-price').value=s.pump_subscription_price||'299';
+    document.getElementById('set-pump-trial').value=s.pump_trial_days||'45';
     document.getElementById('set-eu').value=s.report_expiry_user||'4';
     document.getElementById('set-eo').value=s.report_expiry_owner||'12';
   }
