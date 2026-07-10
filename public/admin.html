@@ -612,7 +612,7 @@ let settingsUnlocked = false;
 if(!TOKEN){ window.location.href='/login.html?redirect=/admin&role=admin'; }
 
 async function api(url,method='GET',body=null){
-  const opts={method,headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'}};
+  const opts={method,headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},cache:'no-store'};
   if(body) opts.body=JSON.stringify(body);
   try {
     const r=await fetch(url,opts);
@@ -759,6 +759,17 @@ function loadSettings(){
   document.getElementById('r-razorpay').textContent='₹'+parseFloat(rv.razorpay_cut||0).toLocaleString('en-IN');
   document.getElementById('r-yearly').textContent='₹'+parseFloat(rv.yearly_est||0).toLocaleString('en-IN');
   document.getElementById('webhookUrl').textContent=window.location.origin+'/api/razorpay/webhook';
+  // Always fetch FRESH settings (never cached) so saved values never revert
+  api('/api/admin/settings').then(s => {
+    if(!s) return;
+    const pEl=document.getElementById('set-price');       if(pEl) pEl.value=s.subscription_price||'14.99';
+    const tEl=document.getElementById('set-trial');        if(tEl) tEl.value=s.trial_days||'10';
+    const ppEl=document.getElementById('set-pump-price');  if(ppEl) ppEl.value=s.pump_subscription_price||'299';
+    const ptEl=document.getElementById('set-pump-trial');  if(ptEl) ptEl.value=s.pump_trial_days||'45';
+    const euEl=document.getElementById('set-eu');          if(euEl) euEl.value=s.report_expiry_user||'4';
+    const eoEl=document.getElementById('set-eo');          if(eoEl) eoEl.value=s.report_expiry_owner||'12';
+    const slaEl=document.getElementById('set-sla');        if(slaEl) slaEl.value=s.sla_hours||'48';
+  });
   loadUsers();
   loadGovtCreds();
 }
