@@ -1158,7 +1158,7 @@ async function openProfileModal(){
         document.getElementById('prof-paid-on-row').style.display='flex';
         document.getElementById('prof-paid-on').textContent=fmt(paidDate);
         document.getElementById('prof-amount-row').style.display='flex';
-        document.getElementById('prof-amount').textContent='₹'+parseFloat(d.price||'14.99').toFixed(2);
+        document.getElementById('prof-amount').textContent='₹'+parseFloat(d.pump_price||'299').toFixed(2);
         document.getElementById('prof-renewal-row').style.display='flex';
         document.getElementById('prof-renewal').textContent=fmt(renewalDate);
       }
@@ -1167,12 +1167,12 @@ async function openProfileModal(){
       sEl.style.color='#ffd700';
       document.getElementById('prof-trial-left').textContent=`${d.trial_left} of ${d.trial_days} days`;
       subBtn.style.display='block';
-      subBtn.textContent=`💚 Subscribe ₹${d.price}/month`;
+      subBtn.textContent=`💚 Subscribe ₹${d.pump_price}/month`;
     } else {
       sEl.textContent='❌ Expired';sEl.style.color='#ef9a9a';
       document.getElementById('prof-trial-left').textContent='Trial ended';
       subBtn.style.display='block';
-      subBtn.textContent=`💚 Subscribe ₹${d.price}/month`;
+      subBtn.textContent=`💚 Subscribe ₹${d.pump_price}/month`;
     }
     const gtEl=document.getElementById('prof-green-tick');
     gtEl.textContent=d.green_tick?'✅ Active':'❌ Not active';
