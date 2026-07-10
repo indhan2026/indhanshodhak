@@ -1275,7 +1275,7 @@ async function loadPumpSubCard(subData) {
       <div style="font-size:12px;color:#ffd700;margin-bottom:6px;font-weight:600">${ST.warning}</div>
       <div style="font-size:12px;color:rgba(255,255,255,.7);margin-bottom:12px">${ST.benefit}</div>
       ${countdownHtml}
-      <button onclick="window.location.href='/subscribe.html'"
+      <button onclick="window.location.href='/pump-subscribe.html'"
         style="width:100%;margin-top:12px;padding:13px;background:linear-gradient(135deg,#e65100,#ff8a50);
         color:white;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;
         box-shadow:0 4px 15px rgba(230,81,0,.4)">
@@ -1285,7 +1285,7 @@ async function loadPumpSubCard(subData) {
     `;
   } catch(e) {
     inner.innerHTML = `<div style="font-size:12px;color:#ff8a50">${ST.lapsed_title}<br><br>
-      <button onclick="window.location.href='/subscribe.html'"
+      <button onclick="window.location.href='/pump-subscribe.html'"
         style="width:100%;padding:12px;background:#e65100;color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">
         ${ST.sub_btn} ₹${pumpPrice}/month
       </button></div>`;
@@ -1443,7 +1443,7 @@ async function changePassword(){
             <span style="font-size:12px;font-weight:600" id="prof-scan-count">—</span>
           </div>
         </div>
-        <button id="prof-sub-btn" onclick="window.location.href='/subscribe.html'"
+        <button id="prof-sub-btn" onclick="window.location.href='/pump-subscribe.html'"
           style="display:none;width:100%;margin-top:12px;padding:10px;background:#1a6b2e;
           color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">
           💚 Subscribe / Renew

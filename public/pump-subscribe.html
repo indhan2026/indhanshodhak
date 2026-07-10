@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Pump Subscription — IndhanShodhak</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1b2a;min-height:100vh;max-width:500px;margin:0 auto;color:white}
+  .header{background:linear-gradient(135deg,#e65100,#ff8a50);padding:28px 20px;text-align:center;border-radius:0 0 20px 20px}
+  .header .icon{font-size:40px;margin-bottom:8px}
+  .header h1{font-size:19px;margin:0 0 4px}
+  .header p{font-size:12px;opacity:.9;margin:0}
+  .content{padding:18px}
+  .card{background:#163854;border-radius:14px;padding:16px;margin-bottom:14px}
+  .card-title{font-size:11px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px}
+  .row span:first-child{color:rgba(255,255,255,.6)}
+  .row span:last-child{font-weight:700}
+  .benefit{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px}
+  .benefit .tick{color:#81c784}
+  .price-box{background:linear-gradient(135deg,#e65100,#ff8a50);border-radius:14px;padding:18px;text-align:center;margin-bottom:14px}
+  .price-box .amount{font-size:32px;font-weight:800}
+  .price-box .period{font-size:12px;opacity:.85}
+  .pay-btn{width:100%;padding:15px;background:#1a6b2e;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px}
+  .pay-btn:active{background:#145723}
+  .pay-btn:disabled{opacity:.5}
+  .back-link{display:block;text-align:center;margin-top:16px;color:rgba(255,255,255,.5);font-size:12px;text-decoration:none}
+  .status-msg{text-align:center;padding:12px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none}
+  .status-success{background:rgba(26,107,46,.3);color:#81c784;border:1px solid #4caf50}
+  .status-error{background:rgba(183,28,28,.3);color:#ef9a9a;border:1px solid #b71c1c}
+  .already-active{background:rgba(26,107,46,.2);border:1.5px solid #4caf50;border-radius:14px;padding:18px;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="icon">⛽</div>
+  <h1>Pump Owner Subscription</h1>
+  <p>Update anytime · Stay at the TOP of search results</p>
+</div>
+
+<div class="content">
+  <div id="status-msg" class="status-msg"></div>
+
+  <div id="already-active-box" class="already-active" style="display:none">
+    <div style="font-size:28px;margin-bottom:6px">✅</div>
+    <div style="font-weight:700;color:#81c784;margin-bottom:4px">Subscription Active</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6)">Expires: <span id="active-expiry">—</span></div>
+  </div>
+
+  <div id="main-box">
+    <div class="card">
+      <div class="card-title">💚 What you get</div>
+      <div class="benefit"><span class="tick">✅</span> Update fuel status anytime — no 12hr wait</div>
+      <div class="benefit"><span class="tick">✅</span> Your pump appears at TOP of search results</div>
+      <div class="benefit"><span class="tick">✅</span> Green tick stays visible always</div>
+      <div class="benefit"><span class="tick">✅</span> More customers see your pump first</div>
+    </div>
+
+    <div class="price-box">
+      <div class="amount" id="price-display">₹299</div>
+      <div class="period">per month</div>
+    </div>
+
+    <button class="pay-btn" id="pay-btn" onclick="startPayment()">💳 Subscribe Now</button>
+    <a href="/pump-owner.html" class="back-link">← Back to Dashboard</a>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const TOKEN = localStorage.getItem('indhan_token');
+if(!TOKEN){ window.location.href='/pump-owner.html'; }
+
+let cfg = {};
+
+async function init(){
+  try {
+    const r = await fetch('/api/pump-owner/payment/config', {headers:{'x-auth-token':TOKEN}});
+    cfg = await r.json();
+    document.getElementById('price-display').textContent = '₹' + parseFloat(cfg.price||299).toFixed(0);
+
+    // Check current subscription status
+    const sr = await fetch('/api/pump-owner/subscription-status', {headers:{'x-auth-token':TOKEN}});
+    const sd = await sr.json();
+    if(sd.pump_plan === 'active' && sd.pump_plan_expiry){
+      const expiry = new Date(sd.pump_plan_expiry);
+      if(expiry > new Date()){
+        document.getElementById('already-active-box').style.display='block';
+        document.getElementById('main-box').style.display='none';
+        document.getElementById('active-expiry').textContent = expiry.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+      }
+    }
+  } catch(e){ console.error(e); }
+}
+init();
+
+function showStatus(msg, isError){
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg ' + (isError ? 'status-error' : 'status-success');
+  el.style.display = 'block';
+}
+
+async function startPayment(){
+  if(!cfg.configured){
+    showStatus('Payment not configured yet. Contact admin.', true);
+    return;
+  }
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Creating order...';
+
+  try {
+    const orderResp = await fetch('/api/pump-owner/payment/create-order', {
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'}
+    });
+    const order = await orderResp.json();
+    if(order.error){ showStatus(order.error, true); btn.disabled=false; btn.textContent='💳 Subscribe Now'; return; }
+
+    const options = {
+      key: cfg.key_id,
+      amount: order.amount,
+      currency: order.currency || 'INR',
+      order_id: order.id,
+      name: 'IndhanShodhak',
+      description: 'Pump Owner Subscription — Monthly',
+      theme: { color: '#e65100' },
+      handler: async function(response){
+        btn.textContent = '⏳ Verifying payment...';
+        try {
+          const vr = await fetch('/api/pump-owner/payment/verify', {
+            method:'POST',
+            headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+            body: JSON.stringify(response)
+          });
+          const vd = await vr.json();
+          if(vd.success){
+            showStatus('✅ ' + vd.message, false);
+            setTimeout(()=>{ window.location.href='/pump-owner.html'; }, 1800);
+          } else {
+            showStatus(vd.error || 'Verification failed', true);
+            btn.disabled=false; btn.textContent='💳 Subscribe Now';
+          }
+        } catch(e){
+          showStatus('Verification error. Contact admin if amount was deducted.', true);
+          btn.disabled=false; btn.textContent='💳 Subscribe Now';
+        }
+      },
+      modal: {
+        ondismiss: function(){ btn.disabled=false; btn.textContent='💳 Subscribe Now'; }
+      }
+    };
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function(resp){
+      showStatus('Payment failed: ' + (resp.error?.description||'Unknown error'), true);
+      btn.disabled=false; btn.textContent='💳 Subscribe Now';
+    });
+    rzp.open();
+  } catch(e){
+    showStatus('Could not start payment. Try again.', true);
+    btn.disabled=false; btn.textContent='💳 Subscribe Now';
+  }
+}
+</script>
+</body>
+</html>

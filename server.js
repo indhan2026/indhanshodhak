@@ -335,6 +335,7 @@ async function initDB() {
     `ALTER TABLE petrol_pumps ADD COLUMN verified_at TEXT`,
     `ALTER TABLE petrol_pumps ADD COLUMN pump_plan TEXT DEFAULT 'free'`,
     `ALTER TABLE petrol_pumps ADD COLUMN pump_plan_expiry TEXT`,
+    `ALTER TABLE payment_log ADD COLUMN plan_type TEXT DEFAULT 'user'`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -1820,6 +1821,7 @@ app.get('/api/pump-owner/nearby-competitors', requireAuth(['pump_owner','super_a
 });
 
 app.get('/pump-signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
+app.get('/pump-subscribe.html', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump-subscribe.html')));
 app.get('/pump_signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
 
 // ── MR Field Agent Management ─────────────────────────────────────────────
@@ -3063,7 +3065,7 @@ function isUserPremium(user) {
 }
 function isPumpOwnerPremium(user, pump) {
   if(!user) return false;
-  // Pump-level subscription (paid plan)
+  // Pump-level subscription (paid plan) — the ONLY source of paid premium status
   if(pump?.pump_plan === 'active' && pump?.pump_plan_expiry) {
     if(new Date(pump.pump_plan_expiry) > new Date()) return true;
   }
@@ -3076,14 +3078,10 @@ function isPumpOwnerPremium(user, pump) {
       if(elapsed < pumpTd) return true;
     }
   }
-  // Legacy fallback: user-level subscription (backward compat)
-  if(user.subscription_status === 'active') {
-    if(user.subscription_paid_at) {
-      const daysSince = Math.floor((Date.now() - new Date(user.subscription_paid_at).getTime()) / 86400000);
-      if(daysSince > 30) return false;
-    }
-    return true;
-  }
+  // NOTE: user.subscription_status is intentionally NOT checked here.
+  // A generic ₹25 user subscription must never grant pump premium status —
+  // that was the cause of the false-positive bug. Pump premium comes ONLY
+  // from pump_plan (paid via /api/pump-owner/payment/*) or pump trial above.
   return false;
 }
 
@@ -3740,6 +3738,83 @@ app.post('/api/payment/verify', requireAuth(), (req, res) => {
   const pump2=dbGet('SELECT id FROM petrol_pumps WHERE owner_user_id=? AND is_active=1',[req.user.id]);
   if(pump2) dbRun('UPDATE petrol_pumps SET is_verified_active=1,scan_count_free=0 WHERE id=?',[pump2.id]);
   res.json({ success:true, message:'Payment verified! Subscription active. Tier restored.' });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// PUMP OWNER SUBSCRIPTION — Dedicated ₹299/month flow (SEPARATE from user)
+// Never touches users.subscription_status — only petrol_pumps.pump_plan
+// ═══════════════════════════════════════════════════════════════════════
+
+app.get('/api/pump-owner/payment/config', requireAuth(['pump_owner','super_admin']), (req, res) => {
+  const key   = getSetting('razorpay_key_id') || 'NOT_SET';
+  const price = parseFloat(getSetting('pump_subscription_price') || '299');
+  res.json({
+    key_id:      key,
+    configured:  key !== 'NOT_SET',
+    price:       price,
+    price_paise: Math.round(price * 100),
+    currency:    'INR',
+  });
+});
+
+app.post('/api/pump-owner/payment/create-order', requireAuth(['pump_owner','super_admin']), async (req, res) => {
+  const keyId     = getSetting('razorpay_key_id');
+  const keySecret = getSetting('razorpay_key_secret');
+  if(!keyId || !keySecret || keyId==='NOT_SET')
+    return res.status(400).json({ error:'Razorpay not configured. Contact admin.' });
+  const pump = dbGet(`SELECT id FROM petrol_pumps WHERE owner_user_id=? AND is_active=1`, [req.user.id]);
+  if(!pump) return res.status(404).json({ error:'No pump linked to your account' });
+  try {
+    const https = require('https');
+    const pumpPrice = parseFloat(getSetting('pump_subscription_price') || '299');
+    const orderData = JSON.stringify({
+      amount:   Math.round(pumpPrice * 100),
+      currency: 'INR',
+      receipt:  'indhan_pump_' + req.user.id + '_' + Date.now(),
+      notes: { user_id: req.user.id, pump_id: pump.id, plan_type: 'pump' }
+    });
+    const auth = Buffer.from(keyId + ':' + keySecret).toString('base64');
+    const order = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.razorpay.com', path: '/v1/orders', method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization':'Basic ' + auth,
+          'Content-Length': Buffer.byteLength(orderData)
+        }
+      };
+      let data='';
+      const req2 = https.request(options, r => { r.on('data',d=>{data+=d;}); r.on('end',()=>resolve(JSON.parse(data))); });
+      req2.on('error', reject);
+      req2.write(orderData); req2.end();
+    });
+    if(order.error) return res.status(400).json({ error: order.error.description });
+    res.json(order);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/pump-owner/payment/verify', requireAuth(['pump_owner','super_admin']), (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+  const keySecret = getSetting('razorpay_key_secret');
+  if(!keySecret) return res.status(400).json({ error:'Not configured' });
+  const hmac = require('crypto').createHmac('sha256', keySecret);
+  hmac.update(razorpay_order_id + '|' + razorpay_payment_id);
+  const expected = hmac.digest('hex');
+  if(expected !== razorpay_signature)
+    return res.status(400).json({ success:false, error:'Signature mismatch' });
+
+  const pump = dbGet(`SELECT id FROM petrol_pumps WHERE owner_user_id=? AND is_active=1`, [req.user.id]);
+  if(!pump) return res.status(404).json({ error:'No pump linked to your account' });
+
+  const pumpPrice = parseFloat(getSetting('pump_subscription_price') || '299');
+  // Sets ONLY petrol_pumps.pump_plan/expiry — never users.subscription_status
+  dbRun(`UPDATE petrol_pumps SET pump_plan='active', pump_plan_expiry=datetime('now','+30 days') WHERE id=?`,
+    [pump.id]);
+  dbRun(`INSERT INTO payment_log (user_id,payment_id,order_id,amount,status,plan_type,paid_at)
+         VALUES (?,?,?,?,?,?,datetime('now'))`,
+    [req.user.id, razorpay_payment_id, razorpay_order_id, Math.round(pumpPrice*100), 'captured', 'pump']);
+
+  res.json({ success:true, message:'Payment verified! Pump subscription active for 30 days.' });
 });
 
 // ============================================================

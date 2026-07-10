@@ -1000,7 +1000,7 @@ async function useGPS(){
       });
       const d=await r.json();
       if(d.pumps&&d.pumps.length>0){
-        await loadAndRender(d.pumps);
+        await loadAndRender(d.pumps, lat, lng);
         updateMapMarkers(d.pumps);
       } else {
         document.getElementById('pumpList').innerHTML=
@@ -1041,7 +1041,7 @@ async function searchPumps(){
 // ── loadAndRender: 2-call system ──────────────────────────
 // Call 1: /api/pumps/locations (server cached 3000-4000 hrs)
 // Call 2: /api/pumps/fuel-data (always live from DB)
-async function loadAndRender(pumps) {
+async function loadAndRender(pumps, userLat, userLng) {
   // Get premium status
   let isPremium = false, price = '25.00';
   try {
@@ -1110,7 +1110,42 @@ async function loadAndRender(pumps) {
     if(cfg.price) priceDisplay = cfg.price;
   } catch(e){}
 
-  renderPumps(deduped, isPremium, priceDisplay);
+  // ── Trial/subscription expired: show only 2 FARTHEST pumps ──────────
+  let finalList = deduped;
+  if(!isPremium && deduped.length > 0) {
+    // Reference point: user's GPS if given, else centroid of pump coords
+    let refLat = userLat, refLng = userLng;
+    if(refLat == null || refLng == null) {
+      const withCoords = deduped.filter(p => p.lat && p.lng);
+      if(withCoords.length > 0) {
+        refLat = withCoords.reduce((s,p)=>s+parseFloat(p.lat),0) / withCoords.length;
+        refLng = withCoords.reduce((s,p)=>s+parseFloat(p.lng),0) / withCoords.length;
+      }
+    }
+    const withDist = deduped.map(p => {
+      let dist = 999;
+      if(refLat != null && p.lat && p.lng) {
+        const dLat = parseFloat(p.lat) - refLat;
+        const dLng = parseFloat(p.lng) - refLng;
+        dist = Math.sqrt(dLat*dLat + dLng*dLng) * 111; // approx km
+      }
+      return { ...p, _dist: dist };
+    });
+    withDist.sort((a,b) => b._dist - a._dist); // farthest first
+    const farEnough = withDist.filter(p => p._dist >= 4.5).slice(0,2);
+    const shown = farEnough.length >= 2 ? farEnough : withDist.slice(0,2);
+    const hiddenCount = deduped.length - shown.length;
+    finalList = shown;
+    if(hiddenCount > 0) {
+      finalList = [...shown, {
+        _info: true,
+        hidden_count: hiddenCount,
+        price: priceDisplay
+      }];
+    }
+  }
+
+  renderPumps(finalList, isPremium, priceDisplay);
 }
 
 function renderPumps(pumps, isPremium, price){
@@ -1120,6 +1155,17 @@ function renderPumps(pumps, isPremium, price){
     return;
   }
   list.innerHTML = pumps.map(p => {
+    // Hidden-pumps info banner (shown after 2 farthest pumps for lapsed users)
+    if(p._info){
+      return `<div style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1.5px dashed #e65100;border-radius:12px;padding:14px 16px;margin-top:4px;text-align:center">
+        <div style="font-size:13px;font-weight:700;color:#e65100;margin-bottom:4px">🔒 ${p.hidden_count} pump${p.hidden_count!==1?'s':''} hidden near you</div>
+        <div style="font-size:11px;color:#888;margin-bottom:10px">Subscribe to see all nearby pumps instead of only the 2 shown above</div>
+        <button onclick="window.location.href='/subscribe.html'"
+          style="padding:8px 18px;background:#e65100;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">
+          Subscribe ₹${p.price||'25.00'}/month
+        </button>
+      </div>`;
+    }
     // Locked verified pump — show name/address, hide fuel data
     if(p._locked){
       return `<div class="pump-card verified" style="border:1.5px solid #c8e6c9">
@@ -1387,7 +1433,7 @@ async function autoLoadPumps(){
         if(d.pumps&&d.pumps.length>0){
           document.getElementById('pump-section-lbl').textContent='Pumps near your location 📍';
           document.getElementById('pinInput').placeholder='GPS: '+lat.toFixed(3)+','+lng.toFixed(3);
-          await loadAndRender(d.pumps);
+          await loadAndRender(d.pumps, lat, lng);
           updateMapMarkers(d.pumps);
           if(window.userMarker) window.userMarker.remove();
           window.userMarker=L.circleMarker([lat,lng],{radius:8,fillColor:'#2196F3',color:'#fff',weight:2,fillOpacity:1})
