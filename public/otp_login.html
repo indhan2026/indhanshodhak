@@ -301,6 +301,17 @@ let mob='', emailId='', timerInt=null, timerSec=600, savedToken='';
 let otpCooldown=null;
 let selectedCC='+91';
 
+// ── Persistent device fingerprint (for trial-abuse prevention) ──
+// Generated once per device/browser, reused on every login attempt.
+function getDeviceId(){
+  let id = localStorage.getItem('indhan_device_id');
+  if(!id){
+    id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,12);
+    localStorage.setItem('indhan_device_id', id);
+  }
+  return id;
+}
+
 const COUNTRIES=[
   {f:'🇮🇳',c:'+91',n:'India'},{f:'🇦🇫',c:'+93',n:'Afghanistan'},{f:'🇦🇱',c:'+355',n:'Albania'},
   {f:'🇩🇿',c:'+213',n:'Algeria'},{f:'🇦🇩',c:'+376',n:'Andorra'},{f:'🇦🇴',c:'+244',n:'Angola'},
@@ -581,7 +592,7 @@ async function verifyOTP(){
   try{
     const r=await fetch('/api/auth/verify-otp',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mobile:mob,otp,email:emailId})
+      body:JSON.stringify({mobile:mob,otp,email:emailId,device_id:getDeviceId()})
     });
     const d=await r.json();
     if(d.success){

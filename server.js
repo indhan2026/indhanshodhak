@@ -336,6 +336,12 @@ async function initDB() {
     `ALTER TABLE petrol_pumps ADD COLUMN pump_plan TEXT DEFAULT 'free'`,
     `ALTER TABLE petrol_pumps ADD COLUMN pump_plan_expiry TEXT`,
     `ALTER TABLE payment_log ADD COLUMN plan_type TEXT DEFAULT 'user'`,
+    // ── Device-level trial-abuse prevention ──
+    `CREATE TABLE IF NOT EXISTS device_trials (
+      device_id     TEXT PRIMARY KEY,
+      first_mobile  TEXT,
+      first_seen    TEXT DEFAULT (datetime('now'))
+    )`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -3357,7 +3363,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
 app.post('/api/auth/verify-otp', (req, res) => {
   const mobile = normalizeMobile(req.body.mobile);
-  const { otp, email, name } = req.body;
+  const { otp, email, name, device_id } = req.body;
   if (!mobile || !otp)
     return res.status(400).json({ error: 'Mobile and OTP required' });
 
@@ -3377,9 +3383,24 @@ app.post('/api/auth/verify-otp', (req, res) => {
   const userEmail = email || stored.email;
 
   if (!user) {
+    // ── Device-level trial-abuse check ──
+    // If this device already used a trial before (different mobile/email),
+    // skip the free trial entirely — go straight to restricted mode.
+    let deviceAlreadyUsedTrial = false;
+    if(device_id) {
+      const existingDevice = dbGet(`SELECT device_id FROM device_trials WHERE device_id=?`, [device_id]);
+      if(existingDevice) {
+        deviceAlreadyUsedTrial = true;
+      } else {
+        dbRun(`INSERT OR IGNORE INTO device_trials (device_id, first_mobile) VALUES (?,?)`,
+          [device_id, mobile]);
+      }
+    }
+    const initialStatus = deviceAlreadyUsedTrial ? 'trial_blocked' : 'trial';
+
     dbRun(`INSERT INTO users (mobile,name,email,subscription_status,trial_start_date)
-           VALUES (?,?,?,'trial',datetime('now'))`,
-      [mobile, name || 'User_' + String(mobile).slice(-4), userEmail||'']);
+           VALUES (?,?,?,?,datetime('now'))`,
+      [mobile, name || 'User_' + String(mobile).slice(-4), userEmail||'', initialStatus]);
     user = dbGet(`SELECT * FROM users WHERE mobile=?`, [mobile]);
     if(userEmail) {
       mailer.sendMail({
