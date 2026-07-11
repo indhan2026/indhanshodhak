@@ -1238,7 +1238,11 @@ function renderPumps(pumps, isPremium, price){
       </div>
       <div class="pump-footer">
         <div class="pump-time">${rType} · ${tAgo}</div>
-        <button class="report-btn" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')" >📝 Report ↗</button>
+        <div style="display:flex;gap:6px">
+          <button class="report-btn" style="color:#1565c0;border-color:#1565c0"
+            onclick="event.stopPropagation();window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat||0},${p.lng||0}','_blank')">🧭 Directions</button>
+          <button class="report-btn" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')" >📝 Report ↗</button>
+        </div>
       </div>
     </div>`;
   }).join('');
