@@ -679,6 +679,11 @@ function applyLang(code) {
   document.querySelectorAll('.lang-opt').forEach(el => {
     if(el.getAttribute('data-lang')===code) el.classList.add('active');
   });
+  // Re-draw the already-loaded pump list (incl. hidden-pumps banner) in the new language
+  if(window._lastPumpRender) {
+    const lr = window._lastPumpRender;
+    renderPumps(lr.finalList, lr.isPremium, lr.priceDisplay);
+  }
 }
 
 // Set data-lang attributes
@@ -695,7 +700,7 @@ checkCrisisMode(); // Update fuelid card for current mode
 async function checkTrialStatus() {
   try {
     if(!TOKEN) return; // No token - skip silently
-    const r = await fetch('/api/user/profile', {headers:{'x-auth-token':TOKEN}});
+    const r = await fetch('/api/user/profile', {headers:{'x-auth-token':TOKEN}, cache:'no-store'});
     if(!r.ok) return;
     const ct = r.headers.get('content-type')||'';
     if(!ct.includes('application/json')) return;
@@ -1058,7 +1063,7 @@ async function loadAndRender(pumps, userLat, userLng) {
   let isPremium = false, price = '25.00';
   try {
     if(TOKEN) {
-      const pr = await fetch('/api/user/profile',{headers:{'x-auth-token':TOKEN}});
+      const pr = await fetch('/api/user/profile',{headers:{'x-auth-token':TOKEN}, cache:'no-store'});
       if(pr.ok){ const pd=await pr.json(); isPremium=pd.is_premium||false; }
     }
   } catch(e){}
@@ -1157,6 +1162,7 @@ async function loadAndRender(pumps, userLat, userLng) {
     }
   }
 
+  window._lastPumpRender = { finalList, isPremium, priceDisplay };
   renderPumps(finalList, isPremium, priceDisplay);
 }
 

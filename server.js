@@ -3292,9 +3292,18 @@ function detectOilCompany(name) {
   return 'Other';
 }
 
+// Normalize mobile: strip spaces, leading +91/91 prefix, keep only last 10 digits
+function normalizeMobile(raw) {
+  let m = String(raw||'').replace(/\D/g,''); // strip all non-digits
+  if(m.length === 12 && m.startsWith('91')) m = m.slice(2);
+  else if(m.length === 13 && m.startsWith('091')) m = m.slice(3);
+  return m.slice(-10); // safety: always keep last 10 digits max
+}
+
 app.post('/api/auth/send-otp', async (req, res) => {
-  const { mobile, email } = req.body;
-  if (!mobile || String(mobile).length !== 10)
+  const mobile = normalizeMobile(req.body.mobile);
+  const { email } = req.body;
+  if (!mobile || mobile.length !== 10)
     return res.status(400).json({ error: 'Valid 10-digit mobile number required' });
   if (!email || !email.includes('@'))
     return res.status(400).json({ error: 'Valid email address required to receive OTP' });
@@ -3347,7 +3356,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
 });
 
 app.post('/api/auth/verify-otp', (req, res) => {
-  const { mobile, otp, email, name } = req.body;
+  const mobile = normalizeMobile(req.body.mobile);
+  const { otp, email, name } = req.body;
   if (!mobile || !otp)
     return res.status(400).json({ error: 'Mobile and OTP required' });
 
