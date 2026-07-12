@@ -735,7 +735,7 @@ app.post('/api/auth/login', (req,res) => {
     [loginId, loginIdUpper, loginIdUpper]
   );
   if (!user) return res.status(401).json({ error:'Login ID not found. Check your credentials.' });
-  if (['pump_owner','doc_verifier','govt_official','super_admin'].includes(user.role)) {
+  if (['pump_owner','doc_verifier','govt_official','super_admin','enrollment_agent'].includes(user.role)) {
     if (!password) return res.status(400).json({ error:'Password required' });
     if (user.password_hash!==hashPwd(password)) return res.status(401).json({ error:'Wrong password' });
   }
@@ -2809,6 +2809,205 @@ app.post('/api/admin/create-govt', (req,res) => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════
+// ENROLLMENT AGENT — Restricted role for remote pump onboarding
+// Can: search pumps by region, register pumps on behalf of owners
+// Cannot: approve/reject/deregister, see other owners' private data
+// ═══════════════════════════════════════════════════════════════════════
+
+app.post('/api/admin/create-agent', requireAuth(['super_admin']), (req, res) => {
+  const { login_id, password, agent_name, agent_phone, region } = req.body;
+  if(!login_id || !password)
+    return res.status(400).json({ error:'Login ID and password required' });
+  if(password.length < 6)
+    return res.status(400).json({ error:'Password must be at least 6 characters' });
+  const existing = dbGet(
+    `SELECT id FROM users WHERE mobile=? OR pump_login_id=?`,
+    [login_id.trim(), login_id.trim().toUpperCase()]
+  );
+  if(existing) return res.status(409).json({ error:'This Login ID already exists.' });
+
+  // Auto-assign MR code for the agent
+  const lastMR = dbGet(`SELECT mr_code FROM mr_agents ORDER BY id DESC LIMIT 1`);
+  let nextNum = 1;
+  if(lastMR?.mr_code) { nextNum = (parseInt(lastMR.mr_code.replace('MR','')) || 0) + 1; }
+  const mr_code = 'MR' + String(nextNum).padStart(3, '0');
+  dbRun(`INSERT INTO mr_agents (mr_code, mr_name, mr_phone, notes, status) VALUES (?,?,?,?,?)`,
+    [mr_code, agent_name||login_id, agent_phone||'', region||'', 'active']);
+
+  dbRun(`INSERT INTO users (mobile,name,role,password_hash,plain_password,subscription_status)
+         VALUES (?,?,'enrollment_agent',?,?,'active')`,
+    [login_id.trim(), agent_name || 'Agent_'+login_id, hashPwd(password), password]);
+  const u = dbGet(`SELECT id FROM users WHERE mobile=?`, [login_id.trim()]);
+
+  console.log(`[AGENT] Created: ${login_id} | MR Code: ${mr_code} | Region: ${region||'All'}`);
+  res.json({
+    success: true,
+    login_id: login_id.trim(),
+    mr_code: mr_code,
+    message: `Agent created! Login: ${login_id}, MR Code: ${mr_code}`
+  });
+});
+
+// Agent: Get districts list for dropdown
+app.get('/api/agent/districts', requireAuth(['enrollment_agent','super_admin']), (req, res) => {
+  const districts = dbAll(
+    `SELECT DISTINCT district FROM petrol_pumps WHERE district IS NOT NULL AND district != '' ORDER BY district`
+  );
+  res.json({ districts: districts.map(d => d.district) });
+});
+
+// Agent: Get tehsils for a specific district
+app.get('/api/agent/tehsils', requireAuth(['enrollment_agent','super_admin']), (req, res) => {
+  const { district } = req.query;
+  if(!district) return res.json({ tehsils: [] });
+  const tehsils = dbAll(
+    `SELECT DISTINCT tehsil FROM petrol_pumps WHERE district=? AND tehsil IS NOT NULL AND tehsil != '' ORDER BY tehsil`,
+    [district]
+  );
+  res.json({ tehsils: tehsils.map(t => t.tehsil) });
+});
+
+// Agent: Search pumps by district + optional tehsil (regional view)
+app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), (req, res) => {
+  try {
+    const { district, tehsil, lat, lng } = req.query;
+    let sql, params = [];
+
+    if(lat && lng) {
+      // GPS-based search (same as user search, but without subscription restriction)
+      const R = 0.08; // ~8km
+      const pLat = parseFloat(lat), pLng = parseFloat(lng);
+      sql = `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,
+                    license_number, owner_user_id
+             FROM petrol_pumps WHERE is_active=1
+             AND lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?
+             ORDER BY is_verified DESC, name`;
+      params = [pLat-R, pLat+R, pLng-R, pLng+R];
+    } else if(district) {
+      sql = `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,
+                    license_number, owner_user_id
+             FROM petrol_pumps WHERE is_active=1 AND district=?`;
+      params = [district];
+      if(tehsil) { sql += ` AND tehsil=?`; params.push(tehsil); }
+      sql += ` ORDER BY is_verified DESC, tehsil, name`;
+    } else {
+      return res.json({ pumps:[], total:0 });
+    }
+
+    const pumps = dbAll(sql, params);
+
+    // Return pump data WITHOUT sensitive owner info (agent can't see mobile/email/license of others)
+    const safePumps = pumps.map(p => ({
+      id: p.id,
+      name: p.name,
+      oil_company: p.oil_company,
+      address: p.address,
+      tehsil: p.tehsil || '',
+      district: p.district || '',
+      pin_code: p.pin_code,
+      lat: p.lat,
+      lng: p.lng,
+      is_verified: p.is_verified,
+      has_owner: !!p.owner_user_id,
+    }));
+
+    res.json({ pumps: safePumps, total: safePumps.length });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Agent: Register pump on behalf of owner
+app.post('/api/agent/register-pump',
+  requireAuth(['enrollment_agent','super_admin']),
+  pumpRegUpload.fields([
+    {name:'license', maxCount:1},
+    {name:'aadhaar', maxCount:1},
+    {name:'selfie',  maxCount:1},
+  ]),
+  async (req, res) => {
+    try {
+      const { owner_name, owner_mobile, owner_email, pump_id, pump_name,
+              oil_company, pin_code, address, district, tehsil, state,
+              license_number, lat, lng, referral_code } = req.body;
+
+      if(!owner_name||!owner_mobile||!owner_email||!license_number)
+        return res.status(400).json({ error:'Owner name, mobile, email and license number required' });
+
+      const files = req.files || {};
+      const licPath     = files.license?.[0]?.path || null;
+      const aadhaarPath = files.aadhaar?.[0]?.path || null;
+      const selfiePath  = files.selfie?.[0]?.path  || null;
+      if(!licPath||!aadhaarPath||!selfiePath)
+        return res.status(400).json({ error:'All 3 documents required (License, Aadhaar, Selfie)' });
+
+      // Create or find the pump owner's user account
+      let ownerUser = dbGet(`SELECT id FROM users WHERE mobile=?`, [owner_mobile]);
+      if(!ownerUser){
+        dbRun(`INSERT INTO users (mobile,name,email,role,subscription_status)
+               VALUES (?,?,?,'pump_owner_pending','active')`,
+          [owner_mobile, owner_name, owner_email]);
+        ownerUser = dbGet(`SELECT id FROM users WHERE mobile=?`, [owner_mobile]);
+      }
+
+      // Create or find the pump
+      let pump;
+      if(pump_id) {
+        pump = dbGet(`SELECT id FROM petrol_pumps WHERE id=?`, [parseInt(pump_id)]);
+      }
+      if(!pump) {
+        const pLat = parseFloat(lat) || 0;
+        const pLng = parseFloat(lng) || 0;
+        dbRun(`INSERT INTO petrol_pumps
+               (name, oil_company, pin_code, address, tehsil, district, state,
+                license_number, is_active, owner_user_id, lat, lng)
+               VALUES (?,?,?,?,?,?,?,?,1,?,?,?)`,
+          [pump_name||'Pump', oil_company||'Other', pin_code||'', address||'',
+           tehsil||'', district||'', state||'Maharashtra',
+           license_number.toUpperCase(), ownerUser.id, pLat, pLng]);
+        pump = dbGet(`SELECT id FROM petrol_pumps WHERE license_number=?`,
+          [license_number.toUpperCase()]);
+      }
+      if(!pump) return res.status(500).json({ error:'Could not create pump record' });
+
+      // Use agent's MR code as referral
+      const agentMR = dbGet(`SELECT mr_code FROM mr_agents WHERE mr_name=? OR mr_phone=?`,
+        [req.user.name, req.user.mobile]);
+      const finalRef = referral_code || agentMR?.mr_code || '';
+
+      // Create pump application (same as regular signup, goes through AI verification)
+      dbRun(`INSERT INTO pump_applications
+             (user_id, pump_id, applicant_name, applicant_email,
+              license_number, doc_license, doc_aadhaar, doc_selfie, referral_code, status)
+             VALUES (?,?,?,?,?,?,?,?,?,'pending')`,
+        [ownerUser.id, pump.id, owner_name, owner_email,
+         license_number.toUpperCase(), licPath, aadhaarPath, selfiePath, finalRef]);
+
+      const appRow = dbGet(`SELECT id FROM pump_applications WHERE pump_id=? ORDER BY id DESC LIMIT 1`,
+        [pump.id]);
+
+      // Trigger AI verification (same pipeline as self-signup)
+      if(appRow?.id) triggerAIVerification(appRow.id, 'pump', 'pump');
+
+      console.log(`[AGENT REGISTER] Agent:${req.user.name} | Owner:${owner_name} | Pump:${pump_name||pump.id} | Ref:${finalRef}`);
+      res.json({
+        success: true,
+        app_id: appRow?.id,
+        mr_code: finalRef,
+        message: 'Pump registered! AI verification started. Owner will receive email within 24hrs.'
+      });
+    } catch(e) {
+      console.error('[AGENT REGISTER]', e.message);
+      res.status(500).json({ error: 'Registration failed: ' + e.message });
+    }
+  }
+);
+
+// Serve agent dashboard page
+app.get('/agent', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'agent.html')));
+app.get('/agent.html', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'agent.html')));
+
 app.post('/api/admin/pumps/add', requireAuth(['super_admin']), (req,res) => {
   const { name,address,tehsil,district,state,pin_code,lat,lng,oil_company,license_number } = req.body;
   if (!name) return res.status(400).json({ error:'Pump name required' });
@@ -3127,7 +3326,7 @@ async function sendOTPEmail(email, otp, name='User') {
 
 function isUserPremium(user) {
   if(!user) return false;
-  if(['pump_owner','doc_verifier','govt_official','super_admin'].includes(user.role)) return true;
+  if(['pump_owner','doc_verifier','govt_official','super_admin','enrollment_agent'].includes(user.role)) return true;
   if(user.subscription_status === 'active') return true;
   if(user.subscription_status === 'trial') {
     const td = parseInt(getSetting('trial_days') || '10');

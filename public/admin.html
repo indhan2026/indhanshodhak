@@ -370,6 +370,36 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
       <button class="form-submit" style="background:#1a237e" onclick="createGovt()">🏛️ Create Govt Login</button>
     </div>
 
+    <!-- ═══ CREATE ENROLLMENT AGENT ═══ -->
+    <div class="card" style="border:1.5px solid #e65100">
+      <div class="card-title" style="color:#e65100">🛵 Create Enrollment Agent Login</div>
+      <div style="font-size:12px;color:#888;margin-bottom:10px">
+        Restricted role — can only search pumps by region and register pumps on behalf of owners.<br>
+        Cannot approve/reject/deregister or see other owners' private data. Auto-gets an MR referral code.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Agent Login ID</label>
+        <input class="form-input" type="text" id="a-loginid" placeholder="e.g. AGENT_NEWASA">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password (min 6 chars)</label>
+        <input class="form-input" type="password" id="a-pass" placeholder="Agent password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Agent Name</label>
+        <input class="form-input" type="text" id="a-name" placeholder="Full name of agent">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Agent Phone</label>
+        <input class="form-input" type="tel" id="a-phone" placeholder="10-digit mobile" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assigned Region (optional)</label>
+        <input class="form-input" type="text" id="a-region" placeholder="e.g. Newasa, Sangamner">
+      </div>
+      <button class="form-submit" style="background:#e65100" onclick="createAgent()">🛵 Create Agent Login</button>
+    </div>
+
     <!-- ═══ STAFF ACCOUNTS TABLE ═══ -->
     <div class="card" style="border:1.5px solid #1a6b2e">
       <div class="card-title" style="color:#1a6b2e">👥 All Staff Accounts</div>
@@ -1238,6 +1268,29 @@ async function createGovt(){
     document.getElementById('g-pass').value='';
     loadGovtCreds(); // Instantly refresh govt credentials display
     loadUsers();
+  }
+}
+async function createAgent(){
+  const loginId = document.getElementById('a-loginid').value.trim();
+  const pass    = document.getElementById('a-pass').value.trim();
+  const name    = document.getElementById('a-name').value.trim();
+  const phone   = document.getElementById('a-phone').value.trim();
+  const region  = document.getElementById('a-region').value.trim();
+  if(!loginId){ alert('Enter Agent Login ID'); return; }
+  if(!pass||pass.length<6){ alert('Password must be at least 6 characters'); return; }
+  if(!name){ alert('Enter Agent Name'); return; }
+  const d = await api('/api/admin/create-agent','POST',{login_id:loginId, password:pass, agent_name:name, agent_phone:phone, region:region});
+  if(!d){ alert('❌ Network error'); return; }
+  if(d.error){ alert('❌ '+d.error); return; }
+  if(d.success){
+    alert('✅ Agent Created!\\n\\nLogin ID: '+loginId+'\\nPassword: '+pass+'\\nMR Code: '+d.mr_code+'\\n\\nLogin page: /agent\\n\\n👆 Check Staff Accounts below ↓');
+    document.getElementById('a-loginid').value='';
+    document.getElementById('a-pass').value='';
+    document.getElementById('a-name').value='';
+    document.getElementById('a-phone').value='';
+    document.getElementById('a-region').value='';
+    loadUsers();
+    loadMRAgents();
   }
 }
 async function updateGovtCreds(){

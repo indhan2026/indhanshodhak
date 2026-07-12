@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Enrollment Agent</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;max-width:900px;margin:0 auto}
+.header{background:linear-gradient(135deg,#e65100,#ff8a50);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;color:white}
+.header h1{font-size:16px;font-weight:700}
+.header .sub{font-size:11px;opacity:.85}
+.logout-btn{background:rgba(255,255,255,.2);color:white;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+.login-box{max-width:400px;margin:40px auto;background:white;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.login-title{font-size:16px;font-weight:700;color:#e65100;text-align:center;margin-bottom:16px}
+.form-input{width:100%;padding:11px 13px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;background:#f9f9f9;outline:none;margin-bottom:10px}
+.form-input:focus{border-color:#e65100;background:white}
+.form-label{font-size:12px;font-weight:600;color:#555;margin-bottom:4px;display:block}
+.submit-btn{width:100%;padding:13px;background:#e65100;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer}
+.submit-btn:disabled{background:#aaa}
+.card{background:white;border-radius:14px;padding:16px;margin:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card-title{font-size:13px;font-weight:700;margin-bottom:12px}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+.filter-row select,.filter-row input{padding:9px 10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;outline:none;min-width:140px}
+.filter-btn{padding:9px 16px;background:#e65100;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+#agent-map{height:280px;width:100%;border-radius:12px;margin-bottom:12px}
+.pump-list{max-height:400px;overflow-y:auto}
+.pump-item{border:1.5px solid #eee;border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;transition:.15s}
+.pump-item:hover{border-color:#e65100;background:#fff8f0}
+.pump-item.verified{border-color:#1a6b2e}
+.pump-name{font-size:13px;font-weight:600;color:#222}
+.pump-addr{font-size:11px;color:#888;margin-top:2px}
+.pump-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.pump-tag{font-size:10px;padding:2px 8px;border-radius:12px;font-weight:500}
+.tag-v{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7}
+.tag-u{background:#fff3e0;color:#e65100;border:1px solid #ffcc80}
+.tag-o{background:#e3f2fd;color:#1565c0;border:1px solid #90caf9}
+.enroll-btn{padding:5px 12px;background:#e65100;color:white;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;margin-top:6px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;z-index:100;overflow-y:auto;padding:20px}
+.modal-box{background:white;border-radius:16px;max-width:480px;margin:20px auto;padding:20px;position:relative}
+.modal-close{position:absolute;top:12px;right:14px;font-size:20px;cursor:pointer;color:#888;background:none;border:none}
+.err{background:#ffebee;color:#b71c1c;padding:10px 12px;border-radius:10px;font-size:12px;margin-bottom:10px;display:none}
+.ok-msg{background:#e8f5e9;color:#1b5e20;padding:10px 12px;border-radius:10px;font-size:12px;margin-bottom:10px;display:none}
+.stat-row{display:flex;gap:8px;margin-bottom:12px}
+.stat-box{flex:1;background:#f9f9f9;border-radius:10px;padding:10px;text-align:center}
+.stat-num{font-size:20px;font-weight:700}
+.stat-label{font-size:10px;color:#888;margin-top:2px}
+.doc-upload{background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px;margin-bottom:8px}
+.doc-label{font-size:12px;font-weight:600;color:#555;margin-bottom:4px}
+.choose-btn{display:inline-block;padding:6px 12px;background:#e65100;color:white;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer}
+.file-name{font-size:11px;color:#888;margin-top:4px}
+.file-name.ok{color:#1a6b2e;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-title">🛵 Enrollment Agent Login</div>
+    <label class="form-label">Login ID</label>
+    <input class="form-input" type="text" id="login-id" placeholder="Your agent login ID">
+    <label class="form-label">Password</label>
+    <input class="form-input" type="password" id="login-pwd" placeholder="Password"
+      onkeypress="if(event.key==='Enter')agentLogin()">
+    <button class="submit-btn" onclick="agentLogin()">🔓 Login</button>
+    <div id="login-err" class="err" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD (hidden until login) -->
+<div id="dashboard" style="display:none">
+  <div class="header">
+    <div>
+      <h1>🛵 IndhanShodhak — Enrollment Agent</h1>
+      <div class="sub" id="agent-name">Agent Dashboard</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="agent-mr-code" style="background:rgba(255,255,255,.2);padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;font-family:monospace"></span>
+      <button class="logout-btn" onclick="agentLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num" id="stat-total">—</div><div class="stat-label">Pumps Found</div></div>
+      <div class="stat-box" style="background:#e8f5e9"><div class="stat-num" id="stat-verified" style="color:#1a6b2e">—</div><div class="stat-label">Verified</div></div>
+      <div class="stat-box" style="background:#fff3e0"><div class="stat-num" id="stat-unverified" style="color:#e65100">—</div><div class="stat-label">Unverified</div></div>
+      <div class="stat-box" style="background:#e3f2fd"><div class="stat-num" id="stat-no-owner" style="color:#1565c0">—</div><div class="stat-label">No Owner</div></div>
+    </div>
+  </div>
+
+  <!-- Region Filter -->
+  <div class="card">
+    <div class="card-title" style="color:#e65100">🗺️ Search Region</div>
+    <div class="filter-row">
+      <div>
+        <div style="font-size:11px;color:#888;margin-bottom:4px">District</div>
+        <select id="f-district" onchange="loadTehsils()">
+          <option value="">— Select District —</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#888;margin-bottom:4px">Taluka/Tehsil</div>
+        <select id="f-tehsil">
+          <option value="">All Talukas</option>
+        </select>
+      </div>
+      <button class="filter-btn" onclick="searchRegion()">🔍 Search</button>
+      <button class="filter-btn" style="background:#555" onclick="searchNearbyGPS()">📍 My Location</button>
+    </div>
+
+    <!-- Map -->
+    <div id="agent-map"></div>
+
+    <!-- Pump List -->
+    <div class="pump-list" id="pump-list">
+      <div style="text-align:center;color:#aaa;padding:20px;font-size:13px">Select a district and search to see pumps</div>
+    </div>
+  </div>
+</div>
+
+<!-- ENROLLMENT MODAL -->
+<div class="modal-overlay" id="enrollModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeEnrollModal()">✕</button>
+    <div class="card-title" style="color:#e65100;font-size:14px;margin-bottom:14px">🛵 Register Pump on Behalf of Owner</div>
+    <div id="enroll-pump-info" style="background:#fff3e0;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px"></div>
+    <div id="enroll-err" class="err"></div>
+    <div id="enroll-ok" class="ok-msg"></div>
+
+    <input type="hidden" id="e-pump-id" value="">
+    <input type="hidden" id="e-pump-lat" value="0">
+    <input type="hidden" id="e-pump-lng" value="0">
+
+    <label class="form-label">Owner Full Name *</label>
+    <input class="form-input" type="text" id="e-owner-name" placeholder="Pump owner's full name">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <label class="form-label">Owner Mobile *</label>
+        <input class="form-input" type="tel" id="e-owner-mobile" maxlength="10" placeholder="10-digit mobile"
+          oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+      <div>
+        <label class="form-label">Owner Email *</label>
+        <input class="form-input" type="email" id="e-owner-email" placeholder="owner@email.com">
+      </div>
+    </div>
+
+    <label class="form-label">Pump Name</label>
+    <input class="form-input" type="text" id="e-pump-name" placeholder="e.g. HP Petrol Pump Newasa">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <label class="form-label">Oil Company</label>
+        <select class="form-input" id="e-oil-co">
+          <option value="">Select...</option>
+          <option>HP</option><option>BPCL</option><option>IOC</option>
+          <option>Reliance</option><option>Shell</option><option>Nayara</option><option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">PIN Code</label>
+        <input class="form-input" type="tel" id="e-pin" maxlength="6" placeholder="6-digit PIN"
+          oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+    </div>
+
+    <label class="form-label">Address</label>
+    <input class="form-input" type="text" id="e-address" placeholder="Full address">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <label class="form-label">District</label>
+        <input class="form-input" type="text" id="e-district">
+      </div>
+      <div>
+        <label class="form-label">Tehsil/Taluka</label>
+        <input class="form-input" type="text" id="e-tehsil">
+      </div>
+    </div>
+
+    <label class="form-label">License Number *</label>
+    <input class="form-input" type="text" id="e-license" placeholder="e.g. MH-HP-2019-00123"
+      oninput="this.value=this.value.toUpperCase()">
+
+    <!-- Documents -->
+    <div style="font-size:12px;font-weight:700;color:#e65100;margin:12px 0 8px">📄 Documents (JPG · Max 100KB)</div>
+
+    <div class="doc-upload">
+      <div class="doc-label">Pump License Certificate *</div>
+      <label class="choose-btn">Choose File
+        <input type="file" accept="image/jpeg" style="display:none" id="e-doc-license"
+          onchange="handleAgentFile(this,'e-fn-license')">
+      </label>
+      <div class="file-name" id="e-fn-license">No file chosen</div>
+    </div>
+    <div class="doc-upload">
+      <div class="doc-label">Owner Aadhaar Card *</div>
+      <label class="choose-btn">Choose File
+        <input type="file" accept="image/jpeg" style="display:none" id="e-doc-aadhaar"
+          onchange="handleAgentFile(this,'e-fn-aadhaar')">
+      </label>
+      <div class="file-name" id="e-fn-aadhaar">No file chosen</div>
+    </div>
+    <div class="doc-upload">
+      <div class="doc-label">Selfie at Pump *</div>
+      <label class="choose-btn">Choose File
+        <input type="file" accept="image/jpeg" style="display:none" id="e-doc-selfie"
+          onchange="handleAgentFile(this,'e-fn-selfie')">
+      </label>
+      <div class="file-name" id="e-fn-selfie">No file chosen</div>
+    </div>
+
+    <button class="submit-btn" id="enroll-submit-btn" onclick="submitEnrollment()" style="margin-top:10px">
+      📤 Submit for Verification
+    </button>
+  </div>
+</div>
+
+<script>
+let TOKEN = localStorage.getItem('agent_token');
+let agentMap = null;
+let agentMRCode = '';
+let _agentPumps = [];
+
+// ── LOGIN ──────────────────────────────────────────────────────
+async function agentLogin(){
+  const id = document.getElementById('login-id').value.trim();
+  const pwd = document.getElementById('login-pwd').value.trim();
+  const errEl = document.getElementById('login-err');
+  errEl.style.display='none';
+  if(!id||!pwd){ errEl.textContent='Enter Login ID and Password'; errEl.style.display='block'; return; }
+  try {
+    const r = await fetch('/api/auth/login',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mobile:id, password:pwd})
+    });
+    const d = await r.json();
+    if(d.token && d.role==='enrollment_agent'){
+      TOKEN = d.token;
+      localStorage.setItem('agent_token', d.token);
+      localStorage.setItem('agent_name', d.name||id);
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('dashboard').style.display='block';
+      document.getElementById('agent-name').textContent = d.name||id;
+      initDashboard();
+    } else if(d.token && d.role!=='enrollment_agent'){
+      errEl.textContent='This login is not an Enrollment Agent account.';
+      errEl.style.display='block';
+    } else {
+      errEl.textContent=d.error||'Login failed';
+      errEl.style.display='block';
+    }
+  } catch(e){ errEl.textContent='Network error'; errEl.style.display='block'; }
+}
+
+function agentLogout(){
+  localStorage.removeItem('agent_token');
+  localStorage.removeItem('agent_name');
+  TOKEN = null;
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('loginScreen').style.display='block';
+}
+
+// Auto-login if token exists
+if(TOKEN){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  document.getElementById('agent-name').textContent = localStorage.getItem('agent_name')||'Agent';
+  setTimeout(initDashboard, 100);
+}
+
+// ── DASHBOARD INIT ─────────────────────────────────────────────
+async function initDashboard(){
+  // Init map (centered on India)
+  if(!agentMap){
+    agentMap = L.map('agent-map',{zoomControl:true,attributionControl:false}).setView([20.5,78.9],5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(agentMap);
+  }
+  // Load district dropdown
+  try {
+    const r = await fetch('/api/agent/districts',{headers:{'x-auth-token':TOKEN}});
+    const d = await r.json();
+    const sel = document.getElementById('f-district');
+    (d.districts||[]).forEach(dist => {
+      const opt = document.createElement('option');
+      opt.value = dist; opt.textContent = dist;
+      sel.appendChild(opt);
+    });
+  } catch(e){}
+}
+
+async function loadTehsils(){
+  const dist = document.getElementById('f-district').value;
+  const sel = document.getElementById('f-tehsil');
+  sel.innerHTML = '<option value="">All Talukas</option>';
+  if(!dist) return;
+  try {
+    const r = await fetch(`/api/agent/tehsils?district=${encodeURIComponent(dist)}`,{headers:{'x-auth-token':TOKEN}});
+    const d = await r.json();
+    (d.tehsils||[]).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t; opt.textContent = t;
+      sel.appendChild(opt);
+    });
+  } catch(e){}
+}
+
+// ── REGION SEARCH ──────────────────────────────────────────────
+async function searchRegion(){
+  const dist = document.getElementById('f-district').value;
+  const teh  = document.getElementById('f-tehsil').value;
+  if(!dist){ alert('Select a district first'); return; }
+
+  document.getElementById('pump-list').innerHTML = '<div style="text-align:center;padding:16px;color:#888">🔍 Searching...</div>';
+
+  try {
+    let url = `/api/agent/pumps?district=${encodeURIComponent(dist)}`;
+    if(teh) url += `&tehsil=${encodeURIComponent(teh)}`;
+    const r = await fetch(url,{headers:{'x-auth-token':TOKEN}});
+    const d = await r.json();
+    _agentPumps = d.pumps||[];
+    renderPumpResults(_agentPumps);
+  } catch(e){
+    document.getElementById('pump-list').innerHTML = '<div style="text-align:center;padding:16px;color:#b71c1c">Error loading pumps</div>';
+  }
+}
+
+async function searchNearbyGPS(){
+  document.getElementById('pump-list').innerHTML = '<div style="text-align:center;padding:16px;color:#888">📍 Detecting location...</div>';
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    agentMap.setView([lat,lng], 13);
+    L.circleMarker([lat,lng],{radius:8,fillColor:'#2196F3',color:'#fff',weight:2,fillOpacity:1})
+      .addTo(agentMap).bindPopup('📍 You are here');
+    try {
+      const r = await fetch(`/api/agent/pumps?lat=${lat}&lng=${lng}`,{headers:{'x-auth-token':TOKEN}});
+      const d = await r.json();
+      _agentPumps = d.pumps||[];
+      renderPumpResults(_agentPumps);
+    } catch(e){
+      document.getElementById('pump-list').innerHTML = '<div style="text-align:center;padding:16px;color:#b71c1c">Error loading pumps</div>';
+    }
+  }, () => {
+    document.getElementById('pump-list').innerHTML = '<div style="text-align:center;padding:16px;color:#b71c1c">GPS not available</div>';
+  }, {enableHighAccuracy:true, timeout:15000});
+}
+
+function renderPumpResults(pumps){
+  // Update stats
+  const verified = pumps.filter(p=>p.is_verified).length;
+  const noOwner  = pumps.filter(p=>!p.has_owner).length;
+  document.getElementById('stat-total').textContent = pumps.length;
+  document.getElementById('stat-verified').textContent = verified;
+  document.getElementById('stat-unverified').textContent = pumps.length - verified;
+  document.getElementById('stat-no-owner').textContent = noOwner;
+
+  // Clear and add markers to map
+  agentMap.eachLayer(l => { if(l instanceof L.CircleMarker || l instanceof L.Marker) agentMap.removeLayer(l); });
+
+  const withCoords = pumps.filter(p=>p.lat&&p.lng);
+  if(withCoords.length > 0){
+    const bounds = L.latLngBounds(withCoords.map(p=>[p.lat,p.lng]));
+    agentMap.fitBounds(bounds, {padding:[30,30]});
+  }
+
+  pumps.forEach((p,i) => {
+    if(!p.lat||!p.lng) return;
+    const color = p.is_verified ? '#1a6b2e' : (p.has_owner ? '#e65100' : '#1565c0');
+    L.circleMarker([p.lat,p.lng],{radius:7,fillColor:color,color:'#fff',weight:2,fillOpacity:1})
+      .addTo(agentMap)
+      .bindPopup(`<b>${p.name}</b><br><small>${p.address||''}</small><br>
+        ${p.is_verified?'✅ Verified':p.has_owner?'⏳ Has Owner':'🔵 No Owner'}<br>
+        ${!p.is_verified?`<button onclick="openEnrollModal(${i})" style="margin-top:4px;padding:4px 10px;background:#e65100;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer">Enroll</button>`:''}`);
+  });
+
+  // Render list
+  const el = document.getElementById('pump-list');
+  if(pumps.length === 0){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">No pumps found in this region</div>';
+    return;
+  }
+  el.innerHTML = pumps.map((p,i) => `
+    <div class="pump-item ${p.is_verified?'verified':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="pump-name">${p.is_verified?'✅':'⛽'} ${p.name}</div>
+          <div class="pump-addr">📍 ${p.address||''} ${p.tehsil?'· '+p.tehsil:''} ${p.district?'· '+p.district:''}</div>
+        </div>
+      </div>
+      <div class="pump-tags">
+        ${p.is_verified?'<span class="pump-tag tag-v">✅ Verified</span>':'<span class="pump-tag tag-u">⏳ Unverified</span>'}
+        ${p.has_owner?'<span class="pump-tag tag-o">👤 Has Owner</span>':'<span class="pump-tag tag-u">🔵 No Owner</span>'}
+        ${p.oil_company?'<span class="pump-tag" style="background:#f5f5f5;border:1px solid #ddd;color:#555">'+p.oil_company+'</span>':''}
+      </div>
+      ${!p.is_verified?`<button class="enroll-btn" onclick="openEnrollModal(${i})">🛵 Enroll This Pump</button>`:''}
+    </div>
+  `).join('');
+}
+
+// ── ENROLLMENT MODAL ───────────────────────────────────────────
+function openEnrollModal(idx){
+  const p = _agentPumps[idx];
+  if(!p) return;
+  document.getElementById('enrollModal').style.display='block';
+  document.getElementById('enroll-err').style.display='none';
+  document.getElementById('enroll-ok').style.display='none';
+  document.getElementById('enroll-pump-info').innerHTML =
+    `⛽ <b>${p.name}</b><br>📍 ${p.address||''}<br>📌 GPS: ${p.lat?.toFixed(4)||'—'}, ${p.lng?.toFixed(4)||'—'}`;
+
+  document.getElementById('e-pump-id').value = p.id||'';
+  document.getElementById('e-pump-lat').value = p.lat||0;
+  document.getElementById('e-pump-lng').value = p.lng||0;
+  document.getElementById('e-pump-name').value = p.name||'';
+  document.getElementById('e-address').value = p.address||'';
+  document.getElementById('e-district').value = p.district||'';
+  document.getElementById('e-tehsil').value = p.tehsil||'';
+  document.getElementById('e-pin').value = p.pin_code||'';
+
+  // Detect oil company
+  const nm = (p.name||'').toUpperCase();
+  const sel = document.getElementById('e-oil-co');
+  if(nm.includes('HP')||nm.includes('HINDUSTAN')) sel.value='HP';
+  else if(nm.includes('BPCL')||nm.includes('BHARAT')) sel.value='BPCL';
+  else if(nm.includes('IOC')||nm.includes('INDIAN OIL')) sel.value='IOC';
+  else if(nm.includes('NAYARA')||nm.includes('ESSAR')) sel.value='Nayara';
+  else if(nm.includes('SHELL')) sel.value='Shell';
+  else if(nm.includes('RELIANCE')) sel.value='Reliance';
+  else sel.value = p.oil_company||'';
+
+  // Clear owner fields
+  document.getElementById('e-owner-name').value='';
+  document.getElementById('e-owner-mobile').value='';
+  document.getElementById('e-owner-email').value='';
+  document.getElementById('e-license').value='';
+  document.getElementById('e-doc-license').value='';
+  document.getElementById('e-doc-aadhaar').value='';
+  document.getElementById('e-doc-selfie').value='';
+  document.getElementById('e-fn-license').textContent='No file chosen';
+  document.getElementById('e-fn-aadhaar').textContent='No file chosen';
+  document.getElementById('e-fn-selfie').textContent='No file chosen';
+  document.getElementById('e-fn-license').className='file-name';
+  document.getElementById('e-fn-aadhaar').className='file-name';
+  document.getElementById('e-fn-selfie').className='file-name';
+  document.getElementById('enroll-submit-btn').disabled=false;
+  document.getElementById('enroll-submit-btn').textContent='📤 Submit for Verification';
+}
+
+function closeEnrollModal(){
+  document.getElementById('enrollModal').style.display='none';
+}
+
+function handleAgentFile(input, nameId){
+  const el = document.getElementById(nameId);
+  if(!input.files||!input.files[0]){ el.textContent='No file chosen'; el.className='file-name'; return; }
+  const f = input.files[0];
+  if(!['image/jpeg','image/jpg'].includes(f.type)){ el.textContent='❌ JPG only'; el.style.color='#b71c1c'; input.value=''; return; }
+  if(f.size > 100*1024){ el.textContent=`❌ Too large (${Math.round(f.size/1024)}KB) — Max 100KB`; el.style.color='#b71c1c'; input.value=''; return; }
+  el.textContent = `✅ ${f.name} (${Math.round(f.size/1024)}KB)`;
+  el.className = 'file-name ok';
+}
+
+async function submitEnrollment(){
+  const errEl = document.getElementById('enroll-err');
+  const okEl = document.getElementById('enroll-ok');
+  errEl.style.display='none'; okEl.style.display='none';
+  const show = msg => { errEl.textContent=msg; errEl.style.display='block'; };
+
+  const ownerName   = document.getElementById('e-owner-name').value.trim();
+  const ownerMobile = document.getElementById('e-owner-mobile').value.trim();
+  const ownerEmail  = document.getElementById('e-owner-email').value.trim();
+  const license     = document.getElementById('e-license').value.trim();
+
+  if(!ownerName)   return show('Enter owner full name');
+  if(ownerMobile.length!==10) return show('Enter valid 10-digit owner mobile');
+  if(!ownerEmail||!ownerEmail.includes('@')) return show('Enter valid owner email');
+  if(!license) return show('Enter pump license number');
+
+  const licFile = document.getElementById('e-doc-license').files[0];
+  const aadFile = document.getElementById('e-doc-aadhaar').files[0];
+  const selFile = document.getElementById('e-doc-selfie').files[0];
+  if(!licFile) return show('Upload Pump License Certificate');
+  if(!aadFile) return show('Upload Owner Aadhaar Card');
+  if(!selFile) return show('Upload Selfie at Pump');
+
+  const fd = new FormData();
+  fd.append('owner_name', ownerName);
+  fd.append('owner_mobile', ownerMobile);
+  fd.append('owner_email', ownerEmail);
+  fd.append('pump_id', document.getElementById('e-pump-id').value);
+  fd.append('pump_name', document.getElementById('e-pump-name').value);
+  fd.append('oil_company', document.getElementById('e-oil-co').value);
+  fd.append('pin_code', document.getElementById('e-pin').value);
+  fd.append('address', document.getElementById('e-address').value);
+  fd.append('district', document.getElementById('e-district').value);
+  fd.append('tehsil', document.getElementById('e-tehsil').value);
+  fd.append('state', 'Maharashtra');
+  fd.append('license_number', license);
+  fd.append('lat', document.getElementById('e-pump-lat').value);
+  fd.append('lng', document.getElementById('e-pump-lng').value);
+  fd.append('license', licFile);
+  fd.append('aadhaar', aadFile);
+  fd.append('selfie', selFile);
+
+  const btn = document.getElementById('enroll-submit-btn');
+  btn.disabled=true; btn.textContent='⏳ Submitting...';
+
+  try {
+    const r = await fetch('/api/agent/register-pump',{
+      method:'POST', headers:{'x-auth-token':TOKEN}, body:fd
+    });
+    const d = await r.json();
+    if(d.success){
+      okEl.innerHTML = `✅ <b>Pump Registered!</b><br>App ID: ${d.app_id||'—'}<br>MR Code: ${d.mr_code||'—'}<br>AI verification started. Owner will receive email within 24hrs.`;
+      okEl.style.display='block';
+      btn.textContent='✅ Submitted!';
+    } else {
+      show(d.error||'Submission failed');
+      btn.disabled=false; btn.textContent='📤 Submit for Verification';
+    }
+  } catch(e){
+    show('Network error — try again');
+    btn.disabled=false; btn.textContent='📤 Submit for Verification';
+  }
+}
+</script>
+</body>
+</html>
