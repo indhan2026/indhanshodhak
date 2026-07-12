@@ -213,6 +213,7 @@ async function initDB() {
   const settingsList = [
     ['subscription_price','14.99'], ['trial_days','10'],
     ['pump_subscription_price','299'], ['pump_trial_days','45'],
+    ['dense_city_zones','Delhi,Mumbai,Pune,Bengaluru,Ahmedabad,Surat,Hyderabad,Chennai,Kolkata,Noida,Ghaziabad,Nagpur,Nashik,Rajkot,Jamnagar,Bhavnagar,Anand,Vijayawada,Gurugram,Faridabad,Sonipat,Chandigarh'],
     ['mapmyindia_token','NOT_SET'],
     ['tier_P1_litres','9999'], ['tier_P2_litres','20'],
     ['tier_P3_litres','50'],   ['tier_P4_litres','30'], ['tier_P5_litres','10'],
@@ -527,6 +528,57 @@ const upload = multer({
 // ── Helpers ───────────────────────────────────────────────────
 function hashPwd(p)    { return crypto.createHash('sha256').update(p+'indhan_salt_2026').digest('hex'); }
 function getSetting(k) { const r=dbGet(`SELECT value FROM settings WHERE key=?`,[k]); return r?.value||null; }
+
+// ── Dense City Zones — bounding boxes for adaptive cache grid ─────────────
+// Cities with high pump density use 1×1km (0.01°) grid; everywhere else 5×5km (0.05°)
+const DENSE_ZONES_REF = {
+  'Delhi':      {minLat:28.40,maxLat:28.88,minLng:76.84,maxLng:77.45},
+  'Mumbai':     {minLat:18.87,maxLat:19.45,minLng:72.75,maxLng:73.20},
+  'Pune':       {minLat:18.40,maxLat:18.70,minLng:73.70,maxLng:74.00},
+  'Bengaluru':  {minLat:12.80,maxLat:13.15,minLng:77.45,maxLng:77.80},
+  'Ahmedabad':  {minLat:22.90,maxLat:23.15,minLng:72.45,maxLng:72.70},
+  'Surat':      {minLat:21.10,maxLat:21.30,minLng:72.75,maxLng:72.95},
+  'Hyderabad':  {minLat:17.30,maxLat:17.55,minLng:78.35,maxLng:78.60},
+  'Chennai':    {minLat:12.90,maxLat:13.20,minLng:80.15,maxLng:80.35},
+  'Kolkata':    {minLat:22.45,maxLat:22.70,minLng:88.25,maxLng:88.50},
+  'Noida':      {minLat:28.45,maxLat:28.65,minLng:77.28,maxLng:77.50},
+  'Ghaziabad':  {minLat:28.60,maxLat:28.75,minLng:77.35,maxLng:77.50},
+  'Nagpur':     {minLat:21.05,maxLat:21.25,minLng:79.00,maxLng:79.20},
+  'Nashik':     {minLat:19.90,maxLat:20.10,minLng:73.70,maxLng:73.90},
+  'Rajkot':     {minLat:22.25,maxLat:22.40,minLng:70.70,maxLng:70.90},
+  'Jamnagar':   {minLat:22.40,maxLat:22.55,minLng:70.00,maxLng:70.15},
+  'Bhavnagar':  {minLat:21.70,maxLat:21.85,minLng:72.10,maxLng:72.25},
+  'Anand':      {minLat:22.50,maxLat:22.65,minLng:72.90,maxLng:73.05},
+  'Vijayawada': {minLat:16.45,maxLat:16.60,minLng:80.55,maxLng:80.70},
+  'Gurugram':   {minLat:28.38,maxLat:28.55,minLng:76.95,maxLng:77.15},
+  'Faridabad':  {minLat:28.35,maxLat:28.50,minLng:77.25,maxLng:77.40},
+  'Sonipat':    {minLat:28.90,maxLat:29.05,minLng:76.95,maxLng:77.15},
+  'Chandigarh': {minLat:30.65,maxLat:30.80,minLng:76.70,maxLng:76.85},
+  'Lucknow':    {minLat:26.75,maxLat:26.95,minLng:80.85,maxLng:81.05},
+  'Kanpur':     {minLat:26.40,maxLat:26.55,minLng:80.25,maxLng:80.45},
+  'Indore':     {minLat:22.65,maxLat:22.80,minLng:75.80,maxLng:75.95},
+  'Jaipur':     {minLat:26.80,maxLat:27.00,minLng:75.70,maxLng:75.90},
+  'Kochi':      {minLat:9.90,maxLat:10.10,minLng:76.20,maxLng:76.40},
+  'Bhopal':     {minLat:23.15,maxLat:23.35,minLng:77.35,maxLng:77.50},
+  'Patna':      {minLat:25.55,maxLat:25.70,minLng:85.05,maxLng:85.25},
+  'Vadodara':   {minLat:22.25,maxLat:22.40,minLng:73.15,maxLng:73.30},
+  'Thiruvananthapuram': {minLat:8.45,maxLat:8.60,minLng:76.90,maxLng:77.05},
+};
+
+function getGridStep(lat, lng) {
+  const activeZones = (getSetting('dense_city_zones') || '').split(',').map(s=>s.trim()).filter(Boolean);
+  for(const cityName of activeZones) {
+    const z = DENSE_ZONES_REF[cityName];
+    if(z && lat >= z.minLat && lat <= z.maxLat && lng >= z.minLng && lng <= z.maxLng) {
+      return 0.01; // 1×1km grid for dense cities
+    }
+  }
+  return 0.05; // 5×5km grid for everything else
+}
+
+function roundToGrid(val, step) {
+  return (Math.round(parseFloat(val) / step) * step).toFixed(2);
+}
 function makeToken(id, mobile) {
   const token = crypto.randomBytes(32).toString('hex');
   dbRun(`INSERT OR REPLACE INTO sessions (token, user_id, expires_at)
@@ -754,10 +806,10 @@ app.get('/api/pumps/search-place', async (req, res) => {
     const data = await resp.json();
     const places = (data.places||[]).map(p => {
       const pinComp  = (p.addressComponents||[]).find(c=>c.types?.includes('postal_code'));
-      // Try level_3 (actual district) first, fallback to level_2 (revenue division)
-      const distComp = (p.addressComponents||[]).find(c=>c.types?.includes('administrative_area_level_3'))
-                    || (p.addressComponents||[]).find(c=>c.types?.includes('administrative_area_level_2'));
-      const cityComp = (p.addressComponents||[]).find(c=>c.types?.includes('locality')||c.types?.includes('administrative_area_level_3'));
+      // Separate tehsil (level_3) from district (level_2) correctly
+      const tehsilComp = (p.addressComponents||[]).find(c=>c.types?.includes('administrative_area_level_3'));
+      const distComp   = (p.addressComponents||[]).find(c=>c.types?.includes('administrative_area_level_2'));
+      const cityComp   = (p.addressComponents||[]).find(c=>c.types?.includes('locality')||c.types?.includes('administrative_area_level_3'));
       return {
         place_id: p.id,
         name:     p.displayName?.text || 'Petrol Pump',
@@ -765,6 +817,7 @@ app.get('/api/pumps/search-place', async (req, res) => {
         lat:      p.location?.latitude  || 0,
         lng:      p.location?.longitude || 0,
         pin_code: pinComp?.longText  || '',
+        tehsil:   tehsilComp?.longText || '',
         district: distComp?.longText || cityComp?.longText || '',
       };
     });
@@ -838,8 +891,9 @@ app.get('/api/pumps/locations', async (req, res) => {
     cacheKey   = 'pin:' + pin;
     cacheHours = CACHE_HOURS.PIN;
   } else if(lat && lng) {
-    const rLat = parseFloat(lat).toFixed(2);
-    const rLng = parseFloat(lng).toFixed(2);
+    const step   = getGridStep(parseFloat(lat), parseFloat(lng));
+    const rLat   = roundToGrid(lat, step);
+    const rLng   = roundToGrid(lng, step);
     cacheKey   = `gps:${rLat}:${rLng}`;
     cacheHours = CACHE_HOURS.GPS;
   } else {
@@ -1721,11 +1775,12 @@ app.post('/api/pump-owner/register',
       if(!pump){
         const pumpLat = parseFloat(lat) || 0;
         const pumpLng = parseFloat(lng) || 0;
+        const tehsil  = req.body.tehsil || '';
         dbRun(`INSERT INTO petrol_pumps
-               (name, oil_company, pin_code, address, district, state,
+               (name, oil_company, pin_code, address, tehsil, district, state,
                 license_number, is_active, owner_user_id, lat, lng)
-               VALUES (?,?,?,?,?,?,?,1,?,?,?)`,
-          [pump_name, oil_company, pin_code, address, district||'', state||'',
+               VALUES (?,?,?,?,?,?,?,?,1,?,?,?)`,
+          [pump_name, oil_company, pin_code, address, tehsil, district||'', state||'',
            license_number.toUpperCase(), user.id, pumpLat, pumpLng]);
         pump = dbGet(`SELECT id FROM petrol_pumps WHERE license_number=?`,
           [license_number.toUpperCase()]);
@@ -2703,7 +2758,7 @@ app.get('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
 });
 
 app.post('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
-  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers'];
+  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers'];
   const updated=[];
   for (const [k,v] of Object.entries(req.body)) {
     if (allowed.includes(k)) { dbRun(`INSERT OR REPLACE INTO settings(key,value)VALUES(?,?)`,[k,String(v)]); updated.push(k); }
@@ -3162,13 +3217,13 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
       const pinComp = (p.addressComponents || [])
         .find(c => c.types?.includes('postal_code'));
       const pin = pinComp?.longText || '';
-      // Extract city/district
+      // Extract city/district/tehsil separately
       const cityComp = (p.addressComponents || [])
         .find(c => c.types?.includes('locality') || c.types?.includes('administrative_area_level_3'));
-      // Also get actual district (level_3) separately for correct DB storage
-      const distComp3 = (p.addressComponents || [])
-        .find(c => c.types?.includes('administrative_area_level_3'))
-        || (p.addressComponents || [])
+      // Tehsil = level_3, District = level_2 (properly separated)
+      const tehsilComp = (p.addressComponents || [])
+        .find(c => c.types?.includes('administrative_area_level_3'));
+      const distComp2 = (p.addressComponents || [])
         .find(c => c.types?.includes('administrative_area_level_2'));
       const city = cityComp?.longText || '';
 
@@ -3177,7 +3232,8 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
         name:        name,
         oil_company: detectOilCompany(name),
         address:     address,
-        district:    distComp3?.longText || city,  // level_3 = actual district
+        tehsil:      tehsilComp?.longText || '',
+        district:    distComp2?.longText || city,
         pin_code:    pin,
         lat:         parseFloat(p.location?.latitude  || 0),
         lng:         parseFloat(p.location?.longitude || 0),

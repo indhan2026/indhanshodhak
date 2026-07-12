@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>IndhanShodhak — Register Your Pump</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -98,19 +100,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="err" id="errMsg"></div>
     <div class="ok-msg" id="okMsg"></div>
 
-    <!-- STEP 1: Search pump on map -->
+    <!-- STEP 1: Find pump via GPS map -->
     <div class="map-search-box">
       <div class="map-search-title">🗺️ Step 1: Find Your Pump on Map</div>
-      <div class="search-input-wrap">
-        <input class="map-search-input" type="text" id="mapSearch"
-          placeholder="Search: HP Pump Newasa / IOC Shrirampur..."
-          onkeypress="if(event.key==='Enter')searchPumpsOnMap()">
-        <button class="search-btn" onclick="searchPumpsOnMap()">🔍 Search</button>
+      <div style="font-size:11px;color:#888;margin-bottom:8px">
+        Tap "📍 Find Nearby Pumps" to auto-detect your location and show pumps near you.
+        Select your pump from the list, or search by name.
       </div>
+
+      <!-- GPS + Search toggle -->
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button class="search-btn" style="flex:1" onclick="findNearbyPumps()">📍 Find Nearby Pumps</button>
+        <button class="search-btn" style="flex:1;background:#555" onclick="toggleTextSearch()">🔍 Search by Name</button>
+      </div>
+
+      <!-- Text search (hidden by default, shown on toggle) -->
+      <div id="textSearchWrap" style="display:none;margin-bottom:10px">
+        <div class="search-input-wrap">
+          <input class="map-search-input" type="text" id="mapSearch"
+            placeholder="Search: HP Pump Newasa / IOC Shrirampur..."
+            onkeypress="if(event.key==='Enter')searchPumpsOnMap()">
+          <button class="search-btn" onclick="searchPumpsOnMap()">🔍</button>
+        </div>
+      </div>
+
+      <!-- Leaflet Map -->
+      <div id="signup-map" style="height:200px;width:100%;border-radius:10px;margin-bottom:10px;background:#e0e0e0;display:none"></div>
+
       <div id="searchStatus" style="font-size:11px;color:#888;margin-top:6px"></div>
+
+      <!-- Pump list (from GPS or search) -->
       <div class="pump-results" id="pumpResults"></div>
+
       <div class="manual-link">
-        <button onclick="showManualEntry()">✏️ My pump not in list — Enter manually</button>
+        <button onclick="enablePinDrop()">📌 My pump not in list — Drop pin on map</button>
+      </div>
+      <div class="manual-link" style="margin-top:4px">
+        <button onclick="showManualEntry()">✏️ Enter pump details manually (no map)</button>
       </div>
     </div>
 
@@ -261,8 +287,138 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 <script>
 let selectedPump = null;
+let signupMap = null;
+let pinDropMarker = null;
+let pinDropMode = false;
 
-// Search pumps using our server (Google Places API)
+// ── GPS-based nearby pump finder ──────────────────────────────
+async function findNearbyPumps(){
+  const statusEl = document.getElementById('searchStatus');
+  const resultsEl = document.getElementById('pumpResults');
+  statusEl.textContent = '📍 Detecting your location...';
+  resultsEl.innerHTML = '';
+
+  if(!navigator.geolocation){
+    statusEl.textContent = '❌ GPS not available — use Search by Name instead';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    statusEl.textContent = '🔍 Finding pumps near you...';
+
+    // Show map
+    initMap(lat, lng);
+
+    try {
+      const r = await fetch(`/api/pumps/locations?lat=${lat}&lng=${lng}`);
+      const d = await r.json();
+      if(!d.pumps || d.pumps.length === 0){
+        statusEl.textContent = 'No pumps found near your location. Use Search by Name or Drop Pin.';
+        return;
+      }
+
+      window._searchResults = d.pumps;
+      statusEl.textContent = `Found ${d.pumps.length} pumps near you — select yours:`;
+
+      // Add markers to map
+      d.pumps.forEach((p,i) => {
+        if(!p.lat || !p.lng) return;
+        const color = p.is_verified ? '#1a6b2e' : '#e65100';
+        L.circleMarker([p.lat,p.lng],{radius:7,fillColor:color,color:'#fff',weight:2,fillOpacity:1})
+          .addTo(signupMap)
+          .bindPopup(`<b>${p.name}</b><br><small>${p.address||''}</small><br><button onclick="selectPump(${i})" style="margin-top:4px;padding:4px 10px;background:#e65100;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer">Select this pump</button>`)
+          .on('click', function(){ this.openPopup(); });
+      });
+
+      // Render list
+      resultsEl.innerHTML = d.pumps.map((p,i) => `
+        <div class="pump-result-item" id="result-${i}" onclick="selectPump(${i})">
+          <div class="result-name">${p.is_verified?'✅':'⛽'} ${p.name}</div>
+          <div class="result-addr">📍 ${p.address||''} ${p.district?'· '+p.district:''}</div>
+        </div>
+      `).join('');
+
+    } catch(e){
+      statusEl.textContent = 'Search failed — try Search by Name.';
+    }
+  }, err => {
+    statusEl.textContent = '❌ GPS denied or unavailable — use Search by Name.';
+  }, { enableHighAccuracy:true, timeout:15000 });
+}
+
+function initMap(lat, lng){
+  const mapEl = document.getElementById('signup-map');
+  mapEl.style.display = 'block';
+  if(signupMap){
+    signupMap.setView([lat,lng], 13);
+    return;
+  }
+  signupMap = L.map('signup-map',{zoomControl:true,attributionControl:false}).setView([lat,lng],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(signupMap);
+  // User location marker
+  L.circleMarker([lat,lng],{radius:8,fillColor:'#2196F3',color:'#fff',weight:2,fillOpacity:1})
+    .addTo(signupMap).bindPopup('📍 You are here');
+
+  // Pin-drop on map click (only when pinDropMode is on)
+  signupMap.on('click', function(e){
+    if(!pinDropMode) return;
+    const plat = e.latlng.lat.toFixed(6);
+    const plng = e.latlng.lng.toFixed(6);
+    if(pinDropMarker) signupMap.removeLayer(pinDropMarker);
+    pinDropMarker = L.marker([plat,plng],{draggable:true}).addTo(signupMap)
+      .bindPopup('📌 Pump location — drag to adjust').openPopup();
+    // Update hidden fields
+    document.getElementById('pumpLat').value = plat;
+    document.getElementById('pumpLng').value = plng;
+    document.getElementById('coordsBadge').textContent = `📡 GPS: ${plat}, ${plng}`;
+    document.getElementById('selectedBadge').style.display = 'block';
+    document.getElementById('selectedName').textContent = 'Pin-dropped location';
+    document.getElementById('selectedAddr').textContent = `Lat: ${plat}, Lng: ${plng}`;
+    // Update on drag
+    pinDropMarker.on('dragend', function(){
+      const pos = pinDropMarker.getLatLng();
+      document.getElementById('pumpLat').value = pos.lat.toFixed(6);
+      document.getElementById('pumpLng').value = pos.lng.toFixed(6);
+      document.getElementById('coordsBadge').textContent = `📡 GPS: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+      document.getElementById('selectedAddr').textContent = `Lat: ${pos.lat.toFixed(6)}, Lng: ${pos.lng.toFixed(6)}`;
+    });
+    document.getElementById('searchStatus').textContent = '📌 Pin dropped! Drag to adjust if needed, then fill pump details below.';
+    pinDropMode = false;
+    // Focus pump name
+    document.getElementById('pumpName').focus();
+  });
+}
+
+function enablePinDrop(){
+  if(!signupMap){
+    // No map yet — try GPS first to show the map
+    document.getElementById('searchStatus').textContent = '📍 Detecting location for map...';
+    navigator.geolocation.getCurrentPosition(pos => {
+      initMap(pos.coords.latitude, pos.coords.longitude);
+      pinDropMode = true;
+      document.getElementById('searchStatus').textContent = '📌 Tap on the map where your pump is located';
+    }, () => {
+      // Fallback — show map centered on India
+      initMap(20.5937, 78.9629);
+      signupMap.setZoom(5);
+      pinDropMode = true;
+      document.getElementById('searchStatus').textContent = '📌 Zoom into your area, then tap where your pump is located';
+    });
+  } else {
+    pinDropMode = true;
+    document.getElementById('searchStatus').textContent = '📌 Tap on the map where your pump is located';
+  }
+}
+
+function toggleTextSearch(){
+  const wrap = document.getElementById('textSearchWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  if(wrap.style.display==='block') document.getElementById('mapSearch').focus();
+}
+
+// ── Text-based search (kept as secondary option) ──────────────
 async function searchPumpsOnMap(){
   const query = document.getElementById('mapSearch').value.trim();
   if(!query){ alert('Enter pump name or location to search'); return; }
@@ -273,16 +429,28 @@ async function searchPumpsOnMap(){
   resultsEl.innerHTML = '';
 
   try {
-    // Use our server's Google Places search
     const r = await fetch(`/api/pumps/search-place?q=${encodeURIComponent(query)}`);
     const d = await r.json();
 
     if(!d.places || d.places.length === 0){
-      statusEl.textContent = 'No pumps found. Try different search or enter manually.';
+      statusEl.textContent = 'No pumps found. Try different search or drop pin on map.';
       return;
     }
 
     statusEl.textContent = `Found ${d.places.length} pumps — select yours:`;
+    window._searchResults = d.places;
+
+    // Show on map if available
+    if(d.places[0]?.lat && d.places[0]?.lng){
+      initMap(d.places[0].lat, d.places[0].lng);
+      d.places.forEach((p,i) => {
+        if(!p.lat || !p.lng) return;
+        L.circleMarker([p.lat,p.lng],{radius:7,fillColor:'#e65100',color:'#fff',weight:2,fillOpacity:1})
+          .addTo(signupMap)
+          .bindPopup(`<b>${p.name}</b><br><button onclick="selectPump(${i})" style="margin-top:4px;padding:4px 10px;background:#e65100;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer">Select</button>`);
+      });
+    }
+
     resultsEl.innerHTML = d.places.map((p,i) => `
       <div class="pump-result-item" id="result-${i}" onclick="selectPump(${i})">
         <div class="result-name">⛽ ${p.name}</div>
@@ -290,17 +458,15 @@ async function searchPumpsOnMap(){
       </div>
     `).join('');
 
-    // Store results globally
-    window._searchResults = d.places;
-
   } catch(e){
-    statusEl.textContent = 'Search failed. Enter manually below.';
+    statusEl.textContent = 'Search failed. Try pin-drop or enter manually.';
   }
 }
 
 function selectPump(idx){
   const p = window._searchResults[idx];
   selectedPump = p;
+  pinDropMode = false;
 
   // Highlight selected
   document.querySelectorAll('.pump-result-item').forEach((el,i) => {
@@ -333,18 +499,21 @@ function selectPump(idx){
   else if(name.includes('IOC') || name.includes('INDIAN OIL') || name.includes('INDANE')) sel.value = 'IOC';
   else if(name.includes('SHELL')) sel.value = 'Shell';
   else if(name.includes('RELIANCE')) sel.value = 'Reliance';
+  else if(name.includes('NAYARA') || name.includes('ESSAR')) sel.value = 'Nayara';
   else sel.value = '';
+
+  // Pan map to selected pump
+  if(signupMap && p.lat && p.lng) signupMap.setView([p.lat, p.lng], 15);
 }
 
 function showManualEntry(){
-  // Clear selection and hide results
   selectedPump = null;
+  pinDropMode = false;
   document.getElementById('pumpResults').innerHTML = '';
   document.getElementById('searchStatus').textContent = '✏️ Enter pump details manually below';
   document.getElementById('selectedBadge').style.display = 'none';
   document.getElementById('pumpLat').value = '0';
   document.getElementById('pumpLng').value = '0';
-  // Focus on pump name
   document.getElementById('pumpName').focus();
 }
 

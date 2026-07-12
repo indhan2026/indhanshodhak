@@ -526,6 +526,24 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
       </div>
     </div>
 
+    <!-- Dense City Zones -->
+    <div class="card" style="border:1.5px solid #1565c0">
+      <div class="card-title" style="color:#1565c0">🏙️ Dense City Zones (1×1km Grid)</div>
+      <div style="font-size:12px;color:#888;margin-bottom:12px">
+        Cities with high pump density use fine-grained 1×1km search grid. All other areas use cost-efficient 5×5km grid.<br>
+        Add or remove cities as CNG network expands.
+      </div>
+      <div id="dense-zones-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <div style="color:#aaa;font-size:12px">⏳ Loading...</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="setting-input" id="add-dense-city" style="flex:1">
+          <option value="">— Select city to add —</option>
+        </select>
+        <button class="save-btn" onclick="addDenseCity()">+ Add</button>
+      </div>
+    </div>
+
     <!-- AI Verification Settings -->
     <div class="card">
       <div class="card-title">🤖 AI Verification Settings</div>
@@ -771,9 +789,69 @@ function loadSettings(){
     const euEl=document.getElementById('set-eu');          if(euEl) euEl.value=s.report_expiry_user||'4';
     const eoEl=document.getElementById('set-eo');          if(eoEl) eoEl.value=s.report_expiry_owner||'12';
     const slaEl=document.getElementById('set-sla');        if(slaEl) slaEl.value=s.sla_hours||'48';
+    // Populate dense city zones
+    renderDenseZones(s.dense_city_zones||'');
   });
   loadUsers();
   loadGovtCreds();
+}
+
+// ── Dense City Zones management ──────────────────────────────
+const ALL_DENSE_CITIES = [
+  'Delhi','Mumbai','Pune','Bengaluru','Ahmedabad','Surat','Hyderabad','Chennai',
+  'Kolkata','Noida','Ghaziabad','Nagpur','Nashik','Rajkot','Jamnagar','Bhavnagar',
+  'Anand','Vijayawada','Gurugram','Faridabad','Sonipat','Chandigarh',
+  'Lucknow','Kanpur','Indore','Jaipur','Kochi','Bhopal','Patna','Vadodara','Thiruvananthapuram'
+];
+
+function renderDenseZones(csv){
+  const active = csv.split(',').map(s=>s.trim()).filter(Boolean);
+  const listEl = document.getElementById('dense-zones-list');
+  const selEl  = document.getElementById('add-dense-city');
+  if(!listEl) return;
+  if(active.length === 0){
+    listEl.innerHTML = '<div style="color:#aaa;font-size:12px">No dense zones configured — all areas using 5×5km grid</div>';
+  } else {
+    listEl.innerHTML = active.map(c => `
+      <div style="display:inline-flex;align-items:center;gap:4px;background:#e3f2fd;border:1px solid #90caf9;
+        border-radius:20px;padding:4px 10px;font-size:12px;font-weight:500;color:#1565c0">
+        ${c}
+        <span onclick="removeDenseCity('${c}')" style="cursor:pointer;color:#b71c1c;font-weight:700;margin-left:2px"
+          title="Remove">✕</span>
+      </div>
+    `).join('');
+  }
+  // Populate dropdown with cities NOT already active
+  if(selEl){
+    selEl.innerHTML = '<option value="">— Select city to add —</option>';
+    ALL_DENSE_CITIES.filter(c => !active.includes(c)).forEach(c => {
+      selEl.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+  }
+}
+
+async function addDenseCity(){
+  const sel = document.getElementById('add-dense-city');
+  const city = sel?.value;
+  if(!city) return;
+  const s = await api('/api/admin/settings');
+  if(!s) return;
+  const current = (s.dense_city_zones||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(current.includes(city)) return;
+  current.push(city);
+  const newVal = current.join(',');
+  await api('/api/admin/settings','POST',{dense_city_zones:newVal});
+  renderDenseZones(newVal);
+}
+
+async function removeDenseCity(city){
+  const s = await api('/api/admin/settings');
+  if(!s) return;
+  const current = (s.dense_city_zones||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const updated = current.filter(c => c !== city);
+  const newVal = updated.join(',');
+  await api('/api/admin/settings','POST',{dense_city_zones:newVal});
+  renderDenseZones(newVal);
 }
 
 async function loadGovtCreds(){
