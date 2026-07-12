@@ -3029,19 +3029,39 @@ app.get('/api/agent/search-location', requireAuth(['enrollment_agent','super_adm
   const gKey = process.env.GOOGLE_PLACES_KEY;
   if(!gKey || gKey.length < 10) return res.status(400).json({ error:'Google API not configured' });
   try {
-    const geoResp = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q + ', India')}&key=${gKey}`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    const geoData = await geoResp.json();
-    if(geoData.results && geoData.results[0]) {
-      const loc = geoData.results[0].geometry.location;
-      res.json({ success:true, lat:loc.lat, lng:loc.lng, formatted:geoData.results[0].formatted_address });
+    // Use Places API (New) Text Search — same proven-working API as /api/pumps/search-place
+    // (legacy Geocoding API endpoint was unreliable/not enabled on this project)
+    const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'X-Goog-Api-Key':   gKey,
+        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location',
+      },
+      body: JSON.stringify({
+        textQuery:      q + ', India',
+        maxResultCount: 1,
+        regionCode:     'IN',
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if(!resp.ok) {
+      return res.json({ success:false, error:'Location search failed. Try a different name.' });
+    }
+    const data = await resp.json();
+    const place = data.places?.[0];
+    if(place?.location) {
+      res.json({
+        success: true,
+        lat: place.location.latitude,
+        lng: place.location.longitude,
+        formatted: place.formattedAddress || place.displayName?.text || q,
+      });
     } else {
-      res.json({ success:false, error:'Location not found. Try a different search.' });
+      res.json({ success:false, error:'Location not found. Try a different name.' });
     }
   } catch(e) {
-    res.status(500).json({ error:'Geocoding failed: '+e.message });
+    res.status(500).json({ error:'Search failed: '+e.message });
   }
 });
 
