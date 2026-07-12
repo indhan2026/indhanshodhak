@@ -1011,6 +1011,18 @@ async function submitReport() {
       tag.style.border     = val ? '1px solid #a5d6a7' : '1px solid #ef9a9a';
       tag.style.fontWeight = '600';
     });
+    // Update queue pills (Short/Long)
+    const shortPill = card.querySelector('.queue-tags .tag:nth-child(1)');
+    const longPill  = card.querySelector('.queue-tags .tag:nth-child(2)');
+    if(shortPill && longPill){
+      if(queue_length==='short'){
+        shortPill.style.background='#e8f5e9'; shortPill.style.color='#1b5e20'; shortPill.style.borderColor='#a5d6a7';
+        longPill.style.background='#f5f5f5';  longPill.style.color='#999';    longPill.style.borderColor='#ddd';
+      } else if(queue_length==='long'){
+        longPill.style.background='#ffebee';  longPill.style.color='#b71c1c'; longPill.style.borderColor='#ef9a9a';
+        shortPill.style.background='#f5f5f5'; shortPill.style.color='#999';   shortPill.style.borderColor='#ddd';
+      }
+    }
     // Update status
     const open = petrol||diesel||cng||ev;
     const statusEl = card.querySelector('.pump-status');
