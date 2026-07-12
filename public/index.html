@@ -899,8 +899,8 @@ async function submitReport() {
   const diesel = fuelOpts[1]?.querySelector('.tog.yes') !== null;
   const cng    = fuelOpts[2]?.querySelector('.tog.yes') !== null;
   const ev     = fuelOpts[3]?.querySelector('.tog.yes') !== null;
-  const queueBtn = fuelOpts[4]?.querySelector('.tog.yes');
-  const queue_length = queueBtn ? (queueBtn.textContent.trim()==='Short' ? 'short' : 'long') : 'none';
+  const activeQueueBtn = fuelOpts[4]?.querySelector('.tog.yes, .tog.no');
+  const queue_length = activeQueueBtn ? (activeQueueBtn.textContent.trim()==='Short' ? 'short' : 'long') : 'none';
   const pid = String(currentPumpId || '');
   const isExt = pid.startsWith('gpl_') || pid.startsWith('osm_') || pid.startsWith('mmi_');
 
