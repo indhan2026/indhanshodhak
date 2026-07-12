@@ -2869,36 +2869,53 @@ app.get('/api/agent/tehsils', requireAuth(['enrollment_agent','super_admin']), (
 });
 
 // Agent: Search pumps by district + optional tehsil (regional view)
-app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), (req, res) => {
+app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), async (req, res) => {
   try {
-    const { district, tehsil, lat, lng } = req.query;
-    let sql, params = [];
+    const { district, tehsil, lat, lng, q } = req.query;
+    let allPumps = [];
 
     if(lat && lng) {
-      // GPS-based search (same as user search, but without subscription restriction)
-      const R = 0.08; // ~8km
+      // GPS or text-search resolved to lat/lng — use full Google+DB pipeline via existing locations endpoint logic
       const pLat = parseFloat(lat), pLng = parseFloat(lng);
-      sql = `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,
-                    license_number, owner_user_id
-             FROM petrol_pumps WHERE is_active=1
-             AND lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?
-             ORDER BY is_verified DESC, name`;
-      params = [pLat-R, pLat+R, pLng-R, pLng+R];
+      const R = 0.15;
+
+      // DB pumps in area
+      const dbPumps = dbAll(
+        `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,owner_user_id
+         FROM petrol_pumps WHERE is_active=1 AND lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?
+         ORDER BY is_verified DESC, name`,
+        [pLat-R, pLat+R, pLng-R, pLng+R]
+      );
+
+      // Google pumps (discovers pumps not yet in DB)
+      let googlePumps = [];
+      try {
+        googlePumps = await fetchGooglePlacesPumps(pLat, pLng, 8);
+        // Deduplicate: remove Google pumps that already exist in DB (by name similarity)
+        const dbNames = new Set(dbPumps.map(p => p.name.toLowerCase().replace(/\s+/g,'')));
+        googlePumps = googlePumps.filter(p => !dbNames.has(p.name.toLowerCase().replace(/\s+/g,'')));
+      } catch(e){ console.error('[AGENT GOOGLE]', e.message); }
+
+      allPumps = [
+        ...dbPumps.map(p => ({ ...p, source:'db' })),
+        ...googlePumps.map(p => ({ ...p, source:'google', has_owner:false }))
+      ];
+
     } else if(district) {
-      sql = `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,
-                    license_number, owner_user_id
-             FROM petrol_pumps WHERE is_active=1 AND district=?`;
-      params = [district];
+      // District/tehsil filter — DB only (for filtering already-known pumps)
+      let sql = `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,owner_user_id
+                 FROM petrol_pumps WHERE is_active=1 AND district=?`;
+      const params = [district];
       if(tehsil) { sql += ` AND tehsil=?`; params.push(tehsil); }
       sql += ` ORDER BY is_verified DESC, tehsil, name`;
+      allPumps = dbAll(sql, params).map(p => ({ ...p, source:'db' }));
+
     } else {
       return res.json({ pumps:[], total:0 });
     }
 
-    const pumps = dbAll(sql, params);
-
-    // Return pump data WITHOUT sensitive owner info (agent can't see mobile/email/license of others)
-    const safePumps = pumps.map(p => ({
+    // Strip sensitive owner info
+    const safePumps = allPumps.map(p => ({
       id: p.id,
       name: p.name,
       oil_company: p.oil_company,
@@ -2908,8 +2925,9 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), (re
       pin_code: p.pin_code,
       lat: p.lat,
       lng: p.lng,
-      is_verified: p.is_verified,
-      has_owner: !!p.owner_user_id,
+      is_verified: p.is_verified ? 1 : 0,
+      has_owner: p.has_owner !== undefined ? p.has_owner : !!p.owner_user_id,
+      source: p.source || 'db',
     }));
 
     res.json({ pumps: safePumps, total: safePumps.length });
@@ -3003,6 +3021,29 @@ app.post('/api/agent/register-pump',
     }
   }
 );
+
+// Agent: Text search → resolve location name to lat/lng, then find pumps
+app.get('/api/agent/search-location', requireAuth(['enrollment_agent','super_admin']), async (req, res) => {
+  const { q } = req.query;
+  if(!q) return res.status(400).json({ error:'Search query required' });
+  const gKey = process.env.GOOGLE_PLACES_KEY;
+  if(!gKey || gKey.length < 10) return res.status(400).json({ error:'Google API not configured' });
+  try {
+    const geoResp = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q + ', India')}&key=${gKey}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    const geoData = await geoResp.json();
+    if(geoData.results && geoData.results[0]) {
+      const loc = geoData.results[0].geometry.location;
+      res.json({ success:true, lat:loc.lat, lng:loc.lng, formatted:geoData.results[0].formatted_address });
+    } else {
+      res.json({ success:false, error:'Location not found. Try a different search.' });
+    }
+  } catch(e) {
+    res.status(500).json({ error:'Geocoding failed: '+e.message });
+  }
+});
 
 // Serve agent dashboard page
 app.get('/agent', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'agent.html')));
