@@ -811,6 +811,60 @@ let currentPumpOil  = '';
 let currentPumpDist = '';
 let currentPumpState= 'Maharashtra';
 let currentPumpPin  = '';
+// ── Lightweight self-contained toast (doesn't touch existing pointToast) ──
+function showMiniToast(msg, isError){
+  let t = document.getElementById('miniToast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'miniToast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#222;color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:opacity .3s;max-width:85%;text-align:center';
+    document.body.appendChild(t);
+  }
+  t.style.background = isError ? '#b71c1c' : '#1a6b2e';
+  t.textContent = msg;
+  t.style.display = 'block';
+  t.style.opacity = '1';
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(() => {
+    t.style.opacity = '0';
+    setTimeout(() => { t.style.display = 'none'; }, 300);
+  }, 2500);
+}
+
+// ── Quick one-tap queue update (carries forward current fuel status unchanged) ──
+async function quickQueueUpdate(pumpId, queueVal, petrol, diesel, cng, ev, el){
+  if(!TOKEN){ window.location.href='/otp_login.html'; return; }
+  const card = el ? el.closest('.pump-card') : null;
+  const shortPill = card ? card.querySelector('.queue-tags .tag:nth-child(1)') : null;
+  const longPill  = card ? card.querySelector('.queue-tags .tag:nth-child(2)') : null;
+  try{
+    const r = await fetch('/api/reports/submit', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-auth-token':TOKEN},
+      body: JSON.stringify({pump_id:pumpId, petrol:!!petrol, diesel:!!diesel, cng:!!cng, ev:!!ev, queue_length:queueVal})
+    });
+    const d = await r.json();
+    if(d.success){
+      showMiniToast('✅ Queue updated'+(d.points?.awarded ? ' · +1 pt' : ''));
+      // Update this card's pills instantly without a full reload
+      if(shortPill && longPill){
+        if(queueVal==='short'){
+          shortPill.style.background='#e8f5e9'; shortPill.style.color='#1b5e20'; shortPill.style.borderColor='#a5d6a7';
+          longPill.style.background='#f5f5f5';  longPill.style.color='#999';    longPill.style.borderColor='#ddd';
+        } else {
+          longPill.style.background='#ffebee';  longPill.style.color='#b71c1c'; longPill.style.borderColor='#ef9a9a';
+          shortPill.style.background='#f5f5f5'; shortPill.style.color='#999';   shortPill.style.borderColor='#ddd';
+        }
+      }
+      if(d.points?.awarded) showPointToast(d.points);
+    } else {
+      showMiniToast(d.error || 'Could not update queue', true);
+    }
+  }catch(e){
+    showMiniToast('Network error — try again', true);
+  }
+}
+
 function openReport(name, pumpId, address, lat, lng, oilCo, district, state, pin) {
   currentPumpId      = pumpId;
   currentPumpName    = name    || '';
@@ -1234,7 +1288,12 @@ function renderPumps(pumps, isPremium, price){
         <div class="tag ${f.diesel?'tag-yes':'tag-no'}" data-fuel="diesel">${f.diesel?'✓':'✗'} Diesel</div>
         <div class="tag ${f.cng?'tag-yes':'tag-no'}" data-fuel="cng">${f.cng?'✓':'✗'} CNG</div>
         <div class="tag ${f.ev?'tag-yes':'tag-no'}" data-fuel="ev">${f.ev?'✓':'✗'} EV</div>
-        <div class="tag" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-size:10px">✏️ Update</div>
+      </div>
+      <div class="tags queue-tags" style="margin-top:-4px" onclick="event.stopPropagation()">
+        <div class="tag" style="cursor:pointer;background:${f.queue==='short'?'#e8f5e9':'#f5f5f5'};color:${f.queue==='short'?'#1b5e20':'#999'};border:1px solid ${f.queue==='short'?'#a5d6a7':'#ddd'}"
+          onclick="quickQueueUpdate(${pId},'short',${f.petrol?1:0},${f.diesel?1:0},${f.cng?1:0},${f.ev?1:0},this)">👥 Short Queue</div>
+        <div class="tag" style="cursor:pointer;background:${f.queue==='long'?'#ffebee':'#f5f5f5'};color:${f.queue==='long'?'#b71c1c':'#999'};border:1px solid ${f.queue==='long'?'#ef9a9a':'#ddd'}"
+          onclick="quickQueueUpdate(${pId},'long',${f.petrol?1:0},${f.diesel?1:0},${f.cng?1:0},${f.ev?1:0},this)">👥 Long Queue</div>
       </div>
       <div class="pump-footer">
         <div class="pump-time">${rType} · ${tAgo}</div>
