@@ -1121,11 +1121,18 @@ async function callAnthropicAPI(prompt, imageBase64, mimeType) {
   if(!apiKey) throw new Error('Anthropic API key not set. Add it in Admin → AI Verification Settings');
   const url = 'https://api.anthropic.com/v1/messages';
   const content = [{ type:'text', text: prompt }];
-  if(imageBase64) content.unshift({ type:'image', source:{ type:'base64', media_type: mimeType||'image/jpeg', data: imageBase64 } });
+  if(imageBase64) {
+    // PDFs need Claude's 'document' block, not 'image' — different content type entirely
+    if(mimeType === 'application/pdf') {
+      content.unshift({ type:'document', source:{ type:'base64', media_type:'application/pdf', data: imageBase64 } });
+    } else {
+      content.unshift({ type:'image', source:{ type:'base64', media_type: mimeType||'image/jpeg', data: imageBase64 } });
+    }
+  }
   const body = { model:'claude-haiku-4-5', max_tokens:512, messages:[{ role:'user', content }] };
-  const resp = await fetch(url, { method:'POST',
-    headers:{ 'Content-Type':'application/json', 'x-api-key': apiKey, 'anthropic-version':'2023-06-01' },
-    body: JSON.stringify(body) });
+  const headers = { 'Content-Type':'application/json', 'x-api-key': apiKey, 'anthropic-version':'2023-06-01' };
+  if(mimeType === 'application/pdf') headers['anthropic-beta'] = 'pdfs-2024-09-25';
+  const resp = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
   if(!resp.ok) throw new Error(`Anthropic API error: ${resp.status}`);
   const data = await resp.json();
   return data.content?.[0]?.text || '';
@@ -1730,13 +1737,15 @@ const pumpRegUpload = multer({
       cb(null, folder);
     },
     filename: (req, file, cb) => {
-      cb(null, file.fieldname + '.jpg');
+      const ext = file.mimetype === 'application/pdf' ? '.pdf'
+                : file.mimetype === 'image/png' ? '.png' : '.jpg';
+      cb(null, file.fieldname + ext);
     },
   }),
-  limits: { fileSize: 100*1024 },
+  limits: { fileSize: 500*1024 },
   fileFilter: (req, file, cb) => {
-    ['image/jpeg','image/jpg'].includes(file.mimetype)
-      ? cb(null,true) : cb(new Error('JPG only'));
+    ['image/jpeg','image/jpg','image/png','application/pdf'].includes(file.mimetype)
+      ? cb(null,true) : cb(new Error('Only JPG, PNG or PDF files accepted'));
   },
 });
 
