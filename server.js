@@ -956,19 +956,30 @@ app.get('/api/pumps/locations', async (req, res) => {
   let useLng = lng || (dbPumps[0]?.lng);
 
   if(pin && !useLat) {
-    // Geocode PIN → lat/lng using Google Geocoding API
+    // Geocode PIN → lat/lng using Places API (New) — legacy Geocoding API not enabled on this project
     const gKey = process.env.GOOGLE_PLACES_KEY;
     if(gKey && gKey.length > 10) {
       try {
         console.log(`[GEOCODE] PIN ${pin} → lat/lng lookup`);
-        const geoResp = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${pin},India&key=${gKey}`,
-          { signal: AbortSignal.timeout(8000) }
-        );
+        const geoResp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type':     'application/json',
+            'X-Goog-Api-Key':   gKey,
+            'X-Goog-FieldMask': 'places.location',
+          },
+          body: JSON.stringify({
+            textQuery:      `${pin}, India`,
+            maxResultCount: 1,
+            regionCode:     'IN',
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
         const geoData = await geoResp.json();
-        if(geoData.results && geoData.results[0]) {
-          useLat = geoData.results[0].geometry.location.lat;
-          useLng = geoData.results[0].geometry.location.lng;
+        const loc = geoData.places?.[0]?.location;
+        if(loc) {
+          useLat = loc.latitude;
+          useLng = loc.longitude;
           console.log(`[GEOCODE] PIN ${pin} → lat:${useLat} lng:${useLng}`);
         }
       } catch(e) {
@@ -2551,16 +2562,26 @@ app.post('/api/verify/pump-applications/:id/approve', requireAuth(['doc_verifier
     const gKey = process.env.GOOGLE_PLACES_KEY;
     if(gKey) {
       try {
-        const geoQuery = encodeURIComponent(`${pumpRow.name} ${pumpRow.address} ${pumpRow.pin_code} India`);
-        const geoResp  = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${geoQuery}&key=${gKey}`,
-          { signal: AbortSignal.timeout(8000) }
-        );
+        const geoQuery = `${pumpRow.name} ${pumpRow.address} ${pumpRow.pin_code} India`;
+        const geoResp  = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type':     'application/json',
+            'X-Goog-Api-Key':   gKey,
+            'X-Goog-FieldMask': 'places.location',
+          },
+          body: JSON.stringify({
+            textQuery:      geoQuery,
+            maxResultCount: 1,
+            regionCode:     'IN',
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
         const geoData = await geoResp.json();
-        if(geoData.results && geoData.results[0]) {
-          const loc = geoData.results[0].geometry.location;
-          dbRun(`UPDATE petrol_pumps SET lat=?, lng=? WHERE id=?`,[loc.lat, loc.lng, row.pump_id]);
-          console.log(`[GEOCODE ON APPROVAL] ${pumpRow.name} → lat:${loc.lat} lng:${loc.lng} ✅`);
+        const loc = geoData.places?.[0]?.location;
+        if(loc) {
+          dbRun(`UPDATE petrol_pumps SET lat=?, lng=? WHERE id=?`,[loc.latitude, loc.longitude, row.pump_id]);
+          console.log(`[GEOCODE ON APPROVAL] ${pumpRow.name} → lat:${loc.latitude} lng:${loc.longitude} ✅`);
         }
       } catch(ge) { console.log('[GEOCODE ON APPROVAL] Failed:', ge.message); }
     }

@@ -132,7 +132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           </div>
         </div>
 
-        <!-- Document Verifier — inline dropdown login -->
+        <!-- Document Verifier / Enrollment Agent — inline dropdown login -->
         <div>
           <div onclick="toggleCard('verify')"
             style="display:flex;align-items:center;gap:10px;padding:10px 14px;
@@ -140,14 +140,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
             <span style="font-size:20px">🔍</span>
             <div style="flex:1">
-              <div style="font-size:13px;font-weight:600">Document Verifier</div>
-              <div style="font-size:11px;opacity:.7">Verify pump & user documents</div>
+              <div style="font-size:13px;font-weight:600">Document Verifier / Enrollment Agent</div>
+              <div style="font-size:11px;opacity:.7">Verify documents or register pumps · Redirects automatically</div>
             </div>
             <span id="arr-verify" style="font-size:14px;transition:transform .2s">▼</span>
           </div>
           <div id="card-verify" style="display:none;background:#fdf5ff;border-radius:0 0 12px 12px;
             padding:12px 14px;border:1.5px solid #e1bee7;border-top:none;margin-top:-4px">
-            <input id="verify-id" type="text" placeholder="Verifier Login ID"
+            <input id="verify-id" type="text" placeholder="Login ID"
               style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
               font-size:13px;margin-bottom:8px;outline:none;box-sizing:border-box"
               onfocus="this.style.borderColor='#6a1b9a'" onblur="this.style.borderColor='#e0e0e0'">
@@ -159,7 +159,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <button onclick="roleLogin('verify')"
               style="width:100%;padding:9px;background:#6a1b9a;color:white;border:none;
               border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">
-              🔍 Login as Verifier
+              🔍 Login
             </button>
             <div id="verify-err" style="color:#b71c1c;font-size:12px;margin-top:6px;display:none"></div>
           </div>
@@ -176,6 +176,7 @@ const existingRole  = localStorage.getItem('indhan_role');
 if(existingToken && existingRole === 'super_admin') window.location.replace('/admin');
 else if(existingToken && existingRole === 'doc_verifier') window.location.replace('/verify');
 else if(existingToken && existingRole === 'pump_owner') window.location.replace('/pump-owner');
+else if(existingToken && existingRole === 'enrollment_agent') window.location.replace('/agent');
 
 const params = new URLSearchParams(window.location.search);
 const redirect = params.get('redirect') || null;
@@ -226,6 +227,7 @@ async function roleLogin(role){
       if(d.role==='pump_owner')   window.location.replace('/pump-owner');
       else if(d.role==='govt_official') window.location.replace('/govt');
       else if(d.role==='doc_verifier')  window.location.replace('/verify');
+      else if(d.role==='enrollment_agent') window.location.replace('/agent');
       else if(d.role==='super_admin')   window.location.replace('/admin');
       else window.location.replace('/');
     } else {
