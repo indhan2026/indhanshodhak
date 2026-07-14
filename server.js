@@ -891,44 +891,11 @@ app.get('/api/pumps/search', (req,res) => {
 // ══════════════════════════════════════════════════════════════
 // ROUTE 1: /api/pumps/locations — CACHED 3000-4000 hrs
 // ══════════════════════════════════════════════════════════════
-app.get('/api/pumps/locations', async (req, res) => {
-  const { pin, lat, lng } = req.query;
-
-  let cacheKey, cacheHours;
-  if(pin) {
-    cacheKey   = 'pin:' + pin;
-    cacheHours = CACHE_HOURS.PIN;
-  } else if(lat && lng) {
-    const step   = getGridStep(parseFloat(lat), parseFloat(lng));
-    const rLat   = roundToGrid(lat, step);
-    const rLng   = roundToGrid(lng, step);
-    cacheKey   = `gps:${rLat}:${rLng}`;
-    cacheHours = CACHE_HOURS.GPS;
-  } else {
-    return res.status(400).json({ error: 'PIN or GPS coordinates required' });
-  }
-
-  const cached = cacheGet(cacheKey);
-  if(cached) {
-    // Always refresh is_verified LIVE from DB even on cache hit
-    // (pump location is cached, but green tick status changes after approval)
-    const dbPumpIds = (cached.pumps||[])
-      .filter(p => String(p.id).match(/^\d+$/))
-      .map(p => p.id);
-    let freshVerified = {};
-    if(dbPumpIds.length > 0) {
-      const placeholders = dbPumpIds.map(() => '?').join(',');
-      dbAll(`SELECT id, is_verified FROM petrol_pumps WHERE id IN (${placeholders})`, dbPumpIds)
-        .forEach(r => { freshVerified[r.id] = r.is_verified; });
-    }
-    const refreshedPumps = (cached.pumps||[]).map(p =>
-      String(p.id).match(/^\d+$/)
-        ? { ...p, is_verified: freshVerified[p.id] !== undefined ? freshVerified[p.id] : p.is_verified }
-        : p
-    );
-    return res.json({ ...cached, pumps: refreshedPumps, from_cache: true });
-  }
-
+// Runs STEP 1-3 (DB pumps + geocode + MapMyIndia/Google fetch), builds the
+// result object, and caches it on success. Used both inline on a true cache
+// miss (route awaits it directly) and in the background on a stale hit
+// (backgroundRefresh() calls it un-awaited — route already responded).
+async function buildLocationsResult(pin, lat, lng, cacheKey, cacheHours) {
   // STEP 1: DB pumps
   let dbPumps = [];
   if(pin) {
@@ -1027,8 +994,71 @@ app.get('/api/pumps/locations', async (req, res) => {
     cached_at: new Date().toISOString(),
   };
 
+  // Note: unlike fetchGooglePlacesPumps' "don't cache on error" rule, this
+  // outer result always caches — DB pumps are always trustworthy, and an
+  // empty mmiPumps array (e.g. Google temporarily down) is a valid result,
+  // not a corrupted one. The inner gplaces: cache already guards against
+  // caching a broken Google response.
   cacheSet(cacheKey, result, cacheHours);
   console.log(`[CACHE SET] ${cacheKey} → ${allPumps.length} pumps (DB:${dbPumps.length} MMI:${mmiPumps.length}) | ${cacheHours}hrs`);
+
+  return result;
+}
+
+// Applies live is_verified status from DB onto a (possibly cached) pumps array —
+// pump location is cached, but green-tick approval status must always be fresh.
+function withFreshVerified(pumps) {
+  const dbPumpIds = (pumps||[])
+    .filter(p => String(p.id).match(/^\d+$/))
+    .map(p => p.id);
+  let freshVerified = {};
+  if(dbPumpIds.length > 0) {
+    const placeholders = dbPumpIds.map(() => '?').join(',');
+    dbAll(`SELECT id, is_verified FROM petrol_pumps WHERE id IN (${placeholders})`, dbPumpIds)
+      .forEach(r => { freshVerified[r.id] = r.is_verified; });
+  }
+  return (pumps||[]).map(p =>
+    String(p.id).match(/^\d+$/)
+      ? { ...p, is_verified: freshVerified[p.id] !== undefined ? freshVerified[p.id] : p.is_verified }
+      : p
+  );
+}
+
+app.get('/api/pumps/locations', async (req, res) => {
+  const { pin, lat, lng } = req.query;
+
+  let cacheKey, cacheHours;
+  if(pin) {
+    cacheKey   = 'pin:' + pin;
+    cacheHours = CACHE_HOURS.PIN;
+  } else if(lat && lng) {
+    const step   = getGridStep(parseFloat(lat), parseFloat(lng));
+    const rLat   = roundToGrid(lat, step);
+    const rLng   = roundToGrid(lng, step);
+    cacheKey   = `gps:${rLat}:${rLng}`;
+    cacheHours = CACHE_HOURS.GPS;
+  } else {
+    return res.status(400).json({ error: 'PIN or GPS coordinates required' });
+  }
+
+  const staleCheck = cacheGetStale(cacheKey);
+  if(staleCheck) {
+    // Serve cached data INSTANTLY either way — fresh or stale, user never waits.
+    const refreshedPumps = withFreshVerified(staleCheck.data.pumps);
+    res.json({ ...staleCheck.data, pumps: refreshedPumps, from_cache: true });
+
+    if(staleCheck.isStale) {
+      // Past 9 months — silently rebuild in the background so the NEXT
+      // request (anyone's) gets fresh DB+Google data. This user already
+      // got their instant response above; nothing more happens on this request.
+      console.log(`[ROUTE CACHE STALE] ${cacheKey} → served instantly, refreshing in background`);
+      backgroundRefresh(cacheKey, () => buildLocationsResult(pin, lat, lng, cacheKey, cacheHours));
+    }
+    return;
+  }
+
+  // True cache miss — nothing cached yet, must build live, this request waits.
+  const result = await buildLocationsResult(pin, lat, lng, cacheKey, cacheHours);
 
   // Cloudflare cache: s-maxage=1yr (CDN), max-age=2hr (browser)
   res.setHeader('Cache-Control', 'public, s-maxage=31536000, max-age=7200');
@@ -2316,6 +2346,38 @@ function cacheClear(pattern) {
   }
 }
 
+// ── STALE-WHILE-REVALIDATE ──────────────────────────────────────
+// Serve cached data INSTANTLY even after it crosses a "stale" age (9 months),
+// while silently re-fetching in the background so the next visitor gets fresh
+// data — nobody ever waits on a slow live API call. Cache still hard-expires
+// at its normal `hours` TTL (e.g. CACHE_HOURS.GPS = 8760) as a final backstop.
+const STALE_AFTER_HOURS = 6570; // ~9 months
+const refreshInProgress = new Set(); // cache keys currently being background-refreshed
+
+function cacheGetStale(key) {
+  const entry = locationCache.get(key);
+  if(!entry) return null;
+  if(Date.now() > entry.expires) {
+    locationCache.delete(key);
+    return null;
+  }
+  const ageHours = (Date.now() - new Date(entry.cachedAt).getTime()) / 3600000;
+  return { data: entry.data, isStale: ageHours > STALE_AFTER_HOURS };
+}
+
+// Runs `refreshFn` in the background at most once per key at a time.
+// refreshFn must itself decide whether to cacheSet() (e.g. only on success,
+// never on error — same "don't cache failures" rule as before).
+function backgroundRefresh(key, refreshFn) {
+  if(refreshInProgress.has(key)) return; // already refreshing — don't duplicate
+  refreshInProgress.add(key);
+  Promise.resolve()
+    .then(refreshFn)
+    .then(() => console.log(`[STALE REFRESH] ✅ ${key} refreshed in background`))
+    .catch(e => console.error(`[STALE REFRESH] ❌ ${key} failed:`, e.message))
+    .finally(() => refreshInProgress.delete(key));
+}
+
 // ── Cloudflare Cache Purge — called on pump approval ─────────
 async function purgeCloudflareCache() {
   const zoneId = process.env.CF_ZONE_ID;
@@ -3551,10 +3613,16 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
   const rLat = roundToGrid(lat, step);
   const rLng = roundToGrid(lng, step);
   const cacheKey = `gplaces:${rLat}:${rLng}:${radiusKm}`;
-  const cached = cacheGet(cacheKey);
-  if(cached) {
-    console.log(`[GOOGLE CACHE HIT] ${cacheKey} → ${cached.length} places, 0 API calls`);
-    return cached;
+  const staleCheck = cacheGetStale(cacheKey);
+  if(staleCheck && !staleCheck.isStale) {
+    console.log(`[GOOGLE CACHE HIT] ${cacheKey} → ${staleCheck.data.length} places, 0 API calls`);
+    return staleCheck.data;
+  }
+  if(staleCheck && staleCheck.isStale) {
+    // Serve the stale-but-still-valid data INSTANTLY, refresh silently behind it.
+    console.log(`[GOOGLE CACHE STALE] ${cacheKey} → serving ${staleCheck.data.length} places instantly, refreshing in background`);
+    backgroundRefresh(cacheKey, () => doGoogleFetch());
+    return staleCheck.data;
   }
 
   // Extract a place from Google's searchNearby response into our pump/station shape.
@@ -3657,44 +3725,55 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
     }
   }
 
-  try {
-    console.log(`[GOOGLE] Fetching pumps+EV near ${lat},${lng} radius:${radiusKm}km`);
+  // Does the actual 2-call Google fetch + maps + caches on success only.
+  // Called inline on a true cache miss (awaited, caller waits for it),
+  // and also called un-awaited from backgroundRefresh() on a stale hit
+  // (caller already returned stale data — this just updates the cache for next time).
+  async function doGoogleFetch() {
+    hadError = false; // reset in case this is a background re-run reusing the closure
+    try {
+      console.log(`[GOOGLE] Fetching pumps+EV near ${lat},${lng} radius:${radiusKm}km`);
 
-    // Run fuel/CNG and EV searches as SEPARATE parallel calls, each with its own
-    // 20-result budget. A single combined call lets petrol pumps (far more numerous
-    // in dense areas) crowd EV chargers out of the top-20 ranked results entirely —
-    // splitting guarantees EV stations always get their own slots.
-    const [fuelPlaces, evPlaces] = await Promise.all([
-      searchNearby(['gas_station']),
-      searchNearby(['electric_vehicle_charging_station']),
-    ]);
+      // Run fuel/CNG and EV searches as SEPARATE parallel calls, each with its own
+      // 20-result budget. A single combined call lets petrol pumps (far more numerous
+      // in dense areas) crowd EV chargers out of the top-20 ranked results entirely —
+      // splitting guarantees EV stations always get their own slots.
+      const [fuelPlaces, evPlaces] = await Promise.all([
+        searchNearby(['gas_station']),
+        searchNearby(['electric_vehicle_charging_station']),
+      ]);
 
-    // Dedupe (a place could theoretically appear in both, e.g. a fuel station with EV chargers)
-    const seen = new Set();
-    const allPlaces = [...fuelPlaces, ...evPlaces].filter(p => {
-      if(seen.has(p.id)) return false;
-      seen.add(p.id);
-      return true;
-    });
+      // Dedupe (a place could theoretically appear in both, e.g. a fuel station with EV chargers)
+      const seen = new Set();
+      const allPlaces = [...fuelPlaces, ...evPlaces].filter(p => {
+        if(seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
 
-    console.log(`[GOOGLE] ✅ Found ${fuelPlaces.length} fuel/CNG + ${evPlaces.length} EV stations`);
+      console.log(`[GOOGLE] ✅ Found ${fuelPlaces.length} fuel/CNG + ${evPlaces.length} EV stations`);
 
-    const mapped = allPlaces.map(mapPlace).filter(p => p.lat !== 0 && p.lng !== 0);
+      const mapped = allPlaces.map(mapPlace).filter(p => p.lat !== 0 && p.lng !== 0);
 
-    // Only cache on a clean fetch — if either call errored, don't lock in a
-    // possibly-incomplete result for the next 1 year. A transient failure
-    // should just mean "try again on the next request," not "cache emptiness."
-    if(!hadError) {
-      cacheSet(cacheKey, mapped, CACHE_HOURS.GPS);
-      console.log(`[GOOGLE CACHE SET] ${cacheKey} → ${mapped.length} places, ${CACHE_HOURS.GPS}hrs`);
+      // Only cache on a clean fetch — if either call errored, don't lock in a
+      // possibly-incomplete result (and don't overwrite a perfectly good stale
+      // cache entry with an empty/partial one). A transient failure just means
+      // "try again on the next request," not "cache emptiness."
+      if(!hadError) {
+        cacheSet(cacheKey, mapped, CACHE_HOURS.GPS);
+        console.log(`[GOOGLE CACHE SET] ${cacheKey} → ${mapped.length} places, ${CACHE_HOURS.GPS}hrs`);
+      }
+
+      return mapped;
+
+    } catch(e) {
+      console.error('[GOOGLE] Fetch error:', e.message);
+      return [];
     }
-
-    return mapped;
-
-  } catch(e) {
-    console.error('[GOOGLE] Fetch error:', e.message);
-    return [];
   }
+
+  // True cache miss (nothing cached at all) — must fetch live, caller waits.
+  return await doGoogleFetch();
 }
 
 // TIER 2: OSM Overpass API — Free fallback
