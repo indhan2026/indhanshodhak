@@ -343,6 +343,14 @@ async function initDB() {
       first_mobile  TEXT,
       first_seen    TEXT DEFAULT (datetime('now'))
     )`,
+    // ── EV/CNG station community ratings (each rating kept individually with timestamp) ──
+    `CREATE TABLE IF NOT EXISTS station_ratings (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      place_id    TEXT NOT NULL,
+      user_id     INTEGER,
+      rating      INTEGER NOT NULL,
+      created_at  TEXT DEFAULT (datetime('now'))
+    )`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -1065,6 +1073,53 @@ app.get('/api/pumps/:id', requireAuth(), (req,res) => {
   const pump = dbGet(`SELECT * FROM petrol_pumps WHERE id=?`,[parseInt(req.params.id)]);
   if (!pump) return res.status(404).json({ error:'Pump not found' });
   res.json({ ...pump, fuel:latestReport(pump.id) });
+});
+
+// ── EV/CNG Station Ratings — never cached, always live ─────────────────
+// GET average + count for a batch of place_ids (Google-discovered stations use place_id, not numeric id)
+app.get('/api/ratings/batch', (req, res) => {
+  const { ids } = req.query;
+  if(!ids) return res.json({ ratings: {} });
+  const placeIds = ids.split(',').map(s => s.trim()).filter(Boolean).slice(0, 50);
+  if(placeIds.length === 0) return res.json({ ratings: {} });
+
+  const ratings = {};
+  placeIds.forEach(pid => {
+    const row = dbGet(
+      `SELECT COUNT(*) as cnt, AVG(rating) as avg FROM station_ratings WHERE place_id=?`,
+      [pid]
+    );
+    ratings[pid] = {
+      count: row?.cnt || 0,
+      average: row?.cnt > 0 ? Math.round((row.avg || 0) * 10) / 10 : 0,
+    };
+  });
+
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.json({ ratings });
+});
+
+// POST a new rating — always allowed, even if the station already has ratings from others
+app.post('/api/ratings/submit', requireAuth(), (req, res) => {
+  const { place_id, rating } = req.body;
+  const r = parseInt(rating);
+  if(!place_id) return res.status(400).json({ error: 'place_id required' });
+  if(!r || r < 1 || r > 5) return res.status(400).json({ error: 'Rating must be 1-5' });
+
+  dbRun(`INSERT INTO station_ratings (place_id, user_id, rating) VALUES (?,?,?)`,
+    [place_id, req.user.id, r]);
+
+  const row = dbGet(
+    `SELECT COUNT(*) as cnt, AVG(rating) as avg FROM station_ratings WHERE place_id=?`,
+    [place_id]
+  );
+  res.json({
+    success: true,
+    average: Math.round((row?.avg || 0) * 10) / 10,
+    count: row?.cnt || 0,
+    your_rating: r,
+    rated_at: new Date().toISOString(),
+  });
 });
 
 // ============================================================
@@ -3465,7 +3520,7 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
   }
 
   try {
-    console.log(`[GOOGLE] Fetching pumps near ${lat},${lng} radius:${radiusKm}km`);
+    console.log(`[GOOGLE] Fetching pumps+EV near ${lat},${lng} radius:${radiusKm}km`);
 
     const resp = await fetch(
       `https://places.googleapis.com/v1/places:searchNearby`,
@@ -3474,10 +3529,10 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
         headers: {
           'Content-Type':     'application/json',
           'X-Goog-Api-Key':   apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.addressComponents',
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.addressComponents,places.types,places.evChargeOptions,places.parkingOptions',
         },
         body: JSON.stringify({
-          includedTypes:    ['gas_station'],
+          includedTypes:    ['gas_station', 'electric_vehicle_charging_station'],
           maxResultCount:   20,
           locationRestriction: {
             circle: {
@@ -3498,7 +3553,7 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
 
     const data = await resp.json();
     const places = data.places || [];
-    console.log(`[GOOGLE] ✅ Found ${places.length} fuel stations`);
+    console.log(`[GOOGLE] ✅ Found ${places.length} fuel+EV stations`);
 
     return places.map(p => {
       const name    = p.displayName?.text || 'Petrol Pump';
@@ -3517,8 +3572,33 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
         .find(c => c.types?.includes('administrative_area_level_2'));
       const city = cityComp?.longText || '';
 
+      // ── Category detection: ev / cng / fuel ──
+      const isEV = (p.types || []).includes('electric_vehicle_charging_station');
+      const nameUpper = name.toUpperCase();
+      const isCNG = !isEV && (nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS'));
+      const category = isEV ? 'ev' : (isCNG ? 'cng' : 'fuel');
+
+      // ── EV-specific fields (only populated when category is 'ev') ──
+      let evConnectorType = '', evPowerKw = 0, evConnectorCount = 0, evOperator = '';
+      let hasParking = false;
+      if(isEV) {
+        evOperator = name; // Google's business name usually IS the operator (e.g. "Tata Power Charging Station")
+        if(p.evChargeOptions) {
+          evConnectorCount = p.evChargeOptions.connectorCount || 0;
+          const agg = p.evChargeOptions.connectorAggregation || [];
+          if(agg.length > 0) {
+            const top = agg.reduce((a,b) => (b.maxChargeRateKw||0) > (a.maxChargeRateKw||0) ? b : a, agg[0]);
+            evConnectorType = (top.type || '').replace('EV_CONNECTOR_TYPE_', '').replace(/_/g, ' ');
+            evPowerKw = top.maxChargeRateKw || 0;
+          }
+        }
+        hasParking = !!(p.parkingOptions?.freeParkingLot || p.parkingOptions?.paidParkingLot ||
+                         p.parkingOptions?.freeStreetParking || p.parkingOptions?.paidStreetParking);
+      }
+
       return {
         id:          'gpl_' + p.id,
+        place_id:    p.id,
         name:        name,
         oil_company: detectOilCompany(name),
         address:     address,
@@ -3530,6 +3610,12 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
         is_verified: false,
         is_google:   true,
         fuel:        null,
+        category:    category,
+        ev_operator:        evOperator,
+        ev_connector_type:  evConnectorType,
+        ev_power_kw:        evPowerKw,
+        ev_connector_count: evConnectorCount,
+        ev_has_parking:     hasParking,
       };
     }).filter(p => p.lat !== 0 && p.lng !== 0);
 
