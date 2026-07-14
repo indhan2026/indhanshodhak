@@ -3007,6 +3007,17 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
       return res.json({ pumps:[], total:0 });
     }
 
+    // Ensure EVERY pump has a category — DB-registered pumps never went through
+    // fetchGooglePlacesPumps' category detection, so they'd otherwise be invisible
+    // to the agent dashboard's CNG/EV filter chips even when clearly CNG/EV stations.
+    // (Same pattern as /api/pumps/locations.)
+    allPumps = allPumps.map(p => {
+      if(p.category) return p; // already tagged (came from Google tier with EV/CNG detection)
+      const nameUpper = (p.name || '').toUpperCase();
+      const isCNG = nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS');
+      return { ...p, category: isCNG ? 'cng' : 'fuel' };
+    });
+
     // Strip sensitive owner info
     const safePumps = allPumps.map(p => ({
       id: p.id,
@@ -3021,6 +3032,7 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
       is_verified: p.is_verified ? 1 : 0,
       has_owner: p.has_owner !== undefined ? p.has_owner : !!p.owner_user_id,
       source: p.source || 'db',
+      category: p.category || 'fuel',
     }));
 
     res.json({ pumps: safePumps, total: safePumps.length });
