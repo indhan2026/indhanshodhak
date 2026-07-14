@@ -25,6 +25,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
 .filter-row select,.filter-row input{padding:9px 10px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:13px;outline:none;min-width:140px}
 .filter-btn{padding:9px 16px;background:#e65100;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+.cat-chip{padding:9px 16px;border-radius:20px;font-size:13px;font-weight:600;border:2px solid #ddd;background:white;color:#666;cursor:pointer}
+.cat-chip.active{background:#e65100;border-color:#e65100;color:white}
 #agent-map{height:280px;width:100%;border-radius:12px;margin-bottom:12px}
 .pump-list{max-height:400px;overflow-y:auto}
 .pump-item{border:1.5px solid #eee;border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;transition:.15s}
@@ -137,6 +139,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- Map -->
     <div id="agent-map"></div>
 
+    <!-- Category filter — narrow results to target calls precisely -->
+    <div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap">
+      <div class="cat-chip active" id="ac-all" onclick="setAgentFilter('all',this)">All</div>
+      <div class="cat-chip" id="ac-cng" onclick="setAgentFilter('cng',this)">🔥 CNG</div>
+      <div class="cat-chip" id="ac-ev" onclick="setAgentFilter('ev',this)">⚡ EV</div>
+      <div class="cat-chip" id="ac-fuel" onclick="setAgentFilter('fuel',this)">⛽ Fuel</div>
+    </div>
+
     <!-- Pump List -->
     <div class="pump-list" id="pump-list">
       <div style="text-align:center;color:#aaa;padding:20px;font-size:13px">Select a district and search to see pumps</div>
@@ -248,6 +258,24 @@ let TOKEN = localStorage.getItem('agent_token');
 let agentMap = null;
 let agentMRCode = '';
 let _agentPumps = [];
+let _agentCatFilter = 'all';
+
+function setAgentFilter(type, el){
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  _agentCatFilter = type;
+  renderPumpResults(_agentPumps);
+}
+
+function applyAgentFilter(pumps){
+  if(_agentCatFilter === 'all') return pumps;
+  return pumps.filter(p => {
+    if(_agentCatFilter === 'cng')  return p.category === 'cng';
+    if(_agentCatFilter === 'ev')   return p.category === 'ev';
+    if(_agentCatFilter === 'fuel') return !p.category || p.category === 'fuel';
+    return true;
+  });
+}
 
 // ── LOGIN ──────────────────────────────────────────────────────
 async function agentLogin(){
@@ -404,7 +432,7 @@ async function searchNearbyGPS(){
 }
 
 function renderPumpResults(pumps){
-  // Update stats
+  // Stats reflect the WHOLE region (unfiltered) — filter only narrows the list/map for targeting calls
   const verified = pumps.filter(p=>p.is_verified).length;
   const noOwner  = pumps.filter(p=>!p.has_owner).length;
   document.getElementById('stat-total').textContent = pumps.length;
@@ -412,47 +440,57 @@ function renderPumpResults(pumps){
   document.getElementById('stat-unverified').textContent = pumps.length - verified;
   document.getElementById('stat-no-owner').textContent = noOwner;
 
+  const filtered = applyAgentFilter(pumps);
+
   // Clear and add markers to map
   agentMap.eachLayer(l => { if(l instanceof L.CircleMarker || l instanceof L.Marker) agentMap.removeLayer(l); });
 
-  const withCoords = pumps.filter(p=>p.lat&&p.lng);
+  const withCoords = filtered.filter(p=>p.lat&&p.lng);
   if(withCoords.length > 0){
     const bounds = L.latLngBounds(withCoords.map(p=>[p.lat,p.lng]));
     agentMap.fitBounds(bounds, {padding:[30,30]});
   }
 
-  pumps.forEach((p,i) => {
+  filtered.forEach((p,i) => {
     if(!p.lat||!p.lng) return;
-    const color = p.is_verified ? '#1a6b2e' : (p.has_owner ? '#e65100' : '#1565c0');
+    let color;
+    if(p.category === 'cng') color = '#e65100';
+    else if(p.category === 'ev') color = '#1565c0';
+    else color = p.is_verified ? '#1a6b2e' : (p.has_owner ? '#e65100' : '#1565c0');
     L.circleMarker([p.lat,p.lng],{radius:7,fillColor:color,color:'#fff',weight:2,fillOpacity:1})
       .addTo(agentMap)
       .bindPopup(`<b>${p.name}</b><br><small>${p.address||''}</small><br>
         ${p.is_verified?'✅ Verified':p.has_owner?'⏳ Has Owner':'🔵 No Owner'}<br>
-        ${!p.is_verified?`<button onclick="openEnrollModal(${i})" style="margin-top:4px;padding:4px 10px;background:#e65100;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer">Enroll</button>`:''}`);
+        ${!p.is_verified?`<button onclick="openEnrollModal(${pumps.indexOf(p)})" style="margin-top:4px;padding:4px 10px;background:#e65100;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer">Enroll</button>`:''}`);
   });
 
-  // Render list
+  // Render list (filtered)
   const el = document.getElementById('pump-list');
-  if(pumps.length === 0){
-    el.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">No pumps found in this region</div>';
+  if(filtered.length === 0){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">No pumps found for this filter</div>';
     return;
   }
-  el.innerHTML = pumps.map((p,i) => `
+  el.innerHTML = filtered.map((p) => {
+    const origIdx = pumps.indexOf(p);
+    const icon = p.category==='cng' ? '🔥' : p.category==='ev' ? '⚡' : (p.is_verified?'✅':'⛽');
+    return `
     <div class="pump-item ${p.is_verified?'verified':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
-          <div class="pump-name">${p.is_verified?'✅':'⛽'} ${p.name}</div>
+          <div class="pump-name">${icon} ${p.name}</div>
           <div class="pump-addr">📍 ${p.address||''} ${p.tehsil?'· '+p.tehsil:''} ${p.district?'· '+p.district:''}</div>
         </div>
       </div>
       <div class="pump-tags">
+        ${p.category==='cng'?'<span class="pump-tag" style="background:#fff3e0;border:1px solid #ffcc80;color:#e65100">🔥 CNG</span>':''}
+        ${p.category==='ev'?'<span class="pump-tag" style="background:#e3f2fd;border:1px solid #90caf9;color:#1565c0">⚡ EV</span>':''}
         ${p.is_verified?'<span class="pump-tag tag-v">✅ Verified</span>':'<span class="pump-tag tag-u">⏳ Unverified</span>'}
         ${p.has_owner?'<span class="pump-tag tag-o">👤 Has Owner</span>':'<span class="pump-tag tag-u">🔵 No Owner</span>'}
         ${p.oil_company?'<span class="pump-tag" style="background:#f5f5f5;border:1px solid #ddd;color:#555">'+p.oil_company+'</span>':''}
       </div>
-      ${!p.is_verified?`<button class="enroll-btn" onclick="openEnrollModal(${i})">🛵 Enroll This Pump</button>`:''}
+      ${!p.is_verified?`<button class="enroll-btn" onclick="openEnrollModal(${origIdx})">🛵 Enroll This Pump</button>`:''}
     </div>
-  `).join('');
+  `;}).join('');
 }
 
 // ── ENROLLMENT MODAL ───────────────────────────────────────────
