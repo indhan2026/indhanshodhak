@@ -1007,7 +1007,15 @@ app.get('/api/pumps/locations', async (req, res) => {
   const allPumps = [
     ...dbPumps.map(p => ({ ...p, source: 'db' })),
     ...mmiPumps.map(p => ({ ...p, source: 'mmi' })),
-  ];
+  ].map(p => {
+    // Ensure EVERY pump has a category — DB-registered pumps never went through
+    // fetchGooglePlacesPumps' category detection, so they'd otherwise be invisible
+    // to the CNG/EV filter pills even when they clearly are CNG stations.
+    if(p.category) return p; // already tagged (came from Google tier with EV/CNG detection)
+    const nameUpper = (p.name || '').toUpperCase();
+    const isCNG = nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS');
+    return { ...p, category: isCNG ? 'cng' : 'fuel' };
+  });
 
   const result = {
     pumps: allPumps,
