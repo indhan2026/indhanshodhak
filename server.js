@@ -3539,105 +3539,157 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
     return [];
   }
 
+  // ── SHARED GRID CACHE ──────────────────────────────────────────
+  // Every caller of this function (user app's /api/pumps/locations via
+  // fetchMapMyIndiaPumps, AND agent dashboard's /api/agent/pumps directly)
+  // shares ONE cache entry per grid cell. Whoever searches a cell first pays
+  // the Google API cost once; everyone else — user or agent — gets the full
+  // result (fuel + CNG + EV) free for the 1-year cache window. This is what
+  // makes "agent sees EV points for free after a user already searched there"
+  // (and vice versa) actually true, instead of each route paying separately.
+  const step = getGridStep(parseFloat(lat), parseFloat(lng));
+  const rLat = roundToGrid(lat, step);
+  const rLng = roundToGrid(lng, step);
+  const cacheKey = `gplaces:${rLat}:${rLng}:${radiusKm}`;
+  const cached = cacheGet(cacheKey);
+  if(cached) {
+    console.log(`[GOOGLE CACHE HIT] ${cacheKey} → ${cached.length} places, 0 API calls`);
+    return cached;
+  }
+
+  // Extract a place from Google's searchNearby response into our pump/station shape.
+  function mapPlace(p) {
+    const name    = p.displayName?.text || 'Petrol Pump';
+    const address = p.formattedAddress || '';
+    const pinComp = (p.addressComponents || [])
+      .find(c => c.types?.includes('postal_code'));
+    const pin = pinComp?.longText || '';
+    const cityComp = (p.addressComponents || [])
+      .find(c => c.types?.includes('locality') || c.types?.includes('administrative_area_level_3'));
+    const tehsilComp = (p.addressComponents || [])
+      .find(c => c.types?.includes('administrative_area_level_3'));
+    const distComp2 = (p.addressComponents || [])
+      .find(c => c.types?.includes('administrative_area_level_2'));
+    const city = cityComp?.longText || '';
+
+    const isEV = (p.types || []).includes('electric_vehicle_charging_station');
+    const nameUpper = name.toUpperCase();
+    const isCNG = !isEV && (nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS'));
+    const category = isEV ? 'ev' : (isCNG ? 'cng' : 'fuel');
+
+    let evConnectorType = '', evPowerKw = 0, evConnectorCount = 0, evOperator = '';
+    let hasParking = false;
+    if(isEV) {
+      evOperator = name;
+      if(p.evChargeOptions) {
+        evConnectorCount = p.evChargeOptions.connectorCount || 0;
+        const agg = p.evChargeOptions.connectorAggregation || [];
+        if(agg.length > 0) {
+          const top = agg.reduce((a,b) => (b.maxChargeRateKw||0) > (a.maxChargeRateKw||0) ? b : a, agg[0]);
+          evConnectorType = (top.type || '').replace('EV_CONNECTOR_TYPE_', '').replace(/_/g, ' ');
+          evPowerKw = top.maxChargeRateKw || 0;
+        }
+      }
+      hasParking = !!(p.parkingOptions?.freeParkingLot || p.parkingOptions?.paidParkingLot ||
+                       p.parkingOptions?.freeStreetParking || p.parkingOptions?.paidStreetParking);
+    }
+
+    return {
+      id:          'gpl_' + p.id,
+      place_id:    p.id,
+      name:        name,
+      oil_company: detectOilCompany(name),
+      address:     address,
+      tehsil:      tehsilComp?.longText || '',
+      district:    distComp2?.longText || city,
+      pin_code:    pin,
+      lat:         parseFloat(p.location?.latitude  || 0),
+      lng:         parseFloat(p.location?.longitude || 0),
+      is_verified: false,
+      is_google:   true,
+      fuel:        null,
+      category:    category,
+      ev_operator:        evOperator,
+      ev_connector_type:  evConnectorType,
+      ev_power_kw:        evPowerKw,
+      ev_connector_count: evConnectorCount,
+      ev_has_parking:     hasParking,
+    };
+  }
+
+  let hadError = false;
+  async function searchNearby(includedTypes) {
+    try {
+      const resp = await fetch(
+        `https://places.googleapis.com/v1/places:searchNearby`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':     'application/json',
+            'X-Goog-Api-Key':   apiKey,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.addressComponents,places.types,places.evChargeOptions,places.parkingOptions',
+          },
+          body: JSON.stringify({
+            includedTypes:    includedTypes,
+            maxResultCount:   20,
+            locationRestriction: {
+              circle: {
+                center: { latitude: parseFloat(lat), longitude: parseFloat(lng) },
+                radius: radiusKm * 1000,
+              },
+            },
+          }),
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+      if (!resp.ok) {
+        const err = await resp.text().catch(() => '');
+        console.error(`[GOOGLE] API error (${includedTypes.join(',')}): ${resp.status} | ${err.slice(0, 100)}`);
+        hadError = true;
+        return [];
+      }
+      const data = await resp.json();
+      return data.places || [];
+    } catch(e) {
+      console.error(`[GOOGLE] Fetch error (${includedTypes.join(',')}):`, e.message);
+      hadError = true;
+      return [];
+    }
+  }
+
   try {
     console.log(`[GOOGLE] Fetching pumps+EV near ${lat},${lng} radius:${radiusKm}km`);
 
-    const resp = await fetch(
-      `https://places.googleapis.com/v1/places:searchNearby`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type':     'application/json',
-          'X-Goog-Api-Key':   apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.addressComponents,places.types,places.evChargeOptions,places.parkingOptions',
-        },
-        body: JSON.stringify({
-          includedTypes:    ['gas_station', 'electric_vehicle_charging_station'],
-          maxResultCount:   20,
-          locationRestriction: {
-            circle: {
-              center: { latitude: parseFloat(lat), longitude: parseFloat(lng) },
-              radius: radiusKm * 1000,
-            },
-          },
-        }),
-        signal: AbortSignal.timeout(10000),
-      }
-    );
+    // Run fuel/CNG and EV searches as SEPARATE parallel calls, each with its own
+    // 20-result budget. A single combined call lets petrol pumps (far more numerous
+    // in dense areas) crowd EV chargers out of the top-20 ranked results entirely —
+    // splitting guarantees EV stations always get their own slots.
+    const [fuelPlaces, evPlaces] = await Promise.all([
+      searchNearby(['gas_station']),
+      searchNearby(['electric_vehicle_charging_station']),
+    ]);
 
-    if (!resp.ok) {
-      const err = await resp.text().catch(() => '');
-      console.error(`[GOOGLE] API error: ${resp.status} | ${err.slice(0, 100)}`);
-      return [];
+    // Dedupe (a place could theoretically appear in both, e.g. a fuel station with EV chargers)
+    const seen = new Set();
+    const allPlaces = [...fuelPlaces, ...evPlaces].filter(p => {
+      if(seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+
+    console.log(`[GOOGLE] ✅ Found ${fuelPlaces.length} fuel/CNG + ${evPlaces.length} EV stations`);
+
+    const mapped = allPlaces.map(mapPlace).filter(p => p.lat !== 0 && p.lng !== 0);
+
+    // Only cache on a clean fetch — if either call errored, don't lock in a
+    // possibly-incomplete result for the next 1 year. A transient failure
+    // should just mean "try again on the next request," not "cache emptiness."
+    if(!hadError) {
+      cacheSet(cacheKey, mapped, CACHE_HOURS.GPS);
+      console.log(`[GOOGLE CACHE SET] ${cacheKey} → ${mapped.length} places, ${CACHE_HOURS.GPS}hrs`);
     }
 
-    const data = await resp.json();
-    const places = data.places || [];
-    console.log(`[GOOGLE] ✅ Found ${places.length} fuel+EV stations`);
-
-    return places.map(p => {
-      const name    = p.displayName?.text || 'Petrol Pump';
-      const address = p.formattedAddress || '';
-      // Extract pincode from addressComponents
-      const pinComp = (p.addressComponents || [])
-        .find(c => c.types?.includes('postal_code'));
-      const pin = pinComp?.longText || '';
-      // Extract city/district/tehsil separately
-      const cityComp = (p.addressComponents || [])
-        .find(c => c.types?.includes('locality') || c.types?.includes('administrative_area_level_3'));
-      // Tehsil = level_3, District = level_2 (properly separated)
-      const tehsilComp = (p.addressComponents || [])
-        .find(c => c.types?.includes('administrative_area_level_3'));
-      const distComp2 = (p.addressComponents || [])
-        .find(c => c.types?.includes('administrative_area_level_2'));
-      const city = cityComp?.longText || '';
-
-      // ── Category detection: ev / cng / fuel ──
-      const isEV = (p.types || []).includes('electric_vehicle_charging_station');
-      const nameUpper = name.toUpperCase();
-      const isCNG = !isEV && (nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS'));
-      const category = isEV ? 'ev' : (isCNG ? 'cng' : 'fuel');
-
-      // ── EV-specific fields (only populated when category is 'ev') ──
-      let evConnectorType = '', evPowerKw = 0, evConnectorCount = 0, evOperator = '';
-      let hasParking = false;
-      if(isEV) {
-        evOperator = name; // Google's business name usually IS the operator (e.g. "Tata Power Charging Station")
-        if(p.evChargeOptions) {
-          evConnectorCount = p.evChargeOptions.connectorCount || 0;
-          const agg = p.evChargeOptions.connectorAggregation || [];
-          if(agg.length > 0) {
-            const top = agg.reduce((a,b) => (b.maxChargeRateKw||0) > (a.maxChargeRateKw||0) ? b : a, agg[0]);
-            evConnectorType = (top.type || '').replace('EV_CONNECTOR_TYPE_', '').replace(/_/g, ' ');
-            evPowerKw = top.maxChargeRateKw || 0;
-          }
-        }
-        hasParking = !!(p.parkingOptions?.freeParkingLot || p.parkingOptions?.paidParkingLot ||
-                         p.parkingOptions?.freeStreetParking || p.parkingOptions?.paidStreetParking);
-      }
-
-      return {
-        id:          'gpl_' + p.id,
-        place_id:    p.id,
-        name:        name,
-        oil_company: detectOilCompany(name),
-        address:     address,
-        tehsil:      tehsilComp?.longText || '',
-        district:    distComp2?.longText || city,
-        pin_code:    pin,
-        lat:         parseFloat(p.location?.latitude  || 0),
-        lng:         parseFloat(p.location?.longitude || 0),
-        is_verified: false,
-        is_google:   true,
-        fuel:        null,
-        category:    category,
-        ev_operator:        evOperator,
-        ev_connector_type:  evConnectorType,
-        ev_power_kw:        evPowerKw,
-        ev_connector_count: evConnectorCount,
-        ev_has_parking:     hasParking,
-      };
-    }).filter(p => p.lat !== 0 && p.lng !== 0);
+    return mapped;
 
   } catch(e) {
     console.error('[GOOGLE] Fetch error:', e.message);
