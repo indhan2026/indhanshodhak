@@ -693,7 +693,18 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
       <label class="form-label">Posted Date (shown on careers page)</label>
       <input class="form-input" type="text" id="careers-posted-date" placeholder="e.g. July 2026">
     </div>
-    <button class="form-submit" onclick="saveSetting('careers_posted_date','careers-posted-date')">💾 Save</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Salary Min (₹/month)</label>
+        <input class="form-input" type="text" id="careers-salary-min" placeholder="e.g. 25,000">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Salary Max (₹/month)</label>
+        <input class="form-input" type="text" id="careers-salary-max" placeholder="e.g. 56,000">
+      </div>
+    </div>
+    <button class="form-submit" onclick="saveCareersSettings()">💾 Save Careers Settings</button>
+    <div id="careers-settings-msg" style="font-size:12px;margin-top:8px"></div>
   </div>
 </div>
 
@@ -865,6 +876,8 @@ function loadSettings(){
     // Populate dense city zones
     renderDenseZones(s.dense_city_zones||'');
     const cdEl=document.getElementById('careers-posted-date'); if(cdEl) cdEl.value=s.careers_posted_date||'';
+    const cminEl=document.getElementById('careers-salary-min'); if(cminEl) cminEl.value=s.careers_salary_min||'25,000';
+    const cmaxEl=document.getElementById('careers-salary-max'); if(cmaxEl) cmaxEl.value=s.careers_salary_max||'56,000';
   });
   loadUsers();
   loadGovtCreds();
@@ -1117,6 +1130,8 @@ function showTab(name,el){
     api('/api/admin/settings').then(s => {
       if(!s) return;
       const cdEl=document.getElementById('careers-posted-date'); if(cdEl) cdEl.value=s.careers_posted_date||'';
+      const cminEl=document.getElementById('careers-salary-min'); if(cminEl) cminEl.value=s.careers_salary_min||'25,000';
+      const cmaxEl=document.getElementById('careers-salary-max'); if(cmaxEl) cmaxEl.value=s.careers_salary_max||'56,000';
     });
   }
 }
@@ -1182,6 +1197,25 @@ async function updateCareerStatus(id, status){
   const d = await api(`/api/admin/careers/${id}/status`, 'POST', { status });
   if(d?.success) loadCareers();
   else alert('Failed to update status');
+}
+
+async function saveCareersSettings(){
+  const postedDate = document.getElementById('careers-posted-date').value.trim();
+  const salaryMin  = document.getElementById('careers-salary-min').value.trim();
+  const salaryMax  = document.getElementById('careers-salary-max').value.trim();
+  const msg = document.getElementById('careers-settings-msg');
+  const d = await api('/api/admin/settings','POST',{
+    careers_posted_date: postedDate,
+    careers_salary_min:  salaryMin,
+    careers_salary_max:  salaryMax,
+  });
+  if(d?.success){
+    msg.style.color='#1a6b2e';
+    msg.textContent = `✅ Saved — Salary: ₹${salaryMin} – ₹${salaryMax}/month`;
+  } else {
+    msg.style.color='#b71c1c';
+    msg.textContent = 'Error saving settings';
+  }
 }
 
 // ── MR Agent Functions ────────────────────────────────────────

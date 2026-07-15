@@ -99,7 +99,7 @@ body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text)
   0%,100% { opacity:0.55; r:7; }
   50%     { opacity:1;    r:11; }
 }
-.network-line { stroke-dasharray:4 4; animation:dashMove 3s linear infinite; }
+.network-line { stroke-dasharray:5 5; animation:dashMove 3.5s linear infinite; }
 @keyframes dashMove { to { stroke-dashoffset:-40; } }
 
 /* ===== FORM SECTION ===== */
@@ -181,7 +181,7 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
   <div class="hero-content">
     <div class="hero-badge"><span></span> NOW HIRING — FIELD NETWORK</div>
     <h1><span class="line1">Build India's</span><br><span class="line2">Live Fuel Network</span></h1>
-    <div class="hero-hindi">जनतेसाठी, जनतेकडून</div>
+    <div class="hero-hindi">नए भारत का रियल-टाइम ईंधन नेटवर्क बनाएं</div>
     <p class="hero-sub">
       Every pump we verify, every station we map — <b>someone on the ground made it real.</b>
       Join IndhanShodhak as an Enrollment Agent &amp; Field Verifier, and help build
@@ -268,21 +268,79 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
   </path>
  </g>
 <g id="network-overlay">
-  <!-- Connection lines between regional hubs (real approximate state centroids) -->
-  <line class="network-line" x1="344" y1="320" x2="379" y2="494" stroke="rgba(59,173,255,0.35)" stroke-width="2"/>
-  <line class="network-line" x1="379" y1="494" x2="306" y2="598" stroke="rgba(34,197,94,0.35)" stroke-width="2"/>
-  <line class="network-line" x1="379" y1="494" x2="637" y2="486" stroke="rgba(255,153,51,0.35)" stroke-width="2"/>
-  <line class="network-line" x1="637" y1="486" x2="776" y2="394" stroke="rgba(34,197,94,0.35)" stroke-width="2"/>
-  <line class="network-line" x1="306" y1="598" x2="302" y2="728" stroke="rgba(59,173,255,0.35)" stroke-width="2"/>
-  <line class="network-line" x1="379" y1="494" x2="344" y2="320" stroke="rgba(255,153,51,0.3)" stroke-width="2"/>
+  <!-- North–South trunk -->
+  <line class="network-line" x1="344" y1="320" x2="438" y2="375" stroke="rgba(255,153,51,0.4)" stroke-width="1.8"/>
+  <line class="network-line" x1="438" y1="375" x2="379" y2="494" stroke="rgba(255,153,51,0.4)" stroke-width="1.8"/>
+  <line class="network-line" x1="379" y1="494" x2="306" y2="598" stroke="rgba(255,153,51,0.4)" stroke-width="1.8"/>
+  <line class="network-line" x1="306" y1="598" x2="302" y2="728" stroke="rgba(255,153,51,0.4)" stroke-width="1.8"/>
+  <line class="network-line" x1="302" y1="728" x2="326" y2="849" stroke="rgba(255,153,51,0.4)" stroke-width="1.8"/>
+  <!-- East–West trunk -->
+  <line class="network-line" x1="257" y1="376" x2="344" y2="320" stroke="rgba(59,173,255,0.35)" stroke-width="1.5"/>
+  <line class="network-line" x1="257" y1="376" x2="379" y2="494" stroke="rgba(59,173,255,0.35)" stroke-width="1.5"/>
+  <line class="network-line" x1="199" y1="481" x2="379" y2="494" stroke="rgba(59,173,255,0.35)" stroke-width="1.5"/>
+  <line class="network-line" x1="379" y1="494" x2="564" y2="475" stroke="rgba(59,173,255,0.35)" stroke-width="1.5"/>
+  <line class="network-line" x1="564" y1="475" x2="637" y2="486" stroke="rgba(59,173,255,0.35)" stroke-width="1.5"/>
+  <!-- Northeast web -->
+  <line class="network-line" x1="637" y1="486" x2="776" y2="394" stroke="rgba(34,197,94,0.4)" stroke-width="1.5"/>
+  <line class="network-line" x1="776" y1="394" x2="826" y2="326" stroke="rgba(34,197,94,0.35)" stroke-width="1.2"/>
+  <line class="network-line" x1="776" y1="394" x2="822" y2="399" stroke="rgba(34,197,94,0.35)" stroke-width="1.2"/>
+  <line class="network-line" x1="776" y1="394" x2="737" y2="418" stroke="rgba(34,197,94,0.35)" stroke-width="1.2"/>
+  <line class="network-line" x1="776" y1="394" x2="801" y2="443" stroke="rgba(34,197,94,0.35)" stroke-width="1.2"/>
+  <line class="network-line" x1="776" y1="394" x2="776" y2="476" stroke="rgba(34,197,94,0.35)" stroke-width="1.2"/>
+  <line class="network-line" x1="776" y1="394" x2="741" y2="472" stroke="rgba(34,197,94,0.35)" stroke-width="1.2"/>
+  <!-- South corridor -->
+  <line class="network-line" x1="302" y1="728" x2="380" y2="836" stroke="rgba(255,153,51,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="380" y1="836" x2="326" y2="849" stroke="rgba(255,153,51,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="380" y1="836" x2="418" y2="839" stroke="rgba(255,153,51,0.3)" stroke-width="1.2"/>
+  <!-- Northwest links -->
+  <line class="network-line" x1="344" y1="320" x2="348" y2="218" stroke="rgba(59,173,255,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="344" y1="320" x2="301" y2="254" stroke="rgba(59,173,255,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="344" y1="320" x2="323" y2="305" stroke="rgba(59,173,255,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="344" y1="320" x2="275" y2="156" stroke="rgba(59,173,255,0.25)" stroke-width="1"/>
+  <!-- East cluster -->
+  <line class="network-line" x1="576" y1="411" x2="564" y2="475" stroke="rgba(34,197,94,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="576" y1="411" x2="654" y2="356" stroke="rgba(34,197,94,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="637" y1="486" x2="550" y2="559" stroke="rgba(34,197,94,0.3)" stroke-width="1.2"/>
+  <!-- Central extras -->
+  <line class="network-line" x1="379" y1="494" x2="397" y2="641" stroke="rgba(255,153,51,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="397" y1="641" x2="392" y2="731" stroke="rgba(255,153,51,0.3)" stroke-width="1.2"/>
+  <line class="network-line" x1="392" y1="731" x2="302" y2="728" stroke="rgba(255,153,51,0.3)" stroke-width="1.2"/>
+  <!-- Gujarat/Goa -->
+  <line class="network-line" x1="199" y1="481" x2="262" y2="714" stroke="rgba(59,173,255,0.25)" stroke-width="1"/>
+  <line class="network-line" x1="262" y1="714" x2="302" y2="728" stroke="rgba(59,173,255,0.25)" stroke-width="1"/>
 
-  <!-- Regional hub nodes -->
-  <circle class="node d1" cx="344" cy="320" r="9" fill="#FF9933"/>
-  <circle class="node d2" cx="637" cy="486" r="9" fill="#22c55e"/>
-  <circle class="node d3" cx="306" cy="598" r="9" fill="#3BADFF"/>
-  <circle class="node d4" cx="379" cy="494" r="9" fill="#FF9933"/>
-  <circle class="node d5" cx="302" cy="728" r="9" fill="#22c55e"/>
-  <circle class="node d6" cx="776" cy="394" r="9" fill="#3BADFF"/>
+  <!-- ALL STATE/UT CENTROID NODES -->
+  <circle class="node d1" cx="344" cy="320" r="7" fill="#FF9933"/>
+  <circle class="node d2" cx="323" cy="305" r="6" fill="#3BADFF"/>
+  <circle class="node d3" cx="301" cy="254" r="6" fill="#3BADFF"/>
+  <circle class="node d4" cx="348" cy="218" r="6" fill="#22c55e"/>
+  <circle class="node d5" cx="275" cy="156" r="6" fill="#22c55e"/>
+  <circle class="node d6" cx="401" cy="272" r="6" fill="#FF9933"/>
+  <circle class="node d1" cx="257" cy="376" r="7" fill="#FF9933"/>
+  <circle class="node d2" cx="199" cy="481" r="7" fill="#3BADFF"/>
+  <circle class="node d3" cx="306" cy="598" r="7" fill="#FF9933"/>
+  <circle class="node d4" cx="262" cy="714" r="6" fill="#22c55e"/>
+  <circle class="node d5" cx="438" cy="375" r="7" fill="#FF9933"/>
+  <circle class="node d6" cx="379" cy="494" r="8" fill="#FF9933"/>
+  <circle class="node d1" cx="473" cy="533" r="6" fill="#3BADFF"/>
+  <circle class="node d2" cx="576" cy="411" r="7" fill="#22c55e"/>
+  <circle class="node d3" cx="564" cy="475" r="7" fill="#FF9933"/>
+  <circle class="node d4" cx="637" cy="486" r="7" fill="#22c55e"/>
+  <circle class="node d5" cx="550" cy="559" r="7" fill="#3BADFF"/>
+  <circle class="node d6" cx="302" cy="728" r="8" fill="#22c55e"/>
+  <circle class="node d1" cx="380" cy="836" r="7" fill="#3BADFF"/>
+  <circle class="node d2" cx="326" cy="849" r="7" fill="#FF9933"/>
+  <circle class="node d3" cx="397" cy="641" r="6" fill="#22c55e"/>
+  <circle class="node d4" cx="392" cy="731" r="6" fill="#3BADFF"/>
+  <circle class="node d5" cx="418" cy="839" r="5" fill="#FF9933"/>
+  <circle class="node d6" cx="776" cy="394" r="7" fill="#22c55e"/>
+  <circle class="node d1" cx="826" cy="326" r="6" fill="#3BADFF"/>
+  <circle class="node d2" cx="822" cy="399" r="6" fill="#FF9933"/>
+  <circle class="node d3" cx="737" cy="418" r="6" fill="#22c55e"/>
+  <circle class="node d4" cx="801" cy="443" r="6" fill="#3BADFF"/>
+  <circle class="node d5" cx="776" cy="476" r="6" fill="#22c55e"/>
+  <circle class="node d6" cx="741" cy="472" r="6" fill="#FF9933"/>
+  <circle class="node d1" cx="654" cy="356" r="6" fill="#3BADFF"/>
 </g>
 </svg>
   </div>
@@ -295,7 +353,10 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
   </div>
 
   <div class="pay-strip">
-    <div class="pay-item"><div class="num">₹20,000</div><div class="lbl">UP TO / MONTH</div></div>
+    <div class="pay-item">
+      <div class="num" id="salaryDisplay">₹25,000 – ₹56,000</div>
+      <div class="lbl">PER MONTH</div>
+    </div>
     <div class="pay-item"><div class="num">🏠</div><div class="lbl">WORK FROM HOME</div></div>
     <div class="pay-item"><div class="num">🇮🇳</div><div class="lbl">PAN-INDIA ROLES</div></div>
   </div>
@@ -401,6 +462,13 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
     });
   });
 });
+
+// Fetch admin-configured salary range on load
+fetch('/api/careers/config').then(r=>r.json()).then(d=>{
+  const el = document.getElementById('salaryDisplay');
+  if(el && d.salary_min && d.salary_max)
+    el.textContent = `₹${d.salary_min} – ₹${d.salary_max}`;
+}).catch(()=>{});
 
 async function submitApplication() {
   const errEl = document.getElementById('formError');

@@ -2008,6 +2008,14 @@ app.post('/api/admin/careers/:id/status', requireAuth(['super_admin']), (req, re
   res.json({ success: true });
 });
 
+app.get('/api/careers/config', (req, res) => {
+  res.json({
+    posted_date:  getSetting('careers_posted_date')  || null,
+    salary_min:   getSetting('careers_salary_min')   || '25,000',
+    salary_max:   getSetting('careers_salary_max')   || '56,000',
+  });
+});
+
 app.get('/api/careers/posted-date', (req, res) => {
   res.json({ posted_date: getSetting('careers_posted_date') || null });
 });
@@ -3084,7 +3092,7 @@ app.get('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
 });
 
 app.post('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
-  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers','careers_posted_date'];
+  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers','careers_posted_date','careers_salary_min','careers_salary_max'];
   const updated=[];
   for (const [k,v] of Object.entries(req.body)) {
     if (allowed.includes(k)) { dbRun(`INSERT OR REPLACE INTO settings(key,value)VALUES(?,?)`,[k,String(v)]); updated.push(k); }
