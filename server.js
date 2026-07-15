@@ -357,6 +357,22 @@ async function initDB() {
     // are unaffected). This column just records WHICH type was uploaded so the
     // AI verification prompt can ask the right questions for that document.
     `ALTER TABLE pump_applications ADD COLUMN id_proof_type TEXT`,
+    // ── Careers page applications ──
+    `CREATE TABLE IF NOT EXISTS job_applications (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      full_name       TEXT NOT NULL,
+      address         TEXT NOT NULL,
+      qualification   TEXT NOT NULL,
+      languages       TEXT NOT NULL,
+      has_laptop      INTEGER NOT NULL DEFAULT 0,
+      has_bike        INTEGER NOT NULL DEFAULT 0,
+      mobile          TEXT NOT NULL,
+      email           TEXT NOT NULL,
+      region          TEXT NOT NULL,
+      interview_mode  TEXT NOT NULL,
+      status          TEXT NOT NULL DEFAULT 'new',
+      applied_at      TEXT DEFAULT (datetime('now'))
+    )`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -1879,6 +1895,123 @@ const pumpRegUpload = multer({
   },
 });
 
+// ══════════════════════════════════════════════════════════════
+// CAREERS PAGE — public job application submission + admin views
+// ══════════════════════════════════════════════════════════════
+
+app.post('/api/careers/apply', (req, res) => {
+  try {
+    const { full_name, address, qualification, languages, mobile, email,
+            region, interview_mode, has_laptop, has_bike } = req.body;
+
+    if(!full_name || !address || !qualification || !languages || !mobile || !email || !region || !interview_mode)
+      return res.status(400).json({ error: 'All fields are required' });
+    if(mobile.length !== 10)
+      return res.status(400).json({ error: 'Invalid mobile number' });
+    if(!email.includes('@'))
+      return res.status(400).json({ error: 'Invalid email address' });
+
+    const validRegions = ['North India','South India','East India','West India','Central India','Northeast India'];
+    if(!validRegions.includes(region))
+      return res.status(400).json({ error: 'Invalid region' });
+    const validModes = ['Physical','Online'];
+    if(!validModes.includes(interview_mode))
+      return res.status(400).json({ error: 'Invalid interview mode' });
+
+    dbRun(`INSERT INTO job_applications
+           (full_name, address, qualification, languages, has_laptop, has_bike,
+            mobile, email, region, interview_mode)
+           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      [full_name, address, qualification, languages,
+       has_laptop === 'Yes' ? 1 : 0, has_bike === 'Yes' ? 1 : 0,
+       mobile, email, region, interview_mode]);
+
+    const row = dbGet(`SELECT id, applied_at FROM job_applications WHERE mobile=? ORDER BY id DESC LIMIT 1`, [mobile]);
+    const appId = 'IS-CAR-' + String(row.id).padStart(6, '0');
+    const appliedDate = new Date(row.applied_at + 'Z').toLocaleDateString('en-IN',
+      { day:'2-digit', month:'long', year:'numeric' });
+
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,Segoe UI,Roboto,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:24px 0;">
+<tr><td align="center">
+<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.08);">
+<tr><td style="background:linear-gradient(135deg,#0a1f38,#0f1f38);padding:28px 30px 24px;text-align:center;">
+<div style="height:4px;width:60px;margin:0 auto 16px;border-radius:2px;background:linear-gradient(90deg,#FF9933,#ffffff,#138808);"></div>
+<div style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;">🚀 IndhanShodhak<span style="color:#FF9933;font-size:14px;">™</span></div>
+<div style="font-size:12px;color:#8fa3bf;margin-top:2px;">इंधन शोधक — India's Live Fuel Data Network</div>
+</td></tr>
+<tr><td style="background:#e8f5e9;padding:16px 30px;text-align:center;border-bottom:1px solid #d5ecd7;">
+<span style="font-size:28px;">✅</span>
+<div style="font-size:15px;font-weight:700;color:#1a6b2e;margin-top:4px;">Application Received!</div>
+</td></tr>
+<tr><td style="padding:28px 30px 8px;">
+<p style="font-size:15px;color:#222;margin:0 0 14px;">Dear <b>${full_name}</b>,</p>
+<p style="font-size:14px;color:#444;line-height:1.6;margin:0 0 20px;">Thank you for applying to join the <b>IndhanShodhak Enrollment Agent / Field Verifier</b> network. Your details have been saved securely in our system.</p>
+</td></tr>
+<tr><td style="padding:0 30px 20px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;border-radius:10px;border:1px solid #eef0f3;">
+<tr><td style="padding:16px 18px;">
+<div style="font-size:11px;font-weight:700;color:#e65100;letter-spacing:0.5px;margin-bottom:10px;">📋 YOUR APPLICATION SUMMARY</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#333;">
+<tr><td style="padding:4px 0;color:#888;width:120px;">Application No.</td><td style="padding:4px 0;font-weight:600;">${appId}</td></tr>
+<tr><td style="padding:4px 0;color:#888;">Date</td><td style="padding:4px 0;font-weight:600;">${appliedDate}</td></tr>
+<tr><td style="padding:4px 0;color:#888;">Region</td><td style="padding:4px 0;font-weight:600;">${region}</td></tr>
+<tr><td style="padding:4px 0;color:#888;">Mobile</td><td style="padding:4px 0;font-weight:600;">+91 ${mobile}</td></tr>
+<tr><td style="padding:4px 0;color:#888;">Email</td><td style="padding:4px 0;font-weight:600;">${email}</td></tr>
+<tr><td style="padding:4px 0;color:#888;">Interview Mode</td><td style="padding:4px 0;font-weight:600;">${interview_mode}</td></tr>
+</table></td></tr></table></td></tr>
+<tr><td style="padding:0 30px 24px;">
+<div style="font-size:11px;font-weight:700;color:#1a6b2e;letter-spacing:0.5px;margin-bottom:10px;">🕓 WHAT HAPPENS NEXT</div>
+<p style="font-size:13px;color:#444;line-height:1.7;margin:0;">Our team is reviewing applications from your region. If shortlisted, we'll reach out via <b>call or email</b> to schedule your interview — no documents needed right now, we'll verify those in person.</p>
+</td></tr>
+<tr><td style="padding:18px 30px;background:#fff8f0;border-top:1px dashed #FF9933;border-bottom:1px dashed #138808;text-align:center;">
+<p style="font-size:12.5px;color:#7a5230;font-style:italic;margin:0;line-height:1.6;">"Be part of India's first live fuel data network —<br>जनतेसाठी, जनतेकडून · By the people, for the people"</p>
+</td></tr>
+<tr><td style="background:#0a1f38;padding:22px 30px;text-align:center;">
+<div style="font-size:13px;color:#ffffff;font-weight:700;margin-bottom:4px;">IndhanShodhak</div>
+<div style="font-size:11px;color:#8fa3bf;margin-bottom:12px;">Find Fuel. Fast. Trusted.</div>
+<div style="font-size:10.5px;color:#5c7290;line-height:1.6;">© 2026 IndhanShodhak™. All rights reserved.<br>Dr. Galnimbkar Accident Hospital, Newasa Fata, Ahilyanagar, Maharashtra, India<br>
+<a href="mailto:indhanshodhak@gmail.com" style="color:#3BADFF;text-decoration:none;">indhanshodhak@gmail.com</a></div>
+</td></tr>
+</table></td></tr></table>
+</body></html>`;
+
+    sendEmail(email, '✅ IndhanShodhak — Application Received!', html);
+    console.log(`[CAREERS] New application: ${full_name} | ${region} | ${appId}`);
+
+    res.json({ success: true, app_id: appId });
+  } catch(e) {
+    console.error('[CAREERS] Apply error:', e.message);
+    res.status(500).json({ error: 'Submission failed. Please try again.' });
+  }
+});
+
+app.get('/api/admin/careers', requireAuth(['super_admin']), (req, res) => {
+  const { region, status } = req.query;
+  let sql = `SELECT * FROM job_applications WHERE 1=1`;
+  const params = [];
+  if(region) { sql += ` AND region=?`; params.push(region); }
+  if(status) { sql += ` AND status=?`; params.push(status); }
+  sql += ` ORDER BY applied_at DESC`;
+  const rows = dbAll(sql, params);
+  res.json({ applications: rows, total: rows.length });
+});
+
+app.post('/api/admin/careers/:id/status', requireAuth(['super_admin']), (req, res) => {
+  const { status } = req.body;
+  const validStatuses = ['new','contacted','interview_scheduled','hired','rejected'];
+  if(!validStatuses.includes(status))
+    return res.status(400).json({ error: 'Invalid status' });
+  dbRun(`UPDATE job_applications SET status=? WHERE id=?`, [status, req.params.id]);
+  res.json({ success: true });
+});
+
+app.get('/api/careers/posted-date', (req, res) => {
+  res.json({ posted_date: getSetting('careers_posted_date') || null });
+});
+
 app.post('/api/pump-owner/register',
   pumpRegUpload.fields([
     {name:'license',  maxCount:1},
@@ -2032,6 +2165,7 @@ app.get('/api/pump-owner/nearby-competitors', requireAuth(['pump_owner','super_a
 });
 
 app.get('/pump-signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
+app.get('/careers', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'careers.html')));
 app.get('/pump-subscribe.html', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump-subscribe.html')));
 app.get('/pump_signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
 
@@ -2950,7 +3084,7 @@ app.get('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
 });
 
 app.post('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
-  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers'];
+  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers','careers_posted_date'];
   const updated=[];
   for (const [k,v] of Object.entries(req.body)) {
     if (allowed.includes(k)) { dbRun(`INSERT OR REPLACE INTO settings(key,value)VALUES(?,?)`,[k,String(v)]); updated.push(k); }

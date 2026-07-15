@@ -1,27 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#138808">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IndhanShodhak — इंधन शोधक | Find Fuel. Fast. Trusted.</title>
-<meta name="description" content="India's community-powered fuel availability tracker. Find petrol, diesel and CNG near you in real time.">
+<title>Careers — IndhanShodhak</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 :root {
   --saffron: #FF9933;
   --saffron-dim: rgba(255,153,51,0.12);
-  --saffron-glow: rgba(255,153,51,0.25);
   --green: #138808;
   --green-bright: #22c55e;
   --green-dim: rgba(19,136,8,0.12);
   --blue: #3BADFF;
-  --blue-dim: rgba(59,173,255,0.12);
-  --red: #ef4444;
-  --yellow: #f59e0b;
   --bg: #060d18;
   --bg2: #0a1628;
   --bg3: #0f1f38;
@@ -31,1035 +22,177 @@
   --muted: rgba(232,240,254,0.45);
   --radius: 16px;
 }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text); }
 
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
-html { scroll-behavior: smooth; }
-
-body {
-  font-family: 'Poppins', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  overflow-x: hidden;
-  line-height: 1.6;
-}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--saffron); border-radius: 99px; }
-
-/* ── NAV ── */
-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 999;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 32px;
-  background: rgba(6,13,24,0.85);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  transition: all 0.3s;
-}
-
-.nav-brand {
-  display: flex; align-items: center; gap: 10px;
-  text-decoration: none;
-}
-
-.nav-brand img {
-  width: 36px; height: 36px; border-radius: 8px;
-}
-
-.nav-brand .name {
-  font-family: 'Baloo 2', cursive;
-  font-size: 1.1rem; font-weight: 800;
-  background: linear-gradient(135deg, #FF9933 0%, #fff 60%, #138808 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  line-height: 1;
-}
-
-.nav-brand .hindi {
-  font-size: 0.6rem; color: var(--muted);
-  -webkit-text-fill-color: var(--muted);
-  letter-spacing: 2px;
-}
-
-.nav-links {
-  display: flex; align-items: center; gap: 8px;
-}
-
-.nav-links a {
-  font-size: 0.8rem; color: var(--muted);
-  text-decoration: none; padding: 6px 14px;
-  border-radius: 8px; transition: all 0.2s;
-}
-
-.nav-links a:hover { color: var(--text); background: var(--card); }
-
-.nav-cta {
-  background: var(--saffron) !important;
-  color: #000 !important;
-  -webkit-text-fill-color: #000 !important;
-  font-weight: 600 !important;
-}
-
-.nav-cta:hover { opacity: 0.88; transform: translateY(-1px); }
-
-/* ── HERO ── */
+/* ===== HERO ===== */
 .hero {
-  min-height: 100vh;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  text-align: center;
-  padding: 120px 24px 80px;
-  position: relative; overflow: hidden;
+  min-height:92vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  padding:100px 24px 60px; position:relative; overflow:hidden;
 }
-
 .hero-bg {
-  position: absolute; inset: 0; z-index: 0;
+  position:absolute; inset:0; z-index:0;
   background:
     radial-gradient(ellipse 60% 50% at 50% 0%, rgba(255,153,51,0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 30% at 20% 80%, rgba(19,136,8,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 20% 80%, rgba(19,136,8,0.07) 0%, transparent 60%),
     radial-gradient(ellipse 40% 30% at 80% 70%, rgba(59,173,255,0.05) 0%, transparent 60%);
 }
-
-/* Animated grid */
-.hero-grid {
-  position: absolute; inset: 0; z-index: 0;
-  background-image:
-    linear-gradient(rgba(255,153,51,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,153,51,0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 80%);
-}
-
-.hero-content { position: relative; z-index: 1; max-width: 860px; }
+.hero-content { position:relative; z-index:2; max-width:720px; }
 
 .hero-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 0.7rem; font-weight: 600; letter-spacing: 2px;
-  text-transform: uppercase; color: var(--saffron);
-  border: 1px solid rgba(255,153,51,0.3);
-  background: rgba(255,153,51,0.06);
-  padding: 6px 16px; border-radius: 99px;
-  margin-bottom: 28px;
-  animation: fadeDown 0.7s ease both;
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:0.7rem; font-weight:600; letter-spacing:2px;
+  text-transform:uppercase; color:var(--saffron);
+  border:1px solid rgba(255,153,51,0.3);
+  background:rgba(255,153,51,0.06);
+  padding:6px 16px; border-radius:99px; margin-bottom:26px;
 }
-
-.hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--saffron); animation: blink 1.4s ease infinite; }
-
+.hero-badge span { width:6px; height:6px; border-radius:50%; background:var(--saffron); animation:blink 1.4s ease infinite; }
 @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
 
 .hero h1 {
-  font-size: clamp(3rem, 9vw, 6.5rem) !important;
-  font-family: 'Baloo 2', cursive;
-  font-size: clamp(2.4rem, 7vw, 5.2rem);
-  font-weight: 800; line-height: 1.1;
-  margin-bottom: 8px;
-  animation: fadeDown 0.7s ease 0.1s both;
+  font-family:'Baloo 2',cursive;
+  font-size:clamp(2.2rem, 6.5vw, 4.2rem);
+  font-weight:800; line-height:1.12; margin-bottom:10px;
 }
-
 .hero h1 .line1 {
-  background: linear-gradient(135deg, #FF9933 0%, #ffcc80 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  background:linear-gradient(135deg, #FF9933 0%, #ffcc80 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
 }
-
 .hero h1 .line2 {
-  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  background:linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
 }
-
 .hero-hindi {
-  font-family: 'Baloo 2', cursive;
-  font-size: clamp(1rem, 3vw, 1.6rem);
-  color: var(--green-bright);
-  letter-spacing: 4px; margin-bottom: 20px;
-  animation: fadeDown 0.7s ease 0.2s both;
+  font-family:'Baloo 2',cursive; font-size:clamp(0.95rem, 2.6vw, 1.3rem);
+  color:var(--green-bright); letter-spacing:3px; margin-bottom:18px;
 }
-
 .hero-sub {
-  font-size: clamp(0.9rem, 2vw, 1.05rem);
-  color: var(--muted); max-width: 540px;
-  margin: 0 auto 40px;
-  animation: fadeDown 0.7s ease 0.3s both;
-}
-
-.hero-buttons {
-  display: flex; align-items: center; justify-content: center;
-  gap: 14px; flex-wrap: wrap;
-  animation: fadeDown 0.7s ease 0.4s both;
-}
-
-.btn-primary {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--saffron); color: #000;
-  font-weight: 700; font-size: 0.9rem;
-  padding: 14px 28px; border-radius: 12px;
-  text-decoration: none; transition: all 0.2s;
-  box-shadow: 0 4px 24px rgba(255,153,51,0.3);
-}
-
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,153,51,0.4); }
-
-.btn-secondary {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: rgba(255,255,255,0.06); color: var(--text);
-  font-weight: 600; font-size: 0.9rem;
-  padding: 14px 28px; border-radius: 12px;
-  text-decoration: none; border: 1px solid var(--border);
-  transition: all 0.2s;
-}
-
-.btn-secondary:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
-
-/* Live counter strip */
-.hero-stats {
-  display: flex; align-items: center; justify-content: center;
-  gap: 40px; flex-wrap: wrap;
-  margin-top: 56px; padding-top: 40px;
-  border-top: 1px solid var(--border);
-  animation: fadeDown 0.7s ease 0.5s both;
-}
-
-.hero-stat-item { text-align: center; }
-
-.hero-stat-num {
-  font-family: 'Baloo 2', cursive;
-  font-size: 1.8rem; font-weight: 800;
-  background: linear-gradient(135deg, var(--saffron), #fff);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  animation: statPulse 2.5s ease-in-out infinite;
-}
-@keyframes statPulse {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.7; transform: scale(1.06); }
-}
-
-.hero-stat-label {
-  font-size: 0.68rem; letter-spacing: 2px;
-  text-transform: uppercase; color: var(--muted);
-}
-
-/* Floating particles */
-.particle {
-  position: absolute; border-radius: 50%;
-  opacity: 0; pointer-events: none;
-  animation: floatUp linear infinite;
-}
-
-@keyframes floatUp {
-  0%   { transform: translateY(0) scale(1); opacity: 0; }
-  10%  { opacity: 0.5; }
-  90%  { opacity: 0.2; }
-  100% { transform: translateY(-100vh) scale(0.3); opacity: 0; }
-}
-
-@keyframes fadeDown {
-  from { opacity: 0; transform: translateY(-16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── SECTION BASE ── */
-section { padding: 96px 24px; }
-
-.section-label {
-  display: inline-block;
-  font-size: 0.65rem; font-weight: 700; letter-spacing: 3px;
-  text-transform: uppercase; color: var(--saffron);
-  margin-bottom: 12px;
-}
-
-.section-title {
-  font-family: 'Baloo 2', cursive;
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-  font-weight: 800; line-height: 1.2;
-  margin-bottom: 16px;
-}
-
-.section-sub {
-  font-size: 0.95rem; color: var(--muted);
-  max-width: 520px; margin: 0 auto 56px;
-}
-
-.center { text-align: center; }
-
-/* ── MAP DEMO ── */
-.map-section {
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.map-wrap {
-  max-width: 1100px; margin: 0 auto;
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 48px; align-items: center;
-}
-
-.map-demo {
-  position: relative;
-  height: 420px; border-radius: var(--radius);
-  background: #0a1f38;
-  border: 1px solid rgba(59,173,255,0.15);
-  overflow: hidden;
-  box-shadow: 0 0 60px rgba(59,173,255,0.08);
-}
-
-.map-demo-label {
-  position: absolute; top: 12px; left: 12px; z-index: 10;
-  font-size: 0.6rem; font-weight: 700; letter-spacing: 2px;
-  text-transform: uppercase; color: var(--blue);
-  background: rgba(59,173,255,0.1);
-  border: 1px solid rgba(59,173,255,0.2);
-  padding: 4px 10px; border-radius: 6px;
-}
-
-/* India map SVG overlay */
-.map-india {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-}
-
-.map-india svg { width: 75%; opacity: 0.08; }
-
-/* Road grid */
-.map-roads { display:none; }
-
-/* Pump pins */
-.pin {
-  position: absolute;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: transform 0.3s;
-  opacity: 0.35;
-  transition: opacity 0.3s, transform 0.3s, box-shadow 0.3s;
-}
-
-.pin::before {
-  content: '';
-  position: absolute; inset: -4px;
-  border-radius: 50%;
-  animation: pingPulse 2s ease infinite;
-}
-
-.pin.green  { background: #22c55e; box-shadow: 0 0 12px #22c55e; }
-.pin.yellow { background: #f59e0b; box-shadow: 0 0 12px #f59e0b; }
-.pin.red    { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
-.pin.blue   { background: #3BADFF; box-shadow: 0 0 12px #3BADFF; }
-
-.pin.green::before  { border: 1px solid rgba(34,197,94,0.4); }
-.pin.yellow::before { border: 1px solid rgba(245,158,11,0.4); }
-.pin.red::before    { border: 1px solid rgba(239,68,68,0.4); }
-.pin.blue::before   { border: 1px solid rgba(59,173,255,0.4); }
-
-@keyframes pingPulse {
-  0%   { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(3); opacity: 0; }
-}
-@keyframes pinBlink {
-  0%,100% { opacity:1; transform:scale(1.3); }
-  50%      { opacity:0.5; transform:scale(0.9); }
-}
-
-.pin-tooltip {
-  position: absolute; bottom: 22px; left: 50%;
-  transform: translateX(-50%);
-  background: rgba(6,13,24,0.95);
-  border: 1px solid var(--border);
-  border-radius: 8px; padding: 6px 10px;
-  font-size: 0.62rem; white-space: nowrap;
-  color: var(--text); pointer-events: none;
-  opacity: 0; transition: opacity 0.2s;
-  z-index: 5;
-}
-
-.pin:hover .pin-tooltip { opacity: 1; }
-
-/* Map legend */
-.map-legend {
-  position: absolute; bottom: 12px; right: 12px;
-  background: rgba(6,13,24,0.9);
-  border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 14px;
-  display: flex; flex-direction: column; gap: 5px;
-}
-
-.legend-item {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 0.62rem; color: var(--muted);
-}
-
-.legend-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-}
-
-/* Live pump cards */
-.pump-cards-stack { display: flex; flex-direction: column; gap: 14px; }
-
-.pump-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px; padding: 16px 18px;
-  transition: all 0.3s;
-  position: relative; overflow: hidden;
-}
-
-.pump-card::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; border-radius: 3px 0 0 3px;
-}
-
-.pump-card.available::before  { background: #22c55e; }
-.pump-card.partial::before    { background: #f59e0b; }
-.pump-card.unavailable::before{ background: #ef4444; }
-.pump-card.ev::before         { background: #3BADFF; }
-
-.pump-card:hover { transform: translateX(4px); background: rgba(255,255,255,0.05); }
-
-.pump-card-header {
-  display: flex; align-items: flex-start;
-  justify-content: space-between; margin-bottom: 10px;
-}
-
-.pump-name { font-size: 0.85rem; font-weight: 600; }
-.pump-dist { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-
-.pump-badge {
-  font-size: 0.58rem; font-weight: 700; letter-spacing: 1px;
-  text-transform: uppercase; padding: 3px 8px;
-  border-radius: 6px; white-space: nowrap;
-}
-
-.badge-verified { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
-.badge-community { background: rgba(255,153,51,0.1); color: var(--saffron); border: 1px solid rgba(255,153,51,0.2); }
-
-.pump-fuels {
-  display: flex; gap: 8px; flex-wrap: wrap;
-}
-
-.fuel-chip {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 0.65rem; padding: 4px 9px;
-  border-radius: 6px; border: 1px solid var(--border);
-  background: rgba(255,255,255,0.03);
-}
-
-.fuel-dot { width: 6px; height: 6px; border-radius: 50%; }
-.fuel-dot.g { background: #22c55e; }
-.fuel-dot.y { background: #f59e0b; }
-.fuel-dot.r { background: #ef4444; }
-.fuel-dot.b { background: #3BADFF; }
-
-.pump-time {
-  margin-top: 10px; font-size: 0.62rem; color: var(--muted);
-  display: flex; align-items: center; gap: 4px;
-}
-
-/* ── PARTNERS STRIP ── */
-.partners-section {
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 40px 24px;
-  overflow: hidden;
-}
-.partners-label {
-  text-align: center;
-  font-size: 0.62rem; font-weight: 700;
-  letter-spacing: 3px; text-transform: uppercase;
-  color: rgba(255,255,255,0.2);
-  margin-bottom: 28px;
-}
-.partners-track-wrap {
-  overflow: hidden; position: relative;
-  mask-image: linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
-}
-.partners-track {
-  display: flex; align-items: center;
-  gap: 0; width: max-content;
-  animation: scrollPartners 24s linear infinite;
-}
-.partners-track:hover { animation-play-state: paused; }
-@keyframes scrollPartners {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.partner-chip {
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 12px; padding: 12px 22px;
-  margin: 0 10px; white-space: nowrap;
-  transition: all 0.25s; cursor: default;
-}
-.partner-chip:hover {
-  background: rgba(255,255,255,0.07);
-  border-color: rgba(255,255,255,0.15);
-  transform: translateY(-2px);
-}
-.partner-chip-icon { font-size: 1.4rem; flex-shrink: 0; }
-.partner-chip-name { font-size: 0.82rem; font-weight: 700; color: var(--text); }
-.partner-chip-role { font-size: 0.6rem; color: var(--muted); letter-spacing: 1px; }
-
-/* ── FEATURES ── */
-.features-section { background: var(--bg); }
-
-.features-grid {
-  max-width: 1100px; margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.feature-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 28px 24px;
-  transition: all 0.25s;
-  position: relative; overflow: hidden;
-}
-
-.feature-card::after {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent, var(--saffron)), transparent);
-  opacity: 0; transition: opacity 0.3s;
-}
-
-.feature-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.12); }
-.feature-card:hover::after { opacity: 1; }
-
-.feature-icon {
-  width: 48px; height: 48px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem; margin-bottom: 18px;
-}
-
-.feature-title {
-  font-size: 0.95rem; font-weight: 700; margin-bottom: 8px;
-}
-
-.feature-desc {
-  font-size: 0.8rem; color: var(--muted); line-height: 1.6;
-}
-
-/* ── CRISIS STRIP ── */
-.crisis-section {
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 80px 24px;
-}
-
-.crisis-wrap { max-width: 900px; margin: 0 auto; }
-
-.crisis-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px; margin-top: 48px;
-}
-
-.crisis-card {
-  border-radius: 14px; padding: 22px 16px;
-  text-align: center; border: 1px solid transparent;
-  transition: all 0.3s; cursor: default;
-}
-
-.crisis-card.normal    { background: rgba(34,197,94,0.06);  border-color: rgba(34,197,94,0.2);  }
-.crisis-card.precrisis { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.2); }
-.crisis-card.emergency { background: rgba(249,115,22,0.06); border-color: rgba(249,115,22,0.2); }
-.crisis-card.full      { background: rgba(239,68,68,0.08);  border-color: rgba(239,68,68,0.25); }
-
-.crisis-icon { font-size: 1.8rem; margin-bottom: 10px; }
-
-.crisis-label {
-  font-size: 0.65rem; font-weight: 700; letter-spacing: 2px;
-  text-transform: uppercase; margin-bottom: 6px;
-}
-
-.crisis-card.normal    .crisis-label { color: #22c55e; }
-.crisis-card.precrisis .crisis-label { color: #f59e0b; }
-.crisis-card.emergency .crisis-label { color: #f97316; }
-.crisis-card.full      .crisis-label { color: #ef4444; }
-
-.crisis-desc { font-size: 0.72rem; color: var(--muted); }
-
-.crisis-active {
-  animation: crisisGlow 2s ease infinite;
-}
-
-@keyframes crisisGlow {
-  0%,100% { box-shadow: none; }
-  50%     { box-shadow: 0 0 24px rgba(239,68,68,0.2); }
-}
-
-/* ── DOWNLOAD ── */
-.download-section { background: var(--bg); padding: 96px 24px; }
-
-.download-wrap {
-  max-width: 760px; margin: 0 auto; text-align: center;
-}
-
-.store-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px; margin-top: 40px;
-}
-
-.store-btn {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px; padding: 16px 20px;
-  text-decoration: none; color: var(--text);
-  transition: all 0.25s; position: relative;
-  overflow: hidden;
-}
-
-.store-btn:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); }
-
-.store-btn.active { border-color: rgba(255,153,51,0.3); }
-.store-btn.active:hover { box-shadow: 0 4px 24px rgba(255,153,51,0.15); }
-
-.store-btn-icon { font-size: 1.6rem; flex-shrink: 0; }
-
-.store-btn-text { text-align: left; }
-.store-btn-sub  { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-.store-btn-name { font-size: 0.88rem; font-weight: 700; }
-
-.coming-soon-badge {
-  position: absolute; top: 8px; right: 10px;
-  font-size: 0.55rem; font-weight: 700; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--muted);
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--border);
-  padding: 2px 7px; border-radius: 4px;
-}
-
-/* ── LOGIN ── */
-.login-section {
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  padding: 96px 24px;
-}
-
-.login-wrap { max-width: 940px; margin: 0 auto; }
-
-.login-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 48px; align-items: center;
-  margin-top: 56px;
-}
-
-/* Partner buttons */
-.partner-buttons { display: flex; flex-direction: column; gap: 16px; }
-
-.partner-btn {
-  display: flex; align-items: center; gap: 16px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px; padding: 20px 22px;
-  text-decoration: none; color: var(--text);
-  transition: all 0.25s; cursor: pointer;
-}
-
-.partner-btn.pump { border-left: 3px solid var(--saffron); }
-.partner-btn.govt { border-left: 3px solid var(--green-bright); }
-
-.partner-btn:hover { transform: translateX(4px); background: rgba(255,255,255,0.05); }
-
-.partner-btn-icon {
-  width: 48px; height: 48px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.4rem; flex-shrink: 0;
-}
-
-.pump .partner-btn-icon { background: var(--saffron-dim); }
-.govt .partner-btn-icon { background: var(--green-dim); }
-
-.partner-btn-title { font-size: 0.95rem; font-weight: 700; }
-.partner-btn-sub   { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
-
-/* Glassmorphism login card */
-.glass-card {
-  background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px; padding: 36px 32px;
-  box-shadow: 0 8px 48px rgba(0,0,0,0.4);
-  position: relative; overflow: hidden;
-}
-
-.glass-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,153,51,0.4), rgba(19,136,8,0.4), transparent);
-}
-
-.glass-title {
-  font-size: 1rem; font-weight: 700; margin-bottom: 6px;
-}
-
-.glass-sub {
-  font-size: 0.75rem; color: var(--muted); margin-bottom: 24px;
-}
-
-.form-group { margin-bottom: 16px; }
-
-.form-label {
-  display: block; font-size: 0.72rem; font-weight: 600;
-  letter-spacing: 1px; text-transform: uppercase;
-  color: var(--muted); margin-bottom: 6px;
-}
-
-.form-input {
-  width: 100%; background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px; padding: 12px 14px;
-  color: var(--text); font-size: 0.88rem;
-  font-family: 'Poppins', sans-serif;
-  outline: none; transition: all 0.2s;
-}
-
-.form-input:focus {
-  border-color: rgba(255,153,51,0.4);
-  background: rgba(255,255,255,0.07);
-  box-shadow: 0 0 0 3px rgba(255,153,51,0.08);
-}
-
-.form-input::placeholder { color: rgba(255,255,255,0.2); }
-
-.btn-login {
-  width: 100%; padding: 13px;
-  background: linear-gradient(135deg, var(--saffron) 0%, #ff7700 100%);
-  color: #000; font-weight: 700; font-size: 0.9rem;
-  border: none; border-radius: 10px; cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-  transition: all 0.2s; margin-top: 4px;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-
-.btn-login:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,153,51,0.35); }
-
-.cf-notice {
-  display: flex; align-items: center; gap: 6px;
-  margin-top: 14px; font-size: 0.62rem; color: var(--muted);
-  justify-content: center;
-}
-
-.cf-notice i { color: #f38020; }
-
-.login-note {
-  text-align: center; margin-top: 16px;
-  font-size: 0.65rem; color: rgba(255,255,255,0.18);
-  font-style: italic;
-}
-
-/* Login message */
-.login-msg {
-  display: none; padding: 10px 14px; border-radius: 8px;
-  font-size: 0.78rem; margin-bottom: 14px; text-align: center;
-}
-
-.login-msg.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #ef4444; }
-.login-msg.info  { background: rgba(59,173,255,0.1); border: 1px solid rgba(59,173,255,0.2); color: #3BADFF; }
-
-/* ── FOOTER ── */
+  font-size:0.98rem; color:var(--muted); max-width:520px;
+  margin:0 auto 8px; line-height:1.65;
+}
+.hero-sub b { color:var(--text); }
+
+.hero-cta {
+  display:inline-flex; align-items:center; gap:8px;
+  background:var(--saffron); color:#000; font-weight:700; font-size:0.92rem;
+  padding:15px 32px; border-radius:12px; text-decoration:none;
+  margin-top:30px; box-shadow:0 4px 24px rgba(255,153,51,0.3);
+  border:none; cursor:pointer; transition:all 0.2s;
+}
+.hero-cta:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(255,153,51,0.4); }
+
+/* ===== SIGNATURE: LIVE NETWORK MAP ===== */
+.network-wrap {
+  position:relative; z-index:1; width:100%; max-width:640px;
+  margin:20px auto 0; opacity:0.95;
+}
+.network-wrap svg { width:100%; height:auto; display:block; }
+.node {
+  animation: nodePulse 2.6s ease-in-out infinite;
+  transform-origin:center;
+}
+.node.d1{animation-delay:0s}.node.d2{animation-delay:0.4s}.node.d3{animation-delay:0.8s}
+.node.d4{animation-delay:1.2s}.node.d5{animation-delay:1.6s}.node.d6{animation-delay:0.2s}
+@keyframes nodePulse {
+  0%,100% { opacity:0.55; r:7; }
+  50%     { opacity:1;    r:11; }
+}
+.network-line { stroke-dasharray:4 4; animation:dashMove 3s linear infinite; }
+@keyframes dashMove { to { stroke-dashoffset:-40; } }
+
+/* ===== FORM SECTION ===== */
+.form-section { background:var(--bg2); padding:60px 20px 80px; }
+.form-header { text-align:center; max-width:560px; margin:0 auto 32px; }
+.form-header .eyebrow {
+  font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  color:var(--green-bright); margin-bottom:8px;
+}
+.form-header h2 {
+  font-family:'Baloo 2',cursive; font-size:clamp(1.5rem,4vw,2.1rem);
+  font-weight:800; color:#fff; margin-bottom:10px;
+}
+.form-header p { color:var(--muted); font-size:0.9rem; line-height:1.6; }
+
+.form-card {
+  max-width:560px; margin:0 auto; background:#ffffff; color:#222;
+  border-radius:20px; padding:32px 28px; box-shadow:0 12px 40px rgba(0,0,0,0.35);
+}
+.f-group { margin-bottom:18px; }
+.f-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.f-label {
+  display:block; font-size:12.5px; font-weight:600; color:#444; margin-bottom:6px;
+}
+.f-label .req { color:#e65100; }
+.f-input, .f-select {
+  width:100%; padding:11px 13px; border:1.5px solid #e0e0e0; border-radius:10px;
+  font-size:14px; font-family:'Poppins',sans-serif; color:#222; background:#fafafa;
+  transition:border-color 0.15s;
+}
+.f-input:focus, .f-select:focus { outline:none; border-color:var(--saffron); background:#fff; }
+.f-input::placeholder { color:#aaa; }
+
+.f-toggle-row { display:flex; gap:10px; }
+.f-toggle {
+  flex:1; text-align:center; padding:11px; border:1.5px solid #e0e0e0; border-radius:10px;
+  font-size:13px; font-weight:600; color:#666; cursor:pointer; transition:all 0.15s; user-select:none;
+}
+.f-toggle input { display:none; }
+.f-toggle.active { border-color:var(--green); background:var(--green-dim); color:var(--green); }
+
+.f-hint { font-size:11px; color:#999; margin-top:5px; }
+
+.submit-btn {
+  width:100%; padding:15px; margin-top:8px;
+  background:linear-gradient(135deg, var(--saffron), #ff8000);
+  color:#fff; font-weight:700; font-size:15px; border:none; border-radius:12px;
+  cursor:pointer; transition:all 0.2s;
+}
+.submit-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,153,51,0.35); }
+
+.pay-strip {
+  display:flex; align-items:center; justify-content:center; gap:20px;
+  flex-wrap:wrap; margin:0 auto 32px; max-width:560px;
+  background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.25);
+  border-radius:14px; padding:14px 18px;
+}
+.pay-item { text-align:center; }
+.pay-item .num { font-family:'Baloo 2',cursive; font-weight:800; font-size:1.15rem; color:var(--green-bright); }
+.pay-item .lbl { font-size:10.5px; color:var(--muted); letter-spacing:0.5px; }
+
+/* ===== FOOTER ===== */
 footer {
-  background: #030810;
-  border-top: 1px solid var(--border);
-  padding: 48px 24px 32px;
-  text-align: center;
+  background:#0a1f38; padding:30px 20px; text-align:center;
+  border-top:1px solid rgba(255,255,255,0.06);
 }
+footer .name { font-weight:700; font-size:14px; color:#fff; margin-bottom:3px; }
+footer .tag { font-size:11px; color:#8fa3bf; margin-bottom:10px; }
+footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
 
-.footer-brand {
-  font-family: 'Baloo 2', cursive;
-  font-size: 1.4rem; font-weight: 800;
-  background: linear-gradient(135deg, #FF9933, #fff, #138808);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  margin-bottom: 4px;
-}
-
-.footer-links {
-  display: flex; align-items: center; justify-content: center;
-  gap: 20px; flex-wrap: wrap;
-  margin: 16px 0; font-size: 0.78rem;
-}
-
-.footer-links a {
-  color: var(--muted); text-decoration: none; transition: color 0.2s;
-}
-
-.footer-links a:hover { color: var(--saffron); }
-
-.footer-copy {
-  font-size: 0.68rem; color: rgba(255,255,255,0.18);
-  letter-spacing: 1px; margin-top: 16px;
-  line-height: 1.8;
-}
-
-.footer-flag {
-  display: flex; align-items: center; justify-content: center;
-  gap: 0; margin: 16px auto; width: 40px; height: 4px;
-  border-radius: 2px; overflow: hidden;
-}
-
-.flag-s { flex: 1; height: 100%; }
-.flag-s.sf { background: #FF9933; }
-.flag-s.sw { background: #fff; }
-.flag-s.sg { background: #138808; }
-
-/* ── MOBILE ── */
-@media (max-width: 768px) {
-  nav { padding: 12px 16px; }
-  .nav-links { display: none; }
-
-  .map-wrap { grid-template-columns: 1fr; }
-  .map-demo { height: 280px; }
-
-  .crisis-strip { grid-template-columns: repeat(2, 1fr); }
-
-  .store-grid { grid-template-columns: 1fr; }
-
-  .login-grid { grid-template-columns: 1fr; }
-
-  section { padding: 64px 16px; }
-}
-
-@media (max-width: 480px) {
-  .hero-stats { gap: 24px; }
-  .crisis-strip { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ── FORGOT PASSWORD POPUP ── */
-.fp-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(6px);
-  display: none; align-items: center; justify-content: center;
-  padding: 24px;
-}
-
-.fp-overlay.active { display: flex; }
-
-.fp-card {
-  background: #0f1f38;
-  border: 1px solid rgba(255,153,51,0.2);
-  border-radius: 20px;
-  padding: 36px 32px;
-  max-width: 420px; width: 100%;
-  position: relative;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
-  animation: fpPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
-}
-
-@keyframes fpPopIn {
-  from { transform: scale(0.85); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
-}
-
-.fp-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,153,51,0.5), transparent);
-  border-radius: 20px 20px 0 0;
-}
-
-.fp-close {
-  position: absolute; top: 14px; right: 16px;
-  background: none; border: none; color: var(--muted);
-  font-size: 1.1rem; cursor: pointer; padding: 4px 8px;
-  border-radius: 6px; transition: all 0.2s;
-}
-
-.fp-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
-
-.fp-icon { font-size: 2.4rem; margin-bottom: 16px; }
-
-.fp-title {
-  font-size: 1.05rem; font-weight: 700;
-  margin-bottom: 8px; color: var(--saffron);
-}
-
-.fp-body {
-  font-size: 0.82rem; color: rgba(255,255,255,0.65);
-  line-height: 1.7; margin-bottom: 20px;
-}
-
-.fp-highlight {
-  background: rgba(255,153,51,0.08);
-  border: 1px solid rgba(255,153,51,0.15);
-  border-radius: 10px; padding: 12px 14px;
-  font-size: 0.78rem; color: rgba(255,255,255,0.75);
-  margin-bottom: 20px; line-height: 1.6;
-}
-
-.fp-highlight i { color: var(--saffron); margin-right: 4px; }
-
-.fp-buttons { display: flex; gap: 10px; }
-
-.fp-btn-ok {
-  flex: 1; padding: 11px;
-  background: var(--saffron); color: #000;
-  font-weight: 700; font-size: 0.85rem;
-  border: none; border-radius: 10px;
-  cursor: pointer; font-family: 'Poppins', sans-serif;
-  transition: all 0.2s;
-}
-
-.fp-btn-ok:hover { opacity: 0.88; transform: translateY(-1px); }
-
-.fp-btn-help {
-  flex: 1; padding: 11px;
-  background: rgba(255,255,255,0.05);
-  color: var(--text); font-weight: 600; font-size: 0.85rem;
-  border: 1px solid var(--border); border-radius: 10px;
-  cursor: pointer; font-family: 'Poppins', sans-serif;
-  text-decoration: none; display: flex;
-  align-items: center; justify-content: center; gap: 6px;
-  transition: all 0.2s;
-}
-
-.fp-btn-help:hover { background: rgba(255,255,255,0.09); }
-.reveal {
-  opacity: 0; transform: translateY(28px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-.reveal.visible { opacity: 1; transform: translateY(0); }
-
-/* ── CLICK HINT POINTER ── */
-.btn-wrapper {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.click-hint {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.2;
-  animation: pointerBounce 0.65s ease-in-out infinite;
-}
-.click-hint .hint-emoji {
-  font-size: 1.6rem;
-}
-.click-hint .hint-text {
-  font-size: 0.5rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--saffron);
-  text-transform: uppercase;
-}
-@keyframes pointerBounce {
-  0%, 100% { transform: translateX(0px); }
-  50%       { transform: translateX(7px); }
-}
+@media(max-width:520px){ .f-row{grid-template-columns:1fr;} }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <a href="#" class="nav-brand">
-    <img src="data:image/png;base64,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" alt="IndhanShodhak">
-    <div>
-      <div class="name">IndhanShodhak</div>
-      <div class="hindi">इंधन शोधक</div>
-    </div>
-  </a>
-  <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="/gallery">Gallery</a>
-    <a href="#download">Download</a>
-    <a href="#login">Partner Login</a>
-    <a href="#login" class="nav-cta">Find Fuel →</a>
-  </div>
-</nav>
-
-<!-- PARTICLES -->
-<div style="position:fixed;inset:0;pointer-events:none;z-index:0;" id="particles"></div>
-
-<!-- HERO -->
-<section class="hero" id="home">
+<!-- ===== HERO ===== -->
+<section class="hero">
   <div class="hero-bg"></div>
-  <div class="hero-grid"></div>
   <div class="hero-content">
-    <div class="hero-badge">
-      <span></span> Live across India
-    </div>
-    <h1>
-      <div class="line1">Find Fuel.</div>
-      <div class="line2">Fast. Trusted.</div>
-    </h1>
-    <div class="hero-hindi">इंधन शोधक</div>
-    <p class="hero-sub">India's first community-powered fuel availability platform. Real-time pump status, verified data, and crisis-ready alerts — in 12 Indian languages.</p>
-    <div class="hero-buttons">
-      <div class="btn-wrapper">
-        <div class="click-hint">
-          <span class="hint-emoji">👉</span>
-          <span class="hint-text">Click Here</span>
-        </div>
-        <a href="/app" class="btn-primary"><i class="fas fa-map-marker-alt"></i> Find Nearest Pump</a>
-      </div>
-      <div class="btn-wrapper">
-        <div class="click-hint">
-          <span class="hint-emoji">👉</span>
-          <span class="hint-text">Click Here</span>
-        </div>
-        <a href="#download" class="btn-secondary"><i class="fas fa-download"></i> Get the App</a>
-      </div>
-    </div>
-    <div class="hero-stats">
-      <div class="hero-stat-item">
-        <div class="hero-stat-num">12,400+</div>
-        <div class="hero-stat-label">Pumps Tracked</div>
-      </div>
-      <div class="hero-stat-item">
-        <div class="hero-stat-num">4,800+</div>
-        <div class="hero-stat-label">Active Users</div>
-      </div>
-      <div class="hero-stat-item">
-        <div class="hero-stat-num">28</div>
-        <div class="hero-stat-label">States Covered</div>
-      </div>
-      <div class="hero-stat-item">
-        <div class="hero-stat-num">12</div>
-        <div class="hero-stat-label">Indian Languages</div>
-      </div>
-    </div>
+    <div class="hero-badge"><span></span> NOW HIRING — FIELD NETWORK</div>
+    <h1><span class="line1">Build India's</span><br><span class="line2">Live Fuel Network</span></h1>
+    <div class="hero-hindi">जनतेसाठी, जनतेकडून</div>
+    <p class="hero-sub">
+      Every pump we verify, every station we map — <b>someone on the ground made it real.</b>
+      Join IndhanShodhak as an Enrollment Agent &amp; Field Verifier, and help build
+      the fuel data network your district runs on.
+    </p>
+    <a href="#apply" class="hero-cta">Apply Now ↓</a>
   </div>
-</section>
 
-<!-- MAP DEMO -->
-<section class="map-section" id="map">
-  <div class="map-wrap">
-    <div>
-      <div class="section-label reveal">Live Map</div>
-      <h2 class="section-title reveal">Pumps. Pins. Real-time.</h2>
-      <p style="font-size:0.88rem;color:var(--muted);margin-bottom:28px;" class="reveal">
-        Every fuel station near you, colour-coded by live availability. Green means go. Red means look elsewhere.
-      </p>
-      <div class="pump-cards-stack" id="pump-cards">
-        <div class="pump-card reveal" id="pcard-0"></div>
-        <div class="pump-card reveal" id="pcard-1"></div>
-        <div class="pump-card reveal" id="pcard-2"></div>
-      </div>
-    </div>
-
-    <!-- India Map -->
-    <div class="map-demo reveal" style="background:linear-gradient(160deg,#060d18,#0a1f38);border:1px solid rgba(34,197,94,0.15);position:relative;overflow:hidden;">
-      <!-- Real India SVG Map -->
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;padding:8px;filter:drop-shadow(0 0 8px rgba(34,197,94,0.3));">
-        <?xml version="1.0"?>
-    
-<!--********* Copyright (c) 2024 Pareto Softare, LLC DBA Simplemaps.com ***************************************
-************* Free for Commercial Use, full terms at  https://simplemaps.com/resources/svg-license ************
-************* Attribution is appreciated! https://simplemaps.com *******************************************-->
-
-<svg baseprofile="tiny" style="width:100%;height:100%;" fill="rgba(34,197,94,0.20)" height="1000" stroke="rgba(34,197,94,0.75)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2" version="1.2" viewBox="0 0 1000 1000" width="1000" xmlns="http://www.w3.org/2000/svg">
+  <!-- Signature element: live network map -->
+  <div class="network-wrap">
+<svg baseprofile="tiny" style="width:100%;height:100%;" fill="rgba(255,153,51,0.05)" stroke="rgba(255,153,51,0.35)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4" version="1.2" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
  <g id="features">
   <path d="M802.5 941.1l-0.2 0.4 0.3 0.4 0.5-0.1 0.4 0.8-0.1 0.3 0.2 0.7 0.1 0.8-0.1 1 0.4 0.2 0.4 0.8 0.1 1.1-0.2 0.3 0.4 0.4 0.2 0.6-0.5 0.5-0.2 0.6 0.2 0.3-0.6 0.3 0.2 0.5-0.3 0.4 0 0.6 0.5 0.2-0.4 1-0.3 0.2-0.4-0.5-0.5 0-0.2 0.4 0.1 0.5-0.5 0.7-0.6-0.2 0.2-1.2-0.4-0.2-0.4-0.6 0.2-0.4-0.5-0.4 0.1-0.5-0.4-0.7-0.4 0-0.2-0.5 0.3-0.3-0.2-0.7-0.4-0.2-0.2-0.6-0.4 0.1-0.3-0.6-0.3-0.2-0.5 0.1-0.1-0.8 0.1-1.1-0.2-0.1-0.2-1.1 0.6-0.4 0-1 0.3-0.4 0.7 0 0.6 0.1 0.6-0.7 1.4-0.1 0-0.3 0.5-0.3 0.6-0.1z m-3.7-5.6l0.3 0.6 0 0.7 0.9 0.6-0.1 0.5-0.3 0.3-0.5 1-0.5 0.2-0.7 0.5-0.3 0.7-0.6 0.5-0.5-0.7 0.1-0.6-0.2-0.5 0.3-0.4-0.1-1.1 0.8-0.5 1.3-0.4-0.1-1.2 0.2-0.2z m-9.1-16l0.8 0.5-0.2 0.9 0.5 0.4 0.3-0.3 0.8 0.9 0.4 1.1-0.4 0.7-0.5-0.8-0.7-0.2-0.5 0.2-0.6 0.5-0.6-0.2-0.3-0.3 0.1-0.7-0.8-0.5-0.2-0.5 0.4-0.4-0.1-0.5 0.4-0.5 0.5 0.1 0.7-0.4z m4.6-0.1l0.4 0.1 0.5 0.9-0.1 1.6-0.1 0.1-1.8-1.5 0.9-0.9 0.2-0.3z m0.8-2.7l0.3 0.4 0.1 1.2 0.2 0.6-0.2 0.2-0.6-0.8 0.3-0.4-0.3-0.3-0.2-0.7 0.4-0.2z m-1.4-2.9l0.5 0.1 0 0.8-0.5 0.7-0.5 0.2-0.1 0.6 0.6 0.7 0.1 0.5 0.5 0.3 0.1 0.6-0.3 0.8-0.9 0.1 0 0.9-0.4 0.1-0.2-1.1 1.1-0.5 0-0.6-0.3-0.2-0.8 0.9-0.1-0.7-0.7-1.3-0.1-1.4 0.6-0.3 0.4-0.3 0.1-0.7 0.9-0.2z m-8-1l0.5 1-0.4 0.2-0.5-0.6 0.4-0.6z m-3-2.5l0.5 0.3-0.3 1-0.2 0.9 0.8 0.9 1.1 0.5 0.3 0.4-0.3 0.5-0.8-0.2-1.1-0.6-0.6-0.7-0.5-0.7 0-1 0.3-0.9 0.8-0.4z m-2.2-3.2l0.3 0.3-0.1 0.6-0.5-0.3 0.3-0.6z m15.6-2.8l0.2 1.2 0.4 0.1 0.2 1.6-0.5 0 0-1.3-0.4-0.8 0.1-0.8z m-22.6-18.6l0.7 0.7 0.3 0.7 0.2 0.8-0.2 0.7-0.4 0.4-0.6 0.2-0.5-0.3-1.1 0.1-0.3-0.6 0-1.9 1.3 0 0.6-0.8z m-7.5-46l1.2 1 0.1 1.4 0.7 0.7-0.1 1.2 0.4 1.1 0 0.6-0.6 0.3 0.1 0.4-0.8 0.6-0.3 0.6 0.1 0.6 0.6 0.2 0.1 0.3-1 1.3 0 0.3-0.9 0.2-0.5-0.2-0.5-0.5-0.8-0.3-0.4 0-0.5 0.4-0.5-0.3 0.7-1.1 0.3-0.9-0.3-0.9-0.4-0.5-0.4 0 0.1-1.5-0.2-0.6 0-1.1 0.5 0 0.5-0.2 0.5-1 0.7-0.5 0.1-0.6 0.5-0.2 0.4-0.5 0.6-0.3z m3.5-17.1l0.7 0.6 0.5 1.6-0.6 1 0.8 0.2-0.1 0.5-1.4 0.7-1.1 0-0.5-0.6 0.3-0.4-0.1-0.5 0.9-0.1 0.1-1-0.4-0.5 0.2-0.8 0.4-0.8 0.3 0.1z m-0.9-2.2l0.2 0.7-0.5-0.1 0.3-0.6z m-10.7-0.1l0.6 0 0.8 0.2 0 0.9 0.1 0.5-0.4 0.5-0.2-0.2-1-0.1-0.2-0.5 0.3-1.3z m8.8-0.3l0.1 0.3 0.6 0 0 0.5-0.3 0.4-0.5 0-0.1-0.9 0.2-0.3z m13.2-6.7l0.3 0.2 0.8-0.2 0.3 0.2-0.6 0.7-0.9-0.5 0.1-0.4z m-11.7-3.7l0.3 0.9-0.3 0.2 0-1.1z m10.2-1.6l0.4-0.3 0.6 0.4 0.1 0.9 0.8 1.4 0.5 1.4-0.3 0.4-0.5-0.1-0.1-0.4-0.9-1.4-0.4 0.1-0.4-0.9-0.7-0.2-0.1-0.5 0.5-0.2 0.5-0.6z m0.6-2.1l0.4 0.1-0.2 1.6-0.2 0.1-0.8-0.8 0-1 0.8 0z m1-1.4l0 0.5 0.2 0.4 0.1 0.8 0.5 0.6-0.1 0.4-0.3 0.4-0.4-0.6-0.5-0.2 0-0.9-0.9-0.1-0.3-0.3-0.2-0.6 0.2-0.2 0.8 0.3 0.9-0.5z m1.2-1.5l0.4 0.5 0.3 1.3-0.2 0.5 0.1 0.6-0.2 0.5-0.4 0.1-0.9-1.3 0.5-1.6 0.4-0.6z m-10.1-0.7l0.1 0.2 0.3 1.7 0.6-0.4 0.5 0.2 0 0.6-0.5 1.2-0.1 0.6 0.5 0.5 0.6 1.2-0.3 0.3-0.6-0.4 0.4 1.3-0.8 0.4-0.3 0.6 0.4 1.5 0.4-1 0.9-0.1 0.3 0.3-0.3 0.9 0.3 0.6-0.9 4.3-0.4 0.3-0.6 0.1-0.5 0.3-0.1 0.8-0.4 0.4-0.4-0.1 0 0.6 0.6 0 0.7-0.9 0.8-0.3 0.3 0.3-0.1 1.5-0.6 1.5-0.2 0.9 0.1 0.2-0.5 0.8-0.3-0.5-0.9 0-0.5-0.4 0.1-0.8-0.6-0.6-0.6-0.6 0.1-1.1-0.4-0.9 0.1-0.7-0.3-0.8-0.4 0.1-0.3 0.6-0.3-0.8 0.1-1.4-0.3-1.6-0.5 0.1-0.3-0.6 0.3-0.7 0-0.6 0.3-0.3 0.2-0.5 0.6-0.6 0.3 0.5 0.3 1 0.6 0.5-0.1-1.4 0.1-0.5 0.1-1.9 0.3-1.5-0.1-0.3 0.1-0.8 0.2-0.6 0.4-1.6 1.2-1.6 0.3 0z m0.8-0.2l0.2 0.3 0.7 0.1 0.1 0.8-0.1 0.5-1.1-0.2 0-1.1 0.2-0.4z m4.7-0.3l0.3 0.7-1.2-0.2 0.9-0.5z m4.8-0.2l0.3 0.7-0.1 0.4-0.5-0.1 0.1-0.9 0.2-0.1z m-10-1l0.3 0.1-0.3 1.3-0.3-0.6 0.3-0.8z m6.3 0.5l-0.5 0.6-0.6-0.6 0.3-0.4 0.4 0.4 0.4 0z m-4.5-0.9l0.4 0.2 0.5-0.2 0.5 0.3 0.8-0.1 0.3 0.1 0.5 1.2-0.8 0.3 0.4 0.6 0.1 0.9-0.6-0.3-0.2 1.2-0.3-0.2-1 1.7-0.2 0.7-0.8 0.6-0.7-0.6 0.1-0.4 0.7-2.2 0.1-0.7-0.1-0.7-0.4-0.2-0.3-0.3 0.3-0.9 0.3 0.3 0.5-0.6-0.1-0.7z m29.1-0.3l0.5 0.8 0.5 0.3-0.1 0.4 0.2 0.9-1.1 0-0.4-0.2-0.3-1.2 0.2-0.6 0.5-0.4z m-27-2.4l0.5 0.1 0.5 0.4-0.7 0.3-0.5-0.4 0.2-0.4z m2.8-0.2l-0.4 0.4 0 0.5-0.3 0.7-0.3-0.2 0.2-0.6 0.1-0.9 0.5-0.3 0.2 0.4z m-6.7-11.6l0 1.5-0.5-0.6 0.5-0.9z m5.1-2.4l0.3 0.2 0 0.7 0.5 0 0.5 1.6 0.2 0.5-0.5 0.7 0.1 0.4 0.6 0.4 0.1 0.7 0.4 0.3-0.4 0.6 0 0.4-0.2 1.1 0 1 0.1 0.8 0.4 1-0.4 1.6-0.4-0.3-0.3 0.4 0.4 0.5-0.2 0.4-0.5 0.4-0.2 0.7-0.5-0.5-0.6 0.3-1.3-0.3 0.3 0.9 0.9 1.2 0.4 0.9-0.3 0.3-0.5-0.1-0.7 0.4-0.6-0.4-0.4 0.3-0.7-0.4-0.6 0.5-0.8 0-0.5-1-0.1-2.4 0.2-0.8-0.1-0.5 0.2-0.6-0.4-0.7 0.1-0.7 0.3-0.5 0-1-0.4-0.4 0.4-0.2 0.2-0.6 0.6-0.1-0.1-0.4 0.3-0.5-0.4-0.7 0.3-0.1 0-0.7-0.3-0.5-0.3-1.3 0.1-1.1 0.4 0 0.9-1 0.6 0 0-0.7 0.9-0.2 0.1 0.3 0.1 0 0.2-0.2 0.1 0.2-0.1 0.2 0.1 0.1 0.9-0.2 0.4-0.4 0.2-0.5z m-5.5-2.2l0.6 0.4 0.1 2.5-0.2 0.7-0.7 0.8 0 0.5-0.5 0.7-0.5-1.3-0.1-0.6 0.4-0.6 0.1-1 0.3-0.7-0.2-0.3 0.4-1 0.3-0.1z m8.5-0.1l-0.4 0.3-0.6 0.9-0.3-0.1 0-0.9 0.5 0.3 0.8-0.5z m-2.2-0.8l0.3 0 0.2 0.8-0.7-0.1 0.2-0.7z m36.8-12.4l0.1 0.7-0.5 0.3-0.2-0.5 0.6-0.5z m-34-3l0.3 0.7 0.1 1.2-0.2 0.6-0.1 0.7 0.1 1.1 0.4 0.4 0.3 1.2 0.5 0.6-0.2 0.5-0.5-0.2-0.4 0.2 0-0.8-0.4 0.2-0.6-0.2-0.7 0.5-0.4-0.7-0.2 0.4 0.1 0.5 0.5 0.1 0.9 0.5 0.9 1.3 0.4-0.1-0.1 0.8-0.6 1.6 0.1 1.1-0.2 0.2 0.2 1.1-0.2 0.7-0.6 1-0.5 0.2-0.5-0.1-0.3 0.4-0.6-0.7-0.2-0.7-0.4 0.3-0.4 0.9 0.2 0.6 0.8 0.7-0.3 0.5-0.5-0.1 0-0.7-0.7 0.1-0.2 0.5 0 0.5-0.5 0.3 0 0.9 0.4 0 0 0.6-0.4 0.1-0.2 0-0.2 0.1-0.1-0.1 0.1-0.2 0-0.2-1.2-0.2-0.2-0.4 0.2-0.6-0.2-0.5 0-0.8 0.6 0 0.1-0.5-0.7-0.4 0.1-1 0-1.1 0.7-0.4-0.3-0.7 0.9-0.5-0.9-0.2 0.6-1.7-0.1-0.7 0.6 0 0.1-0.6-0.4 0-0.5-0.5 0.6-0.7-0.5-0.1 0-0.7 0.3-0.2 0-0.8 0.5-0.6-0.3-0.6 0.8-0.2 0.3-0.4-0.3-0.5 0.1-0.8 0.7-0.1 0-0.5 0.8-0.1-0.5-0.9 0.2-0.1 1.2-0.2 0.3 0.4 0.5-0.2-0.3-0.5 0.3-0.3 0.6 0.4 0.1-0.7 0.3 0.1z m-0.4-2.9l0.3 0.4-0.3 0.5-0.8 0-0.1-0.6 0.9-0.3z m9.6-13.6l0.3 1-0.1 0.8-0.2 0.7-0.3-0.1 0.2-0.7-0.2-1.5 0.3-0.2z m7.5-21.1l-0.2 0.8-0.5 0 0.3-0.7 0.4-0.1z" id="INAN" name="Andaman and Nicobar">
   </path>
@@ -1134,908 +267,204 @@ footer {
   <path d="M335.1 173.8l-0.3 0-0.1 0-0.2-0.1-0.1-0.1-0.1-0.1-0.2-0.1-0.1-0.1 0-0.1 0.1-0.1-0.1-0.1-0.1-0.2 0-0.1-0.1-0.1-0.1-0.2 0.1 0 0-0.2 0.1-0.1-0.1-0.1 0-0.1 0-0.1-0.1-0.1 0-0.1-0.2-0.5-0.2 0-0.1 0-0.2 0-0.1 0-0.2 0-0.1-0.1 0-0.1-0.2-0.1-0.1 0 0-0.1 0-0.1 0-0.1 0-0.1-0.1-0.1-0.3-0.1 0-0.1 0-0.1 0-0.1-0.1-0.1-0.1-0.1 0-0.2 0-0.2-0.2-0.1 0-0.1-0.1 0-0.1-0.3 0-0.2-0.1-0.1 0.1-0.1 0-0.1 0-0.1-0.1-0.1-0.1-0.2 0-0.1 0-0.1 0-0.1-0.1 0-0.2-0.1-0.1 0-0.1 0.1-0.1 0.1-0.1 0-0.1 0.1-0.1 0-0.1 0.1-0.3 0-0.1 0 0-0.1 0-0.3 0-0.1 0-0.2-0.1-0.2-0.1-0.3-0.1 0-0.2 0-0.3-0.1-0.2-0.1-0.2-0.4-0.2-0.1-0.1-0.1 0-0.2-0.2 0-0.1-0.1-0.1-0.1 0-0.1-0.1-0.2 0-0.1-0.1-0.1-0.1 0-0.2 0-0.3-0.4-0.2 0-0.3-0.1 0-0.1-0.1-0.2 0.1-0.1 0.1-0.2-0.1-0.1-0.2-0.2-0.1-0.2-0.1 0-0.1 0.1 0 0.1-0.1 0.3-0.1 0.2-0.3 0.2-0.2-0.1-0.3-0.1-0.1-0.1-0.3-0.1-0.2-0.1-0.1 0-0.1-0.2-0.1-0.3 0.1-0.1 0.1-0.1 0-0.1-0.1-0.1-0.1-0.1-0.3-0.2-0.1-0.2 0-0.2 0-0.1-0.1 0-0.2 0-0.2-0.1-0.1-0.1-0.1 0 0 0.1-0.1 0-0.1 0.1-0.1 0-0.1-0.1-0.1-0.1-0.1 0-0.1 0-0.1 0.2-0.1 0.2 0.2 0.9-1.3 0.2-0.7 0.5-0.3-0.1-0.5-0.7 0.5-0.1 0.2-0.4-0.1-0.4 0-0.1 0.3 0 0.1-0.2-0.1-0.3-0.3-0.3 0.1-0.1 1.1-0.5 0.1-0.2 0.2-0.3-0.4-0.5 0-0.1 0-0.1-0.1-0.4 0-0.3 0.1-0.6 0-0.3-0.3-0.8-0.1-0.2-0.4-0.3-0.4-0.1-0.8-0.1-0.7-0.6-0.5-0.8 0-0.6-0.3-0.2-0.4-0.4-1.1-1.1-0.2-0.3-0.9-1.1-0.2-0.4-0.1-0.3 0.1-0.4-0.3-0.8-0.2-0.3-0.2-0.1-0.3 0-0.6 0-0.1 0.1 0 0.3 0.1 0.3-0.2 0-0.9-0.2-0.7 0-0.4 0.2-0.6 0.1-0.4-0.1-0.2 0.3-0.1-0.3 0.1-0.3 0.1-0.3 0.1-0.5-0.2-0.3-0.3 0-0.3-0.2-0.3-0.6-0.3 0.1-0.1 0-0.5-0.1-0.6-0.4-0.2-0.5-0.3-0.6-0.1-0.3-0.4-0.3-0.5-0.2-0.3-0.8-0.3-0.5-0.1-0.4 0.2-0.3 0.1-0.4 0-1.1-0.1-0.2-0.1-0.1-0.4 0.1-0.4-0.1-0.2-0.3-1.6 1.4-0.4-0.5-0.4 0.1-0.5-0.1-0.2-0.3-0.3-0.1-0.1-0.1-0.4 0-0.2-0.2-0.2 0-0.1-0.3-0.2-0.3-0.1-0.4 0-0.3-0.3-0.3-0.3 0-0.2-0.2-0.2 0.3-0.5-0.1-0.7 0-0.2-0.3-0.1-0.4 0-0.2 0.1-0.3 0-0.1-0.2-0.3-0.1-0.3-0.2-0.3 0.2-0.2-0.1-0.2 0.1-0.3-0.3-0.1 0.1-0.3-0.1-0.2 1.6-3-1.8-2-0.2-0.1-0.2-0.4-0.2-0.3-0.1 0-0.2-0.2-0.1 0-0.3 0.1-0.1-0.2-0.1-0.2-0.1 0-0.2-0.3-0.1 0-0.1 0-0.1-0.1-0.1-0.2-0.2 0-0.2-0.1-0.1 0 0-0.1-0.1 0-0.1 0.1-0.2 0-0.1-0.1 0-0.1 0.1-0.3 0-0.1 0.1-0.1 0 0.1 0.1 0 0.2-0.1 0-0.1 0-0.1 0.1 0 0-0.1-0.1-0.2 0-0.1-0.1 0-0.2 0-0.5-0.1-0.1 0-0.2 0-0.3-0.1-0.1 0 0-0.1-0.1 0 0 0.3-0.1-0.2 0.6-0.6 0-0.1 0-0.2 0.1 0 0.2-0.2 0.1-0.2 0.4-0.1 0-0.1-0.1-0.2 0-0.1 0-0.2 0.1-0.2 0-0.1 0.1-0.1 0.1-0.1-0.1-0.2 0.1-0.1-0.2-0.4-0.2-0.3 0-0.3 0-0.3 0-0.2-0.1-0.2 0.1-0.2-0.1-0.1-0.1-0.1-0.1-0.2-0.1-0.1-0.1-0.1 0-0.1-0.2 0 0-0.2-0.3-0.1-0.2-0.1-0.2 0 0-0.2-0.3-0.2-0.3-0.1 0-0.1-0.3 0.1-0.2-0.1-0.2 0.1-0.1-0.1-0.1-0.4 0.1 0-0.1-0.3 0.1-0.3-0.2-0.1-0.2-0.1-0.3-0.1-0.1 0 0-0.1 0-0.1-0.1-0.1-0.2-0.2-0.1-0.4-0.4-0.1-0.2 0.2-0.3 0.1 0.1 0.2 0.2 0 0 0.1-0.1 0.1 0.1 0.1-0.1 0.1-0.1 0.1 0 0.1-0.1 0.1-0.1 0.1 0 0.1 0.1 0.1-0.1 0.3 0.1 0.2-0.1 0.2 0.1 0.2 0.1 0.1-0.3 0.1-0.2 0.1 0.1-0.3-0.2-0.1-0.4-0.3-0.4-0.4-0.5-0.2-0.5-0.2-0.7-0.2-0.4-0.1-0.2 0-0.7-0.3-0.8-0.3-0.4-0.6-0.4-0.5-0.4-0.2-0.5 0-0.3-0.2-0.5 0.9-0.1-0.7 0.1-0.5-0.1-0.4 0.1-1.3 0.3-0.8 0.3-0.8-1.1-0.4-1.1-1-0.8-0.3-1.5-1.4-0.3-0.5-0.4 0.3-0.2 0.2-0.4 0.1-0.6 0.4-1.3 0.5-1.2 1.1-0.8 0-0.3-0.2-0.5-0.7-0.3-0.3-0.6-0.1-1.2-0.5-1.6-0.3-0.7 0.1-1.3-0.2-0.6 0.1-2 0.6-0.1 0-1.2-1.1-0.8 0.3-0.6-0.1-0.5-0.5-0.3-0.6-1.1 0.3-1.1-1.3-1.5 0.1-0.4-0.6-1.1-0.5-0.9 0-0.8 0.7-0.5 0.2-0.4-0.4 0.3-1.9-0.7-1.3 0-1.2 0.2-0.8 0.7-1.3 0.8-0.9 0.9-0.4-0.2-1.3 0-0.9-0.9-0.1-1-0.8-1.2 0.1-0.9-0.7-1.6 0.5-0.7 0-0.6-0.5-0.9 0.2-0.5-0.4-2.2 0.4-1-1.4-1.7-0.4-1.7-1.1-0.7-0.7-0.8-0.5-0.9-0.8-0.6-0.3 0.1-1.7-0.1-0.8 0.5-1.5-0.7-0.5-1-1.1-0.5 0-0.4 0.8-0.9 0.3-0.6-0.3-0.6 0.1-0.6 0.4-1.3 0-0.2-0.2-0.1-1-1.3 0.1-0.5-0.3-0.3 0.4-0.7 0.2 0 0.5-0.9 0.4-0.6-0.5-0.6 0.2-0.8 0.7-0.8-0.5-0.4-0.7-1.3-0.2-0.9-1.2-0.4 0-0.6-0.5 0-1 0.5-0.5 0.2-1 0.5 0 0.2-0.8 0.4-0.2-0.3-0.8-1-0.2-0.5-0.6 0-1.2 0.4-0.8 0.8-0.6-0.7-1 0.3-1.1 0.7-0.6 0.2-1.1 1.1-0.5 0.8 0.5 0.5 0 0.3-0.5 0.7-0.1 0.9-0.8 0.8-0.3 1.2-1.4 0.6-0.6 0.6 0 0.5-0.6 0.1-1.2-0.3-0.5 1.3-0.8 0.8-0.1 1.1 0.2-0.1-1.2 0.2-0.7 0.6-0.4 1-0.3 0.4-0.9 1.1-1.6-0.6-0.9 0.1-1-0.2-0.6 1.2-0.2 0.8-0.6 1.1-0.4 0.2 0.5 0.7 0.1 0.5-0.3 1.5 0 1-0.3 0.5 0.1 0.2-0.6 1.1 0 0.8-0.4 0.9 0.5 0.7 0.1 0.5 0.4 0.5-0.2 1.5 0.2 0.5 0.5 1 0.3 0.3-0.2 1.5 0.3 0.5-0.8 1.6 0.3 0.7-0.5 1.5 0.6 1-0.2 0.2-0.9-0.4-0.7-0.7-1.1-0.9-0.1-0.7-0.8-0.9-0.1-0.4-0.4-1-0.2-0.1-0.5-0.5-0.9-0.6-0.4 0.3-1 0.7 0.1 0.8 0.5 0.4-0.3 0.8 0.4 0.5-0.1 0.6 0.4 0.3-0.5 1.4 0.4 0.3 0.4 0.7-0.1 0.4 0.3 0.7 1.1 0.8 0.5 0.7-0.1 0.8 0.7 0.9-1 0.8 0.1 0.7-0.2 0.5-2.1 0.3-0.2 1.6 0.3 0.9 0.3 0.5-0.5 1-0.5 1.4-1.5 1-0.3 0.7-0.7 1.3-0.1 0.4 0.2 1.1 0 0.7 1.2 0.5 0 0.5-3.2 1.2-0.4 0.5 0 1-0.7 0.7 0.5 0.2 1.2 0.7 0.5 0.5-0.6 0.8 0.2 1.1 0 0.1 1 1.8 2.7 2.1-1.4 0.6-0.2 0.3-0.4 1.1 0.4 0.8 0.7 0.7-0.2 1-0.6 1.3-1.8 0.3-0.6 0.6-0.1 0.7-0.4 0.9 0.1 0.5-0.2 1 0.1 0 1.8 0.2 0.6 0.6 0.7 0.8-0.3 0.7 0.4 0 0.7-0.4 0.5 0.1 1.2 0.8 0 0.2 0.6 0.2 1.4 0.5 0.8 1.1 0.5 0.5 0.1 2.3 1.3 1.5 1.8 2 3.8 0.7 0.6 1.4 0.7 0.4 0 2.3 1.5 1.5 0.6 1.3 0 1.4 0.4 2.6 2.9 1.2 0.5 1 0.9 0.9 0 1-0.5 0.6 0 1 0.8 0.5 0.6 0.8 0.3 0.2 0.8 0.4 0.7-0.1 0.7 1 1.2 1.8 0.8 0.4 0.6 0.9 0.2 1.3-0.6 0.6 0.9 1.1 1 0.3 1.4 1.7 1 0.5 0.5 0.3 0.7-0.7 0.1-0.5 0.4-0.6 1.2-0.6 0.6 1 1.2 0.6 0.6 0.5 1.5 0.9 0.7 0.7 0.1 1 1.1 1.2 0.5 0.8 0 1 0.3 1.4-0.2 0.6-0.5 1.1-0.1 0.8 1 0.6 0.1 0.1 1.2 1.4 0.1 0.1 0.5 1.7 0.1 0.8 0.4 0.3-0.7 0.9 0.1 0.6 0.8 0.5 1 0.6 0 0.4 0.7 0 0.6-0.3 0.4 0.8 0.7 0.3 0.4-0.2 0.8 0.2 0.4 0.6 0.4-1.4 0.5-0.7-0.3-0.5-0.7-0.9-0.1-1.1 0.6 0.7 0.7 0.1 0.6 0.5 0 0.3 0.5 1 0.1 1 0.4 0.7-0.5 1.1-0.4 0.6 0.3 0.8-0.2 1.2 0.6 1-0.7 0.5 0.6 0.5-0.2 1 0.1 0.2-1.6 1.2 0.9 0.4 0 0.7-0.6 0.4 0.1 1 1 0.4-0.2 0.7 0.6 0.4-0.7 1.4 0.5-0.2-0.8-0.8-0.6 0.9-1.8 0.1-1.1 0.6 0.8 1.5-0.2 0.9 1.2 0.4-0.2 0.6 0.2 0.4 0.4 0.7-0.5-0.1-0.6 0.4-1.5 0.5-0.3 0.3-0.8 0-0.7 1.2 0.7 0.4-0.1 0.4-0.6 0-1.6 0.3-0.3 0.6 0.2 1 0 1.1-0.4 0.5-0.5 0.5-1.2 0.7-0.1 0.5 0.3 1.5 0.1 0.5-0.1 1.2-1 1.3-0.5 1-1.2 0.9 0 0.7-0.5 1.6 0 0.2 0.4 1.3 0.1 3.1-0.9 0.3-0.4 1.8 1.6 1.1 0 1.6 0.4 0.7-0.2 1.3-1.6-0.1-2 0.6-1 0.6-0.4 1.6-0.1 2 0 0.6 0.5 0.5 2.1 0.5 0.6 0.9 0.2 1.4 0.1 1.5 1 0.7 0.1 1.6 0.6 0.3 0 1.3 0.6 0.5 0.5 0.8 0.2 1.2 0 1.2 0.4 1 0.1 0.8-1 0.8-0.5 1-0.4 1.1 0.3 0.9 1.5 0.5 1.4 0.7 0.7 0.2 0.8 0.5 0.8 3 1 1.3 0.8 0.5 0.5 0.6 1.9 0.2 1.8 0.3 1-0.9 0.2-0.4 0.8 0.1 1.5-0.5 2-0.9 1.9-0.1 1.7-0.3 0.6-1 1.4-0.2 0.7 0.3 2.9-0.4 2.4-0.6 1.4-1.2 2.6-0.6 0.6-0.4 1.4 0 3-0.2 0.3-1.1 0.4-0.7 0.1-1.5 0.5-0.7-0.3-1.6 0-1 0.9-0.1 0.6-0.4 0-0.9 0.7 0.4 0.5 0.1 0.7-0.5 0.1-0.3 0.6 1.5 1.5 0 0.7-0.5 0.5-0.8 0.2-2.4 0-0.8-0.3-1.2-0.1-0.7 0.1-1.2 0.4-0.8 0.1 0.6 0.9 0 0.9 0.8 0.3-0.1 0.7 0.2 1-0.1 0.9 0.9 1.6-0.1 1.3-0.3 0.5-0.9 0.7-0.7-0.2-0.3 0.2-0.5 1.5 0.2 0.8-1 1.2-0.7 0.2-0.4 0.5-0.2 0.8 0.7 0.7-0.1 0.4-0.6 0.2-0.4-0.4-0.6-0.2-1.9-0.3-1 0.1-0.6-0.4-1.4 0-0.5-0.7-0.8 0.3 0 0.6-0.4 0.7-1.1 0.2-1.3-0.5-0.7-0.6-2.3 1-0.9 1.7 0.5 0.5 0.8 1.7 0 0.5 1.4 3 0.4 0.7 0.7 0.3 0.5-0.1 0.2 0.5-0.7 0.2 0 0.4-0.7 1 0.5 0.7 0.7 0.3 0.6-0.4 0.2 0.4 0 0.6 0.4 1.5-1.1-0.5-1.3 0.1-0.5 0.4-0.6 0-1.5-0.7-0.2 0.4 0 1.4 0.3 0.6 0.4 1.7-0.3 1 0 1.5 0.6 1 0 0.7 0.5 0.4 0.6 1.3 0.9 0 1 0.7 1.3 0.6 2.7 0 1.2-0.2 0.6 0.4 1 0.4 0.6 0 1.2-0.3 2.2 0.8-0.1 1-0.3 1.1-0.7 1-0.8 1.5-0.3 1 0.5 1 0 0.6-0.8 0.5-0.4 0.5 0.5 0.5 0.4 0.1 0 0.7 1 0.1 1.2 1.4 0.5 0.9 0.9 1.2 1.5 2.2 0.9 0.3 0.4 0.5 0.3 0.9-1.5 1.9-0.2 0.1-1.4 2.1-1.3 1.2 0 0.3-0.6 1.1-0.9 0.1-0.4-0.2 0-1.2-1.5-0.7-0.6-0.1-0.4 1-0.8 1-0.7 0-0.3 0.8-1.3 0.9-1.2 0-0.5 0.3 0.5 1.1-0.2 0.6-0.5 0.1-0.1 0.7-0.6 0.2-1-0.1-1.3 0.4-0.7 1.3-0.3-0.1-0.5-0.8-1.5-0.8-1.4-1.7-0.8 0.1-0.1-0.8-0.4-0.5-0.4-1.6-0.4-0.9 0-0.5 0.5-0.5-0.1-1-0.8-1.2 0.1-1-1.4 0.9-1.3 0-0.4 0.5-0.4 1.1-0.4 0.4-0.9-0.6-0.5-0.1-1.1 0.3-0.9 0.9-0.7-0.1-0.8 0.5-0.4 0.7-0.1 0.6-0.6 0-0.1 0.1-0.1 0-0.1 0.2-0.6 0.4-1.2 1.1-0.1 0-0.2-0.2-0.6-0.7 0.6-0.8-0.1-1.5 0.6-0.1 1.9-1.5-0.5-0.4-0.1-1.2 0.1-0.8 0.3-0.6-0.3-0.5 0.1-0.9-0.2-0.1-0.3 0-0.3 0-1.5 0.9 0.2 0.6-0.3 0.4-1.3 0.4-0.4 0.5-0.6 0.4-0.5 0-0.1-0.1 0-0.1-0.2-0.2-0.4-0.1-0.1 0-0.1 0-0.4 0.3-0.2 0.7-0.3 0.2-0.3-0.2-0.2-0.4-0.2 0-0.2 0.1-0.2 0.2-0.1 0.2-0.2 0.7-0.9-0.1 0.2 0.9-0.3 0.4-1.3 0-0.2-0.1-0.1 0-0.3-0.1-1.6-2.9-0.4-0.4 0.4-2.1-0.1-0.3-0.2-0.2-0.1 0-0.1 0-0.1-0.1-0.2 0-0.2 0-0.4-0.5-0.2-0.8-0.4-0.4-0.3-0.2-0.1 0-0.1 0-0.2-0.2-0.2 0.1-0.1 0-0.3-0.3-1-0.6 0.3-0.9 0.5-0.4-0.9-0.7-1.3-1.5-0.3 0.1-0.1-0.3-0.1 0-0.3 0 0 0.2-0.1 0.2-0.2 0.4-0.8 0.4-0.8 0.1-0.7 0.6-0.5 0.2-0.8 0.9-0.8 0.2-0.2-0.2-0.8 0.8-0.2 0-0.3 0-0.5-0.1-0.1-0.2-0.1-0.2-0.1 0-0.1-0.1-0.1 0-0.2 0.1-0.2-0.1-0.2 0-0.5 0.7-0.1 1.1-0.6 0.3-0.2-0.1-0.1-0.1-0.2 0.1-0.4-0.1-0.4-1.1-0.5 0.1-0.4-0.2-0.1-0.3-0.1 0.1-0.2 0-0.1-0.2-0.2 0.2-0.6-0.6 0.1-0.4-1.3-0.7-0.7 0.1-0.5-1.4 0-0.8-0.5-0.1-0.2 0.3-0.5 0.1-0.1-0.1-0.2-0.3-0.2 0-0.6-0.4-0.2 0.1-0.1 0-0.1 0.1-0.6 0.1-0.2-0.1-0.1-0.1-0.2-0.2-0.4-0.2-0.1-0.2-1.3-0.8-0.7-1.4-0.1-0.6-0.5-0.7-0.2 0.1-0.2 0.2-0.2-0.1-0.2-0.1-0.1 0.1-0.5-0.3-0.1-0.5-0.7-0.6-0.2-0.6 0.2-0.7 0.4-0.3-0.2-0.4 0.2-0.5 0.1-0.2-0.1 0-0.1-0.1-0.2-0.1-0.1-0.2-0.3-0.1-0.3 0-0.1 0-0.1 0.2z m1.4 0.1l0 0.1 0.1 0-0.1-0.1z" id="INLA" name="Ladakh">
   </path>
  </g>
- <g id="points">
-  <circle class="8.270456422425491|69.64751778317537" cx="139.9" cy="912.7" id="0">
-  </circle>
-  <circle class="20.400061359468964|84.26020775342162" cx="540" cy="569.2" id="1">
-  </circle>
-  <circle class="35.5620675307733|95.95035972961863" cx="860.1" cy="97" id="2">
-  </circle>
- </g>
- <g id="label_points">
-  <circle class="Andaman and Nicobar" cx="770.3" cy="814.6" id="INAN">
-  </circle>
-  <circle class="Telangana" cx="396.7" cy="641.9" id="INTG">
-  </circle>
-  <circle class="Andhra Pradesh" cx="392.3" cy="730.7" id="INAP">
-  </circle>
-  <circle class="Arunachal Pradesh" cx="826.3" cy="325.9" id="INAR">
-  </circle>
-  <circle class="Assam" cx="775.9" cy="393.9" id="INAS">
-  </circle>
-  <circle class="Bihar" cx="575.8" cy="411" id="INBR">
-  </circle>
-  <circle class="Chandigarh" cx="334.9" cy="255.1" id="INCH">
-  </circle>
-  <circle class="Chhattisgarh" cx="473.5" cy="533.4" id="INCT">
-  </circle>
-  <circle class="Dādra and Nagar Haveli and Damān and Diu" cx="232.5" cy="573.8" id="INDH">
-  </circle>
-  <circle class="Delhi" cx="344.1" cy="320" id="INDL">
-  </circle>
-  <circle class="Goa" cx="261.6" cy="713.9" id="INGA">
-  </circle>
-  <circle class="Gujarat" cx="199.2" cy="481" id="INGJ">
-  </circle>
-  <circle class="Haryana" cx="323" cy="305.2" id="INHR">
-  </circle>
-  <circle class="Himachal Pradesh" cx="348.4" cy="217.7" id="INHP">
-  </circle>
-  <circle class="Jharkhand" cx="563.9" cy="475.8" id="INJH">
-  </circle>
-  <circle class="Karnataka" cx="302.1" cy="728.1" id="INKA">
-  </circle>
-  <circle class="Kerala" cx="325.5" cy="848.9" id="INKL">
-  </circle>
-  <circle class="Madhya Pradesh" cx="378.4" cy="494.2" id="INMP">
-  </circle>
-  <circle class="Maharashtra" cx="305.7" cy="597.9" id="INMH">
-  </circle>
-  <circle class="Manipur" cx="801.5" cy="443.1" id="INMN">
-  </circle>
-  <circle class="Meghalaya" cx="737" cy="417.6" id="INML">
-  </circle>
-  <circle class="Mizoram" cx="776.2" cy="476.2" id="INMZ">
-  </circle>
-  <circle class="Nagaland" cx="822.1" cy="399" id="INNL">
-  </circle>
-  <circle class="Orissa" cx="549.9" cy="559.3" id="INOR">
-  </circle>
-  <circle class="Puducherry" cx="417.7" cy="838.9" id="INPY">
-  </circle>
-  <circle class="Punjab" cx="300.5" cy="254.4" id="INPB">
-  </circle>
-  <circle class="Rajasthan" cx="256.7" cy="375.8" id="INRJ">
-  </circle>
-  <circle class="Sikkim" cx="654.3" cy="355.6" id="INSK">
-  </circle>
-  <circle class="Tamil Nadu" cx="379.6" cy="835.6" id="INTN">
-  </circle>
-  <circle class="Tripura" cx="740.6" cy="472.2" id="INTR">
-  </circle>
-  <circle class="Uttar Pradesh" cx="438.7" cy="375.5" id="INUP">
-  </circle>
-  <circle class="Uttaranchal" cx="401.4" cy="272.1" id="INUT">
-  </circle>
-  <circle class="West Bengal" cx="637.1" cy="485.8" id="INWB">
-  </circle>
-  <circle class="Lakshadweep" cx="233" cy="912.6" id="INLD">
-  </circle>
-  <circle class="Jammu and Kashmir" cx="274.8" cy="156.1" id="INJK">
-  </circle>
-  <circle class="Ladakh" cx="344.9" cy="136.5" id="INLA">
-  </circle>
- </g>
+<g id="network-overlay">
+  <!-- Connection lines between regional hubs (real approximate state centroids) -->
+  <line class="network-line" x1="344" y1="320" x2="379" y2="494" stroke="rgba(59,173,255,0.35)" stroke-width="2"/>
+  <line class="network-line" x1="379" y1="494" x2="306" y2="598" stroke="rgba(34,197,94,0.35)" stroke-width="2"/>
+  <line class="network-line" x1="379" y1="494" x2="637" y2="486" stroke="rgba(255,153,51,0.35)" stroke-width="2"/>
+  <line class="network-line" x1="637" y1="486" x2="776" y2="394" stroke="rgba(34,197,94,0.35)" stroke-width="2"/>
+  <line class="network-line" x1="306" y1="598" x2="302" y2="728" stroke="rgba(59,173,255,0.35)" stroke-width="2"/>
+  <line class="network-line" x1="379" y1="494" x2="344" y2="320" stroke="rgba(255,153,51,0.3)" stroke-width="2"/>
+
+  <!-- Regional hub nodes -->
+  <circle class="node d1" cx="344" cy="320" r="9" fill="#FF9933"/>
+  <circle class="node d2" cx="637" cy="486" r="9" fill="#22c55e"/>
+  <circle class="node d3" cx="306" cy="598" r="9" fill="#3BADFF"/>
+  <circle class="node d4" cx="379" cy="494" r="9" fill="#FF9933"/>
+  <circle class="node d5" cx="302" cy="728" r="9" fill="#22c55e"/>
+  <circle class="node d6" cx="776" cy="394" r="9" fill="#3BADFF"/>
+</g>
 </svg>
-      </div>
-      <!-- Live Pins with IDs for JS group blink control -->
-      <div class="pin green"  id="mp0"  style="position:absolute;left:35%;top:32%;" title="IOC Delhi"><div class="pin-tooltip">IOC Delhi · Available</div></div>
-      <div class="pin green"  id="mp1"  style="position:absolute;left:34%;top:25%;" title="HP Chandigarh"><div class="pin-tooltip">HP Chandigarh · Available</div></div>
-      <div class="pin yellow" id="mp2"  style="position:absolute;left:49%;top:37%;" title="HP Lucknow"><div class="pin-tooltip">HP Lucknow · Partial</div></div>
-      <div class="pin red"    id="mp3"  style="position:absolute;left:28%;top:39%;" title="BPCL Jaipur"><div class="pin-tooltip">BPCL Jaipur · No Fuel</div></div>
-      <div class="pin yellow" id="mp4"  style="position:absolute;left:21%;top:46%;" title="IOC Ahmedabad"><div class="pin-tooltip">IOC Ahmedabad · Partial</div></div>
-      <div class="pin red"    id="mp5"  style="position:absolute;left:64%;top:38%;" title="HP Patna"><div class="pin-tooltip">HP Patna · No Fuel</div></div>
-      <div class="pin green"  id="mp6"  style="position:absolute;left:72%;top:39%;" title="IOC Guwahati"><div class="pin-tooltip">IOC Guwahati · Available</div></div>
-      <div class="pin blue"   id="mp7"  style="position:absolute;left:25%;top:57%;" title="EV Mumbai"><div class="pin-tooltip">EV Mumbai · Charging</div></div>
-      <div class="pin green"  id="mp8"  style="position:absolute;left:49%;top:52%;" title="IOC Nagpur"><div class="pin-tooltip">IOC Nagpur · Available</div></div>
-      <div class="pin red"    id="mp9"  style="position:absolute;left:27%;top:62%;" title="BPCL Pune"><div class="pin-tooltip">BPCL Pune · No Fuel</div></div>
-      <div class="pin green"  id="mp10" style="position:absolute;left:41%;top:69%;" title="HP Hyderabad"><div class="pin-tooltip">HP Hyderabad · Available</div></div>
-      <div class="pin yellow" id="mp11" style="position:absolute;left:37%;top:76%;" title="IOC Bengaluru"><div class="pin-tooltip">IOC Bengaluru · Partial</div></div>
-      <div class="pin green"  id="mp12" style="position:absolute;left:45%;top:77%;" title="BPCL Chennai"><div class="pin-tooltip">BPCL Chennai · Available</div></div>
-      <div class="pin blue"   id="mp13" style="position:absolute;left:34%;top:83%;" title="EV Kochi"><div class="pin-tooltip">EV Kochi · Charging</div></div>
-      <!-- Legend -->
-      <div class="map-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Fuel Available</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Partial Stock</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> No Fuel</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#3BADFF"></div> EV Charging</div>
-      </div>
-    </div>
   </div>
 </section>
-
-<!-- PARTNERS STRIP -->
-<section class="partners-section">
-  <div class="partners-label">Trusted Infrastructure & Partners</div>
-  <div class="partners-track-wrap">
-    <div class="partners-track" id="partners-track">
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon">🗺️</div>
-        <div><div class="partner-chip-name">Google Maps</div><div class="partner-chip-role">Mapping & Location API</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon" style="color:#e84118;">⛽</div>
-        <div><div class="partner-chip-name">MapMyIndia · Mappls</div><div class="partner-chip-role">Rural India Mapping</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon">💳</div>
-        <div><div class="partner-chip-name">Razorpay</div><div class="partner-chip-role">Secure Payments Gateway</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon" style="color:#f38020;">🛡️</div>
-        <div><div class="partner-chip-name">Cloudflare</div><div class="partner-chip-role">DDoS Protection & CDN</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon">📧</div>
-        <div><div class="partner-chip-name">Zoho Zepto Mail</div><div class="partner-chip-role">Transactional Email</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon">🤖</div>
-        <div><div class="partner-chip-name">Claude AI · Anthropic</div><div class="partner-chip-role">Platform Intelligence</div></div>
-      </div>
-
-      <!-- Duplicate set for seamless infinite scroll -->
-      <div class="partner-chip">
-        <div class="partner-chip-icon">🗺️</div>
-        <div><div class="partner-chip-name">Google Maps</div><div class="partner-chip-role">Mapping & Location API</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon" style="color:#e84118;">⛽</div>
-        <div><div class="partner-chip-name">MapMyIndia · Mappls</div><div class="partner-chip-role">Rural India Mapping</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon">💳</div>
-        <div><div class="partner-chip-name">Razorpay</div><div class="partner-chip-role">Secure Payments Gateway</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon" style="color:#f38020;">🛡️</div>
-        <div><div class="partner-chip-name">Cloudflare</div><div class="partner-chip-role">DDoS Protection & CDN</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon">📧</div>
-        <div><div class="partner-chip-name">Zoho Zepto Mail</div><div class="partner-chip-role">Transactional Email</div></div>
-      </div>
-
-      <div class="partner-chip">
-        <div class="partner-chip-icon">🤖</div>
-        <div><div class="partner-chip-name">Claude AI · Anthropic</div><div class="partner-chip-role">Platform Intelligence</div></div>
-      </div>
-
-    </div>
+<section class="form-section" id="apply">
+  <div class="form-header">
+    <div class="eyebrow">Application Form</div>
+    <h2>Join the Network</h2>
+    <p>Takes 3 minutes. No documents needed now — we'll verify those at your interview.</p>
   </div>
+
+  <div class="pay-strip">
+    <div class="pay-item"><div class="num">₹20,000</div><div class="lbl">UP TO / MONTH</div></div>
+    <div class="pay-item"><div class="num">🏠</div><div class="lbl">WORK FROM HOME</div></div>
+    <div class="pay-item"><div class="num">🇮🇳</div><div class="lbl">PAN-INDIA ROLES</div></div>
+  </div>
+
+  <form class="form-card" id="careersForm" onsubmit="return false;">
+
+    <div class="f-group">
+      <label class="f-label">Full Name <span class="req">*</span></label>
+      <input class="f-input" type="text" id="fullName" placeholder="e.g. Rahul Sharma">
+    </div>
+
+    <div class="f-group">
+      <label class="f-label">Address <span class="req">*</span></label>
+      <input class="f-input" type="text" id="address" placeholder="Village/City, District, State">
+    </div>
+
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Qualification <span class="req">*</span></label>
+        <input class="f-input" type="text" id="qualification" placeholder="e.g. B.Com, 12th Pass">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Languages Spoken <span class="req">*</span></label>
+        <input class="f-input" type="text" id="languages" placeholder="e.g. Marathi, Hindi">
+      </div>
+    </div>
+
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Mobile Number <span class="req">*</span></label>
+        <input class="f-input" type="tel" id="mobile" maxlength="10" placeholder="10-digit mobile">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Email Address <span class="req">*</span></label>
+        <input class="f-input" type="email" id="email" placeholder="you@email.com">
+      </div>
+    </div>
+
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label">Region <span class="req">*</span></label>
+        <select class="f-select" id="region">
+          <option value="">Select region</option>
+          <option>North India</option>
+          <option>South India</option>
+          <option>East India</option>
+          <option>West India</option>
+          <option>Central India</option>
+          <option>Northeast India</option>
+        </select>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Interview Mode <span class="req">*</span></label>
+        <select class="f-select" id="interviewMode">
+          <option value="">Select preference</option>
+          <option>Physical</option>
+          <option>Online</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="f-group">
+      <label class="f-label">Do you have your own Laptop/Desktop? <span class="req">*</span></label>
+      <div class="f-toggle-row" id="deviceToggle">
+        <label class="f-toggle"><input type="radio" name="device" value="Yes">Yes</label>
+        <label class="f-toggle"><input type="radio" name="device" value="No">No</label>
+      </div>
+    </div>
+
+    <div class="f-group">
+      <label class="f-label">Do you have your own Two-Wheeler? <span class="req">*</span></label>
+      <div class="f-toggle-row" id="bikeToggle">
+        <label class="f-toggle"><input type="radio" name="bike" value="Yes">Yes</label>
+        <label class="f-toggle"><input type="radio" name="bike" value="No">No</label>
+      </div>
+      <div class="f-hint">Needed for local field visits &amp; pump verification work</div>
+    </div>
+
+    <div id="formError" style="display:none;background:#ffebee;color:#b71c1c;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;"></div>
+    <div id="formSuccess" style="display:none;background:#e8f5e9;color:#1a6b2e;padding:16px;border-radius:10px;font-size:13.5px;line-height:1.6;margin-bottom:14px;"></div>
+
+    <button class="submit-btn" type="submit" id="submitBtn" onclick="submitApplication()">📤 Submit Application</button>
+  </form>
 </section>
 
-<!-- FEATURES -->
-<section class="features-section" id="features">
-  <div class="center">
-    <div class="section-label reveal">What IndhanShodhak Does</div>
-    <h2 class="section-title reveal">Built for Bharat</h2>
-    <p class="section-sub reveal">Every feature designed for real India — rural roads, fuel shortages, 12 languages, and zero tolerance for black-market diversion.</p>
-  </div>
-  <div class="features-grid">
-
-    <div class="feature-card reveal" style="--accent:var(--saffron)">
-      <div class="feature-icon" style="background:var(--saffron-dim);color:var(--saffron)"><i class="fas fa-gas-pump"></i></div>
-      <div class="feature-title">Real-Time Fuel Availability</div>
-      <div class="feature-desc">Know which pumps have petrol, diesel, or CNG before you leave home. No more wasted trips.</div>
-    </div>
-
-    <div class="feature-card reveal" style="--accent:var(--green-bright)">
-      <div class="feature-icon" style="background:var(--green-dim);color:var(--green-bright)"><i class="fas fa-circle-check"></i></div>
-      <div class="feature-title">Verified Pump Network</div>
-      <div class="feature-desc">Only authenticated, licensed pumps earn the green verification badge. Trust what you see.</div>
-    </div>
-
-    <div class="feature-card reveal" style="--accent:var(--blue)">
-      <div class="feature-icon" style="background:var(--blue-dim);color:var(--blue)"><i class="fas fa-users"></i></div>
-      <div class="feature-title">Community Rewards</div>
-      <div class="feature-desc">Report fuel status, earn points, climb the leaderboard. Your update helps thousands of commuters.</div>
-    </div>
-
-    <div class="feature-card reveal" style="--accent:#ef4444">
-      <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="fas fa-triangle-exclamation"></i></div>
-      <div class="feature-title">Crisis Mode Alerts</div>
-      <div class="feature-desc">Four-level crisis system activates automatically during fuel shortages, guiding users to available stations.</div>
-    </div>
-
-    <div class="feature-card reveal" style="--accent:var(--saffron)">
-      <div class="feature-icon" style="background:var(--saffron-dim);color:var(--saffron)"><i class="fas fa-language"></i></div>
-      <div class="feature-title">12 Indian Languages</div>
-      <div class="feature-desc">Hindi, Marathi, Bengali, Tamil, Telugu, Kannada, Gujarati, and more — IndhanShodhak speaks your language.</div>
-    </div>
-
-    <div class="feature-card reveal" style="--accent:var(--green-bright)">
-      <div class="feature-icon" style="background:var(--green-dim);color:var(--green-bright)"><i class="fas fa-landmark"></i></div>
-      <div class="feature-title">Government Oversight</div>
-      <div class="feature-desc">Dedicated dashboard for officials to monitor fuel distribution trends and respond to regional shortages.</div>
-    </div>
-
-    <div class="feature-card reveal" style="--accent:var(--blue)">
-      <div class="feature-icon" style="background:var(--blue-dim);color:var(--blue)"><i class="fas fa-bolt"></i></div>
-      <div class="feature-title">EV Charging Stations</div>
-      <div class="feature-desc">Track EV charging slot availability alongside traditional fuel — one app for every vehicle type.</div>
-    </div>
-
-    <div class="feature-card reveal" style="--accent:#a855f7">
-      <div class="feature-icon" style="background:rgba(168,85,247,0.1);color:#a855f7"><i class="fas fa-shield-halved"></i></div>
-      <div class="feature-title">Anti Black-Market Shield</div>
-      <div class="feature-desc">Intelligent monitoring helps detect fuel diversion patterns, protecting fair access for every citizen.</div>
-    </div>
-
-  </div>
-</section>
-
-<!-- CRISIS MODE -->
-<section class="crisis-section" id="crisis">
-  <div class="crisis-wrap center">
-    <div class="section-label reveal">Crisis Response System</div>
-    <h2 class="section-title reveal">Always Ready. Never Caught Off Guard.</h2>
-    <p class="section-sub reveal">IndhanShodhak's four-level alert system keeps citizens and authorities informed the moment fuel supply changes.</p>
-    <div class="crisis-strip">
-      <div class="crisis-card normal reveal">
-        <div class="crisis-icon">🟢</div>
-        <div class="crisis-label">Normal</div>
-        <div class="crisis-desc">Fuel available. All systems operational.</div>
-      </div>
-      <div class="crisis-card precrisis reveal">
-        <div class="crisis-icon">🟡</div>
-        <div class="crisis-label">Pre-Crisis</div>
-        <div class="crisis-desc">Early warning. Monitor closely.</div>
-      </div>
-      <div class="crisis-card emergency reveal">
-        <div class="crisis-icon">🟠</div>
-        <div class="crisis-label">Emergency</div>
-        <div class="crisis-desc">Limited availability. Alerts active.</div>
-      </div>
-      <div class="crisis-card full crisis-active reveal">
-        <div class="crisis-icon">🔴</div>
-        <div class="crisis-label">Full Crisis</div>
-        <div class="crisis-desc">Critical shortage. Maximum response.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- DOWNLOAD -->
-<section class="download-section" id="download">
-  <div class="download-wrap">
-    <div class="section-label reveal">Get IndhanShodhak</div>
-    <h2 class="section-title reveal">Available Everywhere</h2>
-    <p class="section-sub reveal">Use it on your browser right now, or wait for our app store launch coming soon.</p>
-    <div class="store-grid reveal">
-
-      <a href="/IndhanShodhak-v1.0.apk" class="store-btn active" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(34,197,94,0.04));border:1px solid rgba(34,197,94,0.4);" download>
-        <div class="store-btn-icon">📦</div>
-        <div class="store-btn-text">
-          <div class="store-btn-sub">Android Direct · v1.0 · 1.88MB</div>
-          <div class="store-btn-name">Download APK File</div>
-        </div>
-        <span style="font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:rgba(34,197,94,0.2);color:#22c55e;border:1px solid rgba(34,197,94,0.4);padding:4px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0;">FREE DOWNLOAD</span>
-      </a>
-
-      <a href="https://indusapp.store/jexwdu4m" target="_blank" class="store-btn active">
-        <img src="data:image/png;base64,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" alt="Indus Appstore" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">
-        <div class="store-btn-text">
-          <div class="store-btn-sub">Made in India</div>
-          <div class="store-btn-name">Indus Appstore</div>
-        </div>
-        <span style="font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:rgba(34,197,94,0.2);color:#22c55e;border:1px solid rgba(34,197,94,0.4);padding:4px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0;">LIVE ✅</span>
-      </a>
-
-      <a href="#" class="store-btn" onclick="return false;" style="opacity:0.75;">
-        <svg viewBox="0 0 512 512" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
-          <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l4 2.2 247.1-247v-5.8L51 2.2 47 0zm217.7 324.3L47 512c3.1 1.8 6.6 2.8 10.2 2.8 4.2 0 8.2-1.2 11.7-3.4L327.6 366l-62.9-41.7zm67.6-176.2l-67.5-38.8-62.3 62.3 62.3 62.3 67.5-38.8c19.1-11 19.1-39.7 0-47z" fill="#EA4335"/>
-          <path d="M47 512l247-247.1v-5.8L47 0v512z" fill="#4285F4"/>
-          <path d="M291.5 250.8L47 0 325.3 234.3l-33.8 16.5z" fill="#FBBC04"/>
-          <path d="M291.5 261.2L47 512l247-247.1-2.5-3.7z" fill="#34A853"/>
-        </svg>
-        <div class="store-btn-text">
-          <div class="store-btn-sub">Android</div>
-          <div class="store-btn-name">Google Play Store</div>
-        </div>
-        <span class="coming-soon-badge">Coming Soon</span>
-      </a>
-
-    </div>
-  </div>
-</section>
-
-<!-- LOGIN -->
-<section class="login-section" id="login">
-  <div class="login-wrap">
-    <div class="center">
-      <div class="section-label reveal">Partner Access</div>
-      <h2 class="section-title reveal">Join the IndhanShodhak Network</h2>
-      <p class="section-sub reveal">Pump owners and government officials — manage your presence on India's fuel tracking platform.</p>
-    </div>
-    <div class="login-grid">
-      <div class="partner-buttons reveal">
-        <div class="partner-btn pump" onclick="focusLogin('Pump Owner')">
-          <div class="partner-btn-icon">⛽</div>
-          <div>
-            <div class="partner-btn-title">Pump Owner Login</div>
-            <div class="partner-btn-sub">Register & manage your fuel station listing</div>
-          </div>
-        </div>
-        <div class="partner-btn govt" onclick="focusLogin('Govt Official')">
-          <div class="partner-btn-icon">🏛️</div>
-          <div>
-            <div class="partner-btn-title">Government Official Login</div>
-            <div class="partner-btn-sub">Access fuel distribution oversight dashboard</div>
-          </div>
-        </div>
-        <div class="partner-btn" onclick="focusLogin('Document Verifier')" style="border-left:3px solid #ba68c8">
-          <div class="partner-btn-icon" style="background:rgba(186,104,200,.12)">🔍</div>
-          <div>
-            <div class="partner-btn-title">Document Verifier / Enrollment Agent</div>
-            <div class="partner-btn-sub">Verify documents or register pumps in your region</div>
-            <div style="font-size:.68rem;color:rgba(186,104,200,.7);margin-top:4px;font-style:italic">One login — redirects automatically based on your role</div>
-          </div>
-        </div>
-        <p style="font-size:0.72rem;color:rgba(255,255,255,0.18);margin-top:8px;font-style:italic;padding-left:4px;">
-          Authorized personnel only. Credentials provided upon registration.
-        </p>
-      </div>
-
-      <!-- Glass Login Card -->
-      <div class="glass-card reveal">
-        <div class="glass-title" id="login-title">Partner Login</div>
-        <div class="glass-sub" id="login-sub">Enter your credentials to access your dashboard</div>
-        <div class="login-msg" id="login-msg"></div>
-        <div class="form-group">
-          <label class="form-label">Email / Username</label>
-          <input type="email" class="form-input" id="login-email" placeholder="your@email.com" autocomplete="username">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <div style="position:relative">
-          <input type="password" class="form-input" id="login-password" placeholder="••••••••" autocomplete="current-password" style="padding-right:44px">
-          <span onclick="togglePwd()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1.1rem;color:#aaa" id="eye-icon">👁️</span>
-        </div>
-        </div>
-        <button class="btn-login" onclick="handleLogin()">
-          <i class="fas fa-arrow-right-to-bracket"></i> Login Securely
-        </button>
-        <a href="/pump-signup" style="width:100%;padding:13px;background:linear-gradient(135deg,#ffd54f,#ffb300);
-          color:#000;font-weight:700;font-size:.88rem;border:none;border-radius:10px;cursor:pointer;
-          font-family:'Poppins',sans-serif;margin-top:10px;display:flex;align-items:center;justify-content:center;
-          gap:8px;text-decoration:none;box-sizing:border-box">
-          <i class="fas fa-file-signature"></i> New Pump Owner? Sign Up →
-        </a>
-        <div style="text-align:center; margin-top:12px;">
-          <a href="#" onclick="showForgotPassword(); return false;" style="font-size:0.72rem; color:var(--muted); text-decoration:none; border-bottom:1px dashed rgba(255,255,255,0.15); padding-bottom:1px; transition:color 0.2s;" onmouseover="this.style.color='var(--saffron)'" onmouseout="this.style.color='var(--muted)'">
-            <i class="fas fa-key" style="margin-right:4px;"></i>Forgot Password?
-          </a>
-        </div>
-        <div class="cf-notice">
-          <i class="fab fa-cloudflare"></i>
-          Protected by Cloudflare · Secure connection
-        </div>
-        <div class="login-note">All roles use this single secure login. You will be redirected automatically.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- GALLERY & SOCIAL SECTION -->
-<section style="background:#0a1a0a;padding:60px 16px 0;">
-  <div style="max-width:1100px;margin:0 auto;">
-
-    <!-- Section Header -->
-    <p style="text-align:center;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#4caf50;margin-bottom:8px">In the news & on ground</p>
-    <h2 style="text-align:center;font-size:28px;font-weight:700;color:#fff;margin-bottom:8px">IndhanShodhak in Action</h2>
-    <p style="text-align:center;font-size:14px;color:rgba(255,255,255,0.45);margin-bottom:36px">Government meetings · Community launches · Real-world impact</p>
-
-    <!-- Gallery Grid -->
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
-
-      <!-- Minister Photo 1 — 50% width -->
-      <div style="border-radius:14px;overflow:hidden;border:1px solid rgba(76,175,80,0.25);aspect-ratio:4/3;position:relative">
-        <img src="/app_launch_photo2.jpg" alt="Hon. Minister Vikhe Patil reviewing IndhanShodhak"
-             style="width:100%;height:100%;object-fit:cover;display:block">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,0.92));font-size:11px;color:#fff;line-height:1.5">
-          🏛️ <strong>Hon. Radhakrishna Vikhe Patil</strong> — Revenue &amp; Water Resources Minister, Maharashtra<br>
-          with <strong>MLA Vitthalrao Langhe Patil</strong> &amp; <strong>Nagar Adhyaksh Dr. Karan Ghule Patil</strong><br>
-          <span style="opacity:0.7;font-size:10px">राधाकृष्ण विखे पाटील · विठ्ठलराव लंघे पाटील · डॉ. करण घुले पाटील · July 1, 2026</span>
-        </div>
-      </div>
-
-      <!-- Minister Photo 2 — 50% width -->
-      <div style="border-radius:14px;overflow:hidden;border:1px solid rgba(76,175,80,0.25);aspect-ratio:4/3;position:relative">
-        <img src="/app_launch_photo_1.jpg" alt="App launch with Minister"
-             style="width:100%;height:100%;object-fit:cover;display:block">
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,0.92));font-size:11px;color:#fff;line-height:1.5">
-          📱 <strong>Hon. Minister Vikhe Patil</strong> demonstrates IndhanShodhak live on his phone<br>
-          Signed official recommendation letter for national adoption<br>
-          <span style="opacity:0.7;font-size:10px">मंत्र्यांनी इंधनशोधक app स्वतः demo केले · July 1, 2026</span>
-        </div>
-      </div>
-
-      <!-- Certificates -->
-      <div style="border-radius:14px;overflow:hidden;border:1px solid rgba(76,175,80,0.25);aspect-ratio:4/3;background:linear-gradient(135deg,rgba(26,92,52,0.5),rgba(10,31,10,0.9));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px">
-        <div style="font-size:36px">🏅</div>
-        <div style="text-align:center;font-size:13px;font-weight:600;color:#a5d6a7">MSME Registered</div>
-        <div style="text-align:center;font-size:11px;color:rgba(255,255,255,0.5)">UDYAM-MH-01-0299118</div>
-        <div style="width:100%;height:1px;background:rgba(76,175,80,0.2)"></div>
-        <div style="text-align:center;font-size:13px;font-weight:600;color:#a5d6a7">© Copyright Protected</div>
-        <div style="text-align:center;font-size:11px;color:rgba(255,255,255,0.5)">SW-26937/2026-CO · Govt. of India</div>
-      </div>
-
-      <!-- C24 News Press Conference Video -->
-      <div style="grid-column:span 2;border-radius:14px;overflow:hidden;border:1px solid rgba(255,0,0,0.25);aspect-ratio:16/9;position:relative;background:#000">
-        <iframe
-          src="https://www.youtube.com/embed/wBuBztUNyM4"
-          title="C24 News — IndhanShodhak Press Conference"
-          style="width:100%;height:100%;border:none"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen>
-        </iframe>
-        <div style="position:absolute;top:10px;left:10px;background:rgba(255,0,0,0.85);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px">
-          📺 C24 NEWS
-        </div>
-      </div>
-
-      <!-- YouTube Demo Video — Full Width -->
-      <div style="grid-column:span 2;border-radius:14px;overflow:hidden;border:1px solid rgba(255,0,0,0.25);aspect-ratio:16/9;position:relative;background:#000">
-        <iframe
-          src="https://www.youtube.com/embed/Y-g7XGz5hlQ"
-          title="IndhanShodhak Demo"
-          style="width:100%;height:100%;border:none"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen>
-        </iframe>
-        <div style="position:absolute;top:10px;left:10px;background:rgba(255,0,0,0.85);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px">
-          ▶ APP DEMO
-        </div>
-      </div>
-
-    </div><!-- /gallery grid -->
-
-    <!-- Divider -->
-    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(76,175,80,0.3),transparent);margin:48px 0 40px"></div>
-
-    <!-- Social Media Links -->
-    <p style="text-align:center;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#4caf50;margin-bottom:8px">Stay connected</p>
-    <h3 style="text-align:center;font-size:22px;font-weight:700;color:#fff;margin-bottom:6px">Follow IndhanShodhak</h3>
-    <p style="text-align:center;font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:28px">Real-time updates · Government partnerships · App features</p>
-
-    <div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap;padding-bottom:48px">
-
-      <a href="https://www.facebook.com/profile.php?id=61590748198563" target="_blank"
-         style="display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:50px;text-decoration:none;font-size:14px;font-weight:600;background:rgba(24,119,242,0.12);border:1px solid rgba(24,119,242,0.35);color:#64b5f6;transition:transform 0.2s"
-         onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        <span style="font-size:20px">📘</span> Facebook
-        <span style="font-size:11px;opacity:0.6;margin-left:2px">💎 Diamond</span>
-      </a>
-
-      <a href="https://www.instagram.com/indhanshodhak/" target="_blank"
-         style="display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:50px;text-decoration:none;font-size:14px;font-weight:600;background:rgba(225,48,108,0.1);border:1px solid rgba(225,48,108,0.3);color:#f48fb1;transition:transform 0.2s"
-         onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        <span style="font-size:20px">📸</span> Instagram
-      </a>
-
-      <a href="https://x.com/IndhanShodhak" target="_blank"
-         style="display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:50px;text-decoration:none;font-size:14px;font-weight:600;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.18);color:#e0e0e0;transition:transform 0.2s"
-         onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        <span style="font-size:18px;font-weight:900">𝕏</span> Twitter / X
-      </a>
-
-      <a href="https://youtu.be/Y-g7XGz5hlQ" target="_blank"
-         style="display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:50px;text-decoration:none;font-size:14px;font-weight:600;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.3);color:#ef9a9a;transition:transform 0.2s"
-         onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        <span style="font-size:20px">▶️</span> YouTube
-      </a>
-
-    </div>
-
-    <!-- Tagline -->
-    <p style="text-align:center;font-size:13px;color:rgba(255,255,255,0.25);padding-bottom:40px">
-      जनतेसाठी, जनतेकडून 🇮🇳 · By the people, for the people · जनता के लिए, जनता द्वारा
-    </p>
-
-  </div>
-</section>
-
-<!-- FORGOT PASSWORD POPUP -->
-<div class="fp-overlay" id="fp-overlay" onclick="hideForgotPassword(event)">
-  <div class="fp-card">
-    <button class="fp-close" onclick="hideForgotPassword()"><i class="fas fa-times"></i></button>
-    <div class="fp-icon">🔑</div>
-    <div class="fp-title">Forgot Your Password?</div>
-    <div class="fp-body">
-      No worries! When you registered your pump on IndhanShodhak, we sent your
-      <strong>Login ID and Password</strong> to your registered email address.
-    </div>
-    <div class="fp-highlight">
-      <i class="fas fa-envelope"></i> Please check your <strong>email inbox</strong> including your
-      <strong>Spam / Junk</strong> folder for an email from
-      <strong>noreply@indhanshodhak.in</strong><br><br>
-      <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Never delete that email — it contains
-      your login credentials for future reference.
-    </div>
-    <div class="fp-buttons">
-      <button class="fp-btn-ok" onclick="hideForgotPassword()">✅ Got It!</button>
-      <a class="fp-btn-help"
-         href="mailto:indhanshodhak@gmail.com?subject=Password%20Help%20-%20IndhanShodhak&body=Hi%2C%20I%20need%20help%20accessing%20my%20pump%20owner%20account.%0A%0ARegistered%20Email%3A%20%0APump%20Name%3A%20%0ACity%3A%20">
-        <i class="fas fa-envelope"></i> Need Help?
-      </a>
-    </div>
-  </div>
-</div>
-
-<!-- FOOTER -->
 <footer>
-  <div class="footer-brand">IndhanShodhak</div>
-  <div style="font-size:0.8rem;color:var(--muted);margin-bottom:4px;">इंधन शोधक — Find Fuel. Fast. Trusted.</div>
-  <div class="footer-flag">
-    <div class="flag-s sf"></div>
-    <div class="flag-s sw"></div>
-    <div class="flag-s sg"></div>
-  </div>
-  <div class="footer-links">
-    <a href="/app">Open App</a>
-    <a href="/careers">Careers</a>
-    <a href="/privacy">Privacy Policy</a>
-    <a href="/terms">Terms of Service</a>
-    <a href="/refunds">Refund Policy</a>
-    <a href="/contact">Contact Us</a>
-    <a href="/shipping">Shipping Policy</a>
-    <a href="https://www.facebook.com/indhanshodhak" target="_blank"><i class="fab fa-facebook"></i> Facebook</a>
-    <a href="mailto:indhanshodhak@gmail.com">indhanshodhak@gmail.com</a>
-  </div>
-  <div style="font-size:0.7rem;color:var(--muted);margin-top:10px;" id="visitor-line">
-    🌐 <span id="cnt-visitors">—</span> people have visited IndhanShodhak
-  </div>
-  <div class="footer-copy">
+  <div class="name">IndhanShodhak</div>
+  <div class="tag">Find Fuel. Fast. Trusted.</div>
+  <div class="copy">
     © 2026 IndhanShodhak™. All rights reserved.<br>
-    Copyright Diary No: SW-26937/2026-CO &nbsp;·&nbsp; Udyam No: UDYAM-MH-01-0299118<br>
-    Dr. Galnimbkar Accident Hospital, Newasa Fata, Newasa, Ahilyanagar — 414603, Maharashtra, India
+    Dr. Galnimbkar Accident Hospital, Newasa Fata, Ahilyanagar, Maharashtra, India
   </div>
 </footer>
 
 <script>
-// ── LOGO inject
-document.addEventListener('DOMContentLoaded', () => {
-  // Real visitor count from API
-  fetch('/api/stats/visitors')
-    .then(r => r.json())
-    .then(v => {
-      const el = document.getElementById('cnt-visitors');
-      if(el) el.textContent = (v.total || 0).toLocaleString('en-IN');
-    })
-    .catch(() => {
-      const el = document.getElementById('cnt-visitors');
-      if(el) el.textContent = '—';
-    });
-
-  // Particles
-  createParticles();
-
-  // Scroll reveal
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-  // Auto-animate pump cards
-  animatePumpCards();
-
-  // Auto-animate map pins
-  animatePins();
-});
-
-function animateCounter(id, target, duration) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  let start = 0; const step = target / (duration / 16);
-  const timer = setInterval(() => {
-    start = Math.min(start + step, target);
-    el.textContent = Math.floor(start).toLocaleString('en-IN');
-    if (start >= target) clearInterval(timer);
-  }, 16);
-}
-
-function createParticles() {
-  const container = document.getElementById('particles');
-  const colors = ['#FF9933','#138808','#3BADFF','#ffffff'];
-  for (let i = 0; i < 18; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const size = Math.random() * 4 + 2;
-    p.style.cssText = `
-      width:${size}px; height:${size}px;
-      background:${colors[Math.floor(Math.random()*colors.length)]};
-      left:${Math.random()*100}%;
-      top:${Math.random()*100}%;
-      animation-duration:${8+Math.random()*12}s;
-      animation-delay:${Math.random()*8}s;
-      opacity:0;
-    `;
-    container.appendChild(p);
-  }
-}
-
-// ── DYNAMIC PUMP CARDS ──
-const PUMPS = [
-  { name:'HP Petrol Pump, MG Road',             dist:'1.2', verified:true,  fuels:['Petrol','Diesel'],     city:'Bengaluru, Karnataka' },
-  { name:'Indian Oil, Connaught Place',          dist:'2.7', verified:true,  fuels:['Petrol','Diesel','CNG'],city:'New Delhi' },
-  { name:'BPCL, Anna Nagar Main Road',           dist:'3.1', verified:true,  fuels:['Petrol','Diesel'],     city:'Chennai, Tamil Nadu' },
-  { name:'HP, Park Street Crossing',            dist:'0.8', verified:false, fuels:['Petrol','Diesel'],     city:'Kolkata, West Bengal' },
-  { name:'IOC, CG Road',                        dist:'4.5', verified:true,  fuels:['Petrol','Diesel','CNG'],city:'Ahmedabad, Gujarat' },
-  { name:'Shell, Banjara Hills Road No.12',      dist:'6.2', verified:true,  fuels:['Petrol','Diesel','EV'],city:'Hyderabad, Telangana' },
-  { name:'HP, FC Road',                         dist:'1.9', verified:true,  fuels:['Petrol','Diesel'],     city:'Pune, Maharashtra' },
-  { name:'IOC, Civil Lines',                    dist:'3.8', verified:false, fuels:['Petrol','CNG'],        city:'Jaipur, Rajasthan' },
-  { name:'BPCL, Hazratganj',                    dist:'2.3', verified:true,  fuels:['Petrol','Diesel','CNG'],city:'Lucknow, Uttar Pradesh' },
-  { name:'HP, Kothrud',                         dist:'5.1', verified:true,  fuels:['EV','Petrol'],         city:'Pune, Maharashtra' },
-  { name:'IOC, GS Road',                        dist:'7.4', verified:false, fuels:['Petrol','Diesel'],     city:'Guwahati, Assam' },
-  { name:'BPCL, Linking Road',                  dist:'4.0', verified:true,  fuels:['Petrol','Diesel'],     city:'Mumbai, Maharashtra' },
-  { name:'HP, Sector 17 Market',                dist:'1.5', verified:true,  fuels:['Petrol','Diesel'],     city:'Chandigarh, Punjab' },
-  { name:'Indian Oil, Station Road',            dist:'0.6', verified:false, fuels:['Petrol','Diesel'],     city:'Bhopal, Madhya Pradesh' },
-  { name:'BPCL, NH44 Highway',                  dist:'8.1', verified:true,  fuels:['Petrol','Diesel','CNG'],city:'Nagpur, Maharashtra' },
-  { name:'EV Charging Hub, Tech Park',          dist:'2.9', verified:true,  fuels:['EV','Petrol'],         city:'Gurugram, Haryana' },
-  { name:'HP, Lal Darwaza',                     dist:'3.3', verified:false, fuels:['Petrol','Diesel'],     city:'Surat, Gujarat' },
-  { name:'IOC, Ring Road',                      dist:'5.7', verified:true,  fuels:['Petrol','Diesel'],     city:'Indore, Madhya Pradesh' },
-  { name:'BPCL, Airport Road',                  dist:'2.1', verified:true,  fuels:['Petrol','Diesel','CNG'],city:'Kochi, Kerala' },
-  { name:'HP, Residency Road',                  dist:'4.8', verified:false, fuels:['Petrol','Diesel'],     city:'Patna, Bihar' },
-  { name:'IOC, Saket Nagar',                    dist:'1.4', verified:true,  fuels:['Petrol','CNG'],        city:'Raipur, Chhattisgarh' },
-  { name:'Shell, Old Bypass Road',              dist:'6.9', verified:true,  fuels:['Petrol','Diesel'],     city:'Dehradun, Uttarakhand' },
-];
-
-const STATUSES = [
-  { label:'Available',     dot:'g', cardClass:'available' },
-  { label:'Partial Stock', dot:'y', cardClass:'partial'   },
-  { label:'No Fuel',       dot:'r', cardClass:'unavailable'},
-];
-
-const EV_SLOTS = ['2/4 Slots Free','3/6 Slots Free','1/3 Slots Free','4/4 Slots Free'];
-
-const TIMES = [
-  'just now','1 min ago','2 min ago','3 min ago',
-  '4 min ago','5 min ago','7 min ago','9 min ago'
-];
-
-let usedIndexes = [];
-
-function getRandomPump() {
-  if (usedIndexes.length >= PUMPS.length) usedIndexes = [];
-  let idx;
-  do { idx = Math.floor(Math.random() * PUMPS.length); }
-  while (usedIndexes.includes(idx));
-  usedIndexes.push(idx);
-  return PUMPS[idx];
-}
-
-function renderCard(cardEl, pump) {
-  const hasEV = pump.fuels.includes('EV');
-  const hasCNG = pump.fuels.includes('CNG');
-
-  // Pick card class
-  let cardClass = hasEV ? 'ev' : STATUSES[Math.floor(Math.random()*STATUSES.length)].cardClass;
-
-  // Build fuel chips
-  let fuelHTML = '';
-  pump.fuels.forEach(fuel => {
-    if (fuel === 'EV') {
-      const slots = EV_SLOTS[Math.floor(Math.random()*EV_SLOTS.length)];
-      fuelHTML += `<div class="fuel-chip"><div class="fuel-dot b"></div> EV: ${slots}</div>`;
-    } else if (fuel === 'CNG') {
-      const s = STATUSES[Math.floor(Math.random()*STATUSES.length)];
-      fuelHTML += `<div class="fuel-chip"><div class="fuel-dot ${s.dot}"></div> CNG: ${s.label}</div>`;
-    } else {
-      const s = STATUSES[Math.floor(Math.random()*STATUSES.length)];
-      fuelHTML += `<div class="fuel-chip"><div class="fuel-dot ${s.dot}"></div> ${fuel}: ${s.label}</div>`;
-    }
-  });
-
-  const badge = pump.verified
-    ? `<span class="pump-badge badge-verified">✅ Verified</span>`
-    : `<span class="pump-badge badge-community">⭐ Community</span>`;
-
-  const time = TIMES[Math.floor(Math.random()*TIMES.length)];
-
-  cardEl.className = `pump-card ${cardClass}`;
-  cardEl.style.opacity = '0';
-  cardEl.style.transform = 'translateY(10px)';
-  cardEl.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-
-  cardEl.innerHTML = `
-    <div class="pump-card-header">
-      <div>
-        <div class="pump-name">${pump.name}</div>
-        <div class="pump-dist"><i class="fas fa-location-dot"></i> ${pump.city || ""}</div>
-      </div>
-      ${badge}
-    </div>
-    <div class="pump-fuels">${fuelHTML}</div>
-    <div class="pump-time"><i class="fas fa-clock"></i> Updated ${time}</div>
-  `;
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      cardEl.style.opacity = '1';
-      cardEl.style.transform = 'translateY(0)';
+// Toggle button visual selection (Yes/No pairs)
+['deviceToggle','bikeToggle'].forEach(id => {
+  document.getElementById(id).querySelectorAll('.f-toggle').forEach(label => {
+    label.addEventListener('click', () => {
+      label.parentElement.querySelectorAll('.f-toggle').forEach(l => l.classList.remove('active'));
+      label.classList.add('active');
+      label.querySelector('input').checked = true;
     });
   });
-}
-
-function initPumpCards() {
-  [0,1,2].forEach(i => {
-    const el = document.getElementById('pcard-'+i);
-    if (el) renderCard(el, getRandomPump());
-  });
-}
-
-function rotatePumpCards() {
-  // Rotate one card at a time for realistic feel
-  let cardIndex = 0;
-  setInterval(() => {
-    const el = document.getElementById('pcard-'+cardIndex);
-    if (el) {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(-8px)';
-      setTimeout(() => renderCard(el, getRandomPump()), 350);
-    }
-    cardIndex = (cardIndex + 1) % 3;
-  }, 3000);
-}
-
-function animatePumpCards() {
-  initPumpCards();
-  rotatePumpCards();
-}
-
-// Animate map pins color randomly
-function animatePins() {
-  const pinClasses = ['green','yellow','red','blue'];
-  const pins = document.querySelectorAll('.pin');
-  setInterval(() => {
-    const pin = pins[Math.floor(Math.random() * pins.length)];
-    const newCls = pinClasses[Math.floor(Math.random() * pinClasses.length)];
-    pin.className = 'pin ' + newCls;
-  }, 2500);
-}
-
-// Login handler
-function focusLogin(role) {
-  document.getElementById('login-title').textContent = role === 'Document Verifier' ? 'Staff Login' : role + ' Login';
-  const subTextMap = {
-    'Pump Owner':        'Access your pump listing and fuel update dashboard',
-    'Govt Official':     'Access the fuel distribution oversight portal',
-    'Document Verifier': 'Verifier or Enrollment Agent — you\'ll be redirected automatically based on your role',
-  };
-  document.getElementById('login-sub').textContent = subTextMap[role] || 'Access the fuel distribution oversight portal';
-  document.getElementById('login-email').focus();
-  document.getElementById('login-section') &&
-    document.getElementById('login-section').scrollIntoView();
-  document.querySelector('#login').scrollIntoView({ behavior: 'smooth' });
-}
-
-function showForgotPassword() {
-  document.getElementById('fp-overlay').classList.add('active');
-}
-
-function hideForgotPassword(e) {
-  if (!e || e.target === document.getElementById('fp-overlay')) {
-    document.getElementById('fp-overlay').classList.remove('active');
-  }
-}
-
-// Close on Escape key
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') hideForgotPassword();
 });
 
-function togglePwd() {
-  const pw = document.getElementById('login-password');
-  const eye = document.getElementById('eye-icon');
-  if(pw.type === 'password') { pw.type = 'text'; eye.textContent = '🙈'; }
-  else { pw.type = 'password'; eye.textContent = '👁️'; }
-}
+async function submitApplication() {
+  const errEl = document.getElementById('formError');
+  const okEl  = document.getElementById('formSuccess');
+  errEl.style.display = 'none';
+  okEl.style.display = 'none';
 
-async function handleLogin() {
-  const email    = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const msg      = document.getElementById('login-msg');
+  const show = (msg) => { errEl.textContent = msg; errEl.style.display = 'block';
+    errEl.scrollIntoView({behavior:'smooth', block:'center'}); };
 
-  if (!email || !password) {
-    showMsg('Please enter your Login ID and password.', 'error'); return;
-  }
+  const fullName      = document.getElementById('fullName').value.trim();
+  const address        = document.getElementById('address').value.trim();
+  const qualification  = document.getElementById('qualification').value.trim();
+  const languages       = document.getElementById('languages').value.trim();
+  const mobile          = document.getElementById('mobile').value.trim();
+  const email           = document.getElementById('email').value.trim();
+  const region           = document.getElementById('region').value;
+  const interviewMode   = document.getElementById('interviewMode').value;
+  const hasLaptop = document.querySelector('#deviceToggle input:checked')?.value;
+  const hasBike   = document.querySelector('#bikeToggle input:checked')?.value;
 
-  showMsg('Verifying credentials…', 'info');
+  if(!fullName)          return show('Enter your full name');
+  if(!address)           return show('Enter your address');
+  if(!qualification)     return show('Enter your qualification');
+  if(!languages)         return show('Enter languages you speak');
+  if(mobile.length!==10) return show('Enter valid 10-digit mobile number');
+  if(!email.includes('@')) return show('Enter valid email address');
+  if(!region)             return show('Select your region');
+  if(!interviewMode)     return show('Select interview mode preference');
+  if(!hasLaptop)          return show('Please answer: do you have a laptop/desktop?');
+  if(!hasBike)            return show('Please answer: do you have a two-wheeler?');
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '⏳ Submitting...';
 
   try {
-    const res = await fetch('/api/auth/login', {
+    const r = await fetch('/api/careers/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mobile: email, password })
+      body: JSON.stringify({
+        full_name: fullName, address, qualification, languages,
+        mobile, email, region, interview_mode: interviewMode,
+        has_laptop: hasLaptop, has_bike: hasBike,
+      }),
     });
-    const data = await res.json();
-
-    if (data.token) {
-      // Save token exactly like login.html does
-      localStorage.setItem('indhan_token', data.token);
-      localStorage.setItem('indhan_role',  data.role);
-      localStorage.setItem('indhan_name',  data.name || '');
-      localStorage.setItem('indhan_admin_id', email);
-
-      showMsg('Login successful! Redirecting…', 'info');
-
-      // Redirect based on role — same as login.html
-      setTimeout(() => {
-        if      (data.role === 'pump_owner')     window.location.replace('/pump-owner');
-        else if (data.role === 'govt_official')  window.location.replace('/govt');
-        else if (data.role === 'doc_verifier')   window.location.replace('/verify');
-        else if (data.role === 'enrollment_agent') window.location.replace('/agent');
-        else if (data.role === 'super_admin')    window.location.replace('/admin');
-        else                                     window.location.replace('/app');
-      }, 800);
-
+    const d = await r.json();
+    if(d.success) {
+      document.getElementById('careersForm').querySelectorAll('.f-input,.f-select').forEach(el => el.style.display='none');
+      document.querySelectorAll('.f-toggle-row, .f-label, .f-hint').forEach(el => el.style.display='none');
+      okEl.innerHTML = `✅ <b>Application Submitted!</b><br><br>
+        📋 App ID: <b>${d.app_id||'—'}</b><br>
+        📧 Confirmation sent to: <b>${email}</b><br><br>
+        Our team will reach out via call or email if shortlisted for an interview.`;
+      okEl.style.display = 'block';
+      btn.style.display = 'none';
     } else {
-      showMsg(data.error || data.message || 'Invalid credentials. Please try again.', 'error');
+      show('❌ ' + (d.error || 'Submission failed. Try again.'));
+      btn.disabled = false; btn.textContent = '📤 Submit Application';
     }
-  } catch (e) {
-    showMsg('Connection error. Please try again.', 'error');
+  } catch(e) {
+    show('❌ Network error. Please try again.');
+    btn.disabled = false; btn.textContent = '📤 Submit Application';
   }
 }
-
-function showMsg(text, type) {
-  const msg = document.getElementById('login-msg');
-  msg.textContent = text;
-  msg.className = 'login-msg ' + type;
-  msg.style.display = 'block';
-}
-
-// Enter key on password field
-document.addEventListener('DOMContentLoaded', () => {
-  const pw = document.getElementById('login-password');
-  if (pw) pw.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
-});
-
-// MAP PIN MIXED GROUP SEQUENTIAL BLINK
-(function() {
-  const COLORS = ['green','yellow','red','blue'];
-  const COLOR_CSS = {
-    green:  {bg:'#22c55e',shadow:'0 0 18px #22c55e'},
-    yellow: {bg:'#f59e0b',shadow:'0 0 18px #f59e0b'},
-    red:    {bg:'#ef4444',shadow:'0 0 18px #ef4444'},
-    blue:   {bg:'#3BADFF',shadow:'0 0 18px #3BADFF'}
-  };
-  const GROUPS = [
-    [0,7,12],[1,5,10],[2,4,13],[3,6,8],
-    [9,11,0],[7,2,6],[10,3,1],[12,5,4]
-  ];
-  const TOTAL = 14;
-  let gIdx = 0;
-  function pin(id){return document.getElementById('mp'+id);}
-  function dim(id){const e=pin(id);if(!e)return;e.style.opacity='0.3';e.style.transform='scale(1)';e.style.boxShadow='';}
-  function light(id){
-    const e=pin(id);if(!e)return;
-    const c=COLORS[Math.floor(Math.random()*COLORS.length)];
-    const s=COLOR_CSS[c];
-    e.className='pin '+c;
-    e.style.opacity='1';
-    e.style.transform='scale(1.5)';
-    e.style.background=s.bg;
-    e.style.boxShadow=s.shadow;
-  }
-  function run(){
-    for(let i=0;i<TOTAL;i++)dim(i);
-    const g=GROUPS[gIdx%GROUPS.length];gIdx++;
-    g.forEach((id,i)=>setTimeout(()=>light(id),i*30));
-    setTimeout(()=>g.forEach(id=>dim(id)),650);
-    setTimeout(run,1000);
-  }
-  setTimeout(run,1500);
-})();
-
 </script>
+</body>
+</html>

@@ -164,6 +164,7 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
   <div class="tab" onclick="showTab('modes',this)">🔄 Modes</div>
   <div class="tab" onclick="showTab('tiers',this)">🎯 Tiers</div>
   <div class="tab" onclick="showTab('settings',this)">⚙️ Settings</div>
+  <div class="tab" onclick="showTab('careers',this)">🚀 Careers</div>
 </div>
 
 <!-- DASHBOARD — NO revenue here -->
@@ -658,6 +659,44 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
   </div>
 </div>
 
+<!-- CAREERS -->
+<div class="tab-content" id="tab-careers">
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">🚀 Job Applications</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select id="careers-region-filter" class="form-input" style="flex:1;min-width:140px" onchange="loadCareers()">
+        <option value="">All Regions</option>
+        <option>North India</option>
+        <option>South India</option>
+        <option>East India</option>
+        <option>West India</option>
+        <option>Central India</option>
+        <option>Northeast India</option>
+      </select>
+      <select id="careers-status-filter" class="form-input" style="flex:1;min-width:140px" onchange="loadCareers()">
+        <option value="">All Statuses</option>
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="interview_scheduled">Interview Scheduled</option>
+        <option value="hired">Hired</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div id="careers-total" style="font-size:12px;color:#888;margin-bottom:10px">Loading...</div>
+    <div id="careers-list" style="font-size:12px;color:#aaa;text-align:center;padding:12px">⏳ Loading applications...</div>
+  </div>
+
+  <!-- Careers posted date (admin-editable) -->
+  <div class="card">
+    <div class="card-title">📅 Careers Page Settings</div>
+    <div class="form-group">
+      <label class="form-label">Posted Date (shown on careers page)</label>
+      <input class="form-input" type="text" id="careers-posted-date" placeholder="e.g. July 2026">
+    </div>
+    <button class="form-submit" onclick="saveSetting('careers_posted_date','careers-posted-date')">💾 Save</button>
+  </div>
+</div>
+
 <script>
 const TOKEN = localStorage.getItem('indhan_token');
 const modes = { rationing:false, verification:false };
@@ -825,6 +864,7 @@ function loadSettings(){
     const slaEl=document.getElementById('set-sla');        if(slaEl) slaEl.value=s.sla_hours||'48';
     // Populate dense city zones
     renderDenseZones(s.dense_city_zones||'');
+    const cdEl=document.getElementById('careers-posted-date'); if(cdEl) cdEl.value=s.careers_posted_date||'';
   });
   loadUsers();
   loadGovtCreds();
@@ -1072,6 +1112,76 @@ function showTab(name,el){
       loadMRAgents();
     }
   }
+  if(name==='careers'){
+    loadCareers();
+    api('/api/admin/settings').then(s => {
+      if(!s) return;
+      const cdEl=document.getElementById('careers-posted-date'); if(cdEl) cdEl.value=s.careers_posted_date||'';
+    });
+  }
+}
+
+// ── Careers Functions ─────────────────────────────────────────
+const CAREERS_STATUS_LABELS = {
+  new: 'New', contacted: 'Contacted', interview_scheduled: 'Interview Scheduled',
+  hired: 'Hired', rejected: 'Rejected',
+};
+const CAREERS_STATUS_COLORS = {
+  new: '#1565c0', contacted: '#e65100', interview_scheduled: '#6a1b9a',
+  hired: '#1a6b2e', rejected: '#b71c1c',
+};
+
+async function loadCareers(){
+  const el = document.getElementById('careers-list');
+  const totalEl = document.getElementById('careers-total');
+  if(!el) return;
+  const region = document.getElementById('careers-region-filter').value;
+  const status = document.getElementById('careers-status-filter').value;
+  const params = new URLSearchParams();
+  if(region) params.set('region', region);
+  if(status) params.set('status', status);
+  el.innerHTML = '⏳ Loading applications...';
+  try {
+    const d = await api('/api/admin/careers?' + params.toString());
+    if(!d || !d.applications){ el.innerHTML = '<div style="color:#b71c1c;text-align:center">Error loading applications</div>'; return; }
+    totalEl.textContent = `${d.total} application${d.total===1?'':'s'} found`;
+    if(d.applications.length === 0){
+      el.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">No applications match this filter.</div>';
+      return;
+    }
+    el.innerHTML = d.applications.map(a => `
+      <div style="padding:12px;background:#f9f9f9;border-radius:10px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#222">${a.full_name}</div>
+            <div style="font-size:11px;color:#888">📍 ${a.region} · 🎓 ${a.qualification} · 🗣️ ${a.languages}</div>
+          </div>
+          <div style="background:${CAREERS_STATUS_COLORS[a.status]||'#999'};color:white;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${CAREERS_STATUS_LABELS[a.status]||a.status}</div>
+        </div>
+        <div style="font-size:12px;color:#555;margin-top:8px;line-height:1.6">
+          📱 <a href="tel:${a.mobile}" style="color:#1565c0;text-decoration:none">${a.mobile}</a> &nbsp;|&nbsp;
+          ✉️ ${a.email} &nbsp;|&nbsp;
+          🏠 ${a.address}<br>
+          💻 Laptop: ${a.has_laptop?'Yes':'No'} &nbsp;|&nbsp;
+          🏍️ Two-wheeler: ${a.has_bike?'Yes':'No'} &nbsp;|&nbsp;
+          🎤 Interview: ${a.interview_mode}
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          ${Object.keys(CAREERS_STATUS_LABELS).map(s => `
+            <button onclick="updateCareerStatus(${a.id},'${s}')"
+              style="font-size:10.5px;padding:4px 9px;border-radius:8px;cursor:pointer;border:1px solid ${a.status===s?CAREERS_STATUS_COLORS[s]:'#ddd'};background:${a.status===s?CAREERS_STATUS_COLORS[s]:'#fff'};color:${a.status===s?'#fff':'#666'}">
+              ${CAREERS_STATUS_LABELS[s]}
+            </button>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch(e){ el.innerHTML = '<div style="color:#b71c1c;text-align:center">Error loading applications</div>'; }
+}
+
+async function updateCareerStatus(id, status){
+  const d = await api(`/api/admin/careers/${id}/status`, 'POST', { status });
+  if(d?.success) loadCareers();
+  else alert('Failed to update status');
 }
 
 // ── MR Agent Functions ────────────────────────────────────────
