@@ -373,6 +373,13 @@ async function initDB() {
       status          TEXT NOT NULL DEFAULT 'new',
       applied_at      TEXT DEFAULT (datetime('now'))
     )`,
+    // ── Stage 1: Applicant's own QR code (validated against users.user_code) ──
+    `ALTER TABLE job_applications ADD COLUMN qr_code TEXT`,
+    // ── Stage 2 groundwork: pump referral by career-applicant QR code ──
+    // Kept separate from the existing MR-agent referral_code system so the
+    // two referral programs never collide or get mixed up in reporting.
+    `ALTER TABLE pump_applications ADD COLUMN career_qr_referral TEXT`,
+    `ALTER TABLE petrol_pumps ADD COLUMN career_qr_referral TEXT`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -1899,10 +1906,24 @@ const pumpRegUpload = multer({
 // CAREERS PAGE — public job application submission + admin views
 // ══════════════════════════════════════════════════════════════
 
+// Shared helper — normalizes a QR/user-code input (strips INDHAN: prefix, uppercases)
+// and checks it against a real registered user. Used by careers apply (Stage 1)
+// and will be reused by pump-owner registration (Stage 2) for referral tracking.
+function normalizeUserCode(raw) {
+  let code = (raw || '').trim().toUpperCase();
+  if (code.startsWith('INDHAN:')) code = code.slice(7).trim();
+  return code;
+}
+function findUserByCode(raw) {
+  const code = normalizeUserCode(raw);
+  if (!/^[A-HJ-NP-Z]{4}[1-9]{4}$/.test(code)) return null;
+  return dbGet('SELECT id, name, mobile FROM users WHERE user_code=?', [code]);
+}
+
 app.post('/api/careers/apply', (req, res) => {
   try {
     const { full_name, address, qualification, languages, mobile, email,
-            region, interview_mode, has_laptop, has_bike } = req.body;
+            region, interview_mode, has_laptop, has_bike, qr_code } = req.body;
 
     if(!full_name || !address || !qualification || !languages || !mobile || !email || !region || !interview_mode)
       return res.status(400).json({ error: 'All fields are required' });
@@ -1910,6 +1931,12 @@ app.post('/api/careers/apply', (req, res) => {
       return res.status(400).json({ error: 'Invalid mobile number' });
     if(!email.includes('@'))
       return res.status(400).json({ error: 'Invalid email address' });
+    if(!qr_code || !qr_code.trim())
+      return res.status(400).json({ error: 'IndhanShodhak QR Code is required' });
+
+    const qrUser = findUserByCode(qr_code);
+    if(!qrUser)
+      return res.status(400).json({ error: 'QR Code not found. Please register free at indhanshodhak.in first, then use your QR code here.' });
 
     const validRegions = ['North India','South India','East India','West India','Central India','Northeast India'];
     if(!validRegions.includes(region))
@@ -1920,11 +1947,12 @@ app.post('/api/careers/apply', (req, res) => {
 
     dbRun(`INSERT INTO job_applications
            (full_name, address, qualification, languages, has_laptop, has_bike,
-            mobile, email, region, interview_mode)
-           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+            mobile, email, region, interview_mode, qr_code)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [full_name, address, qualification, languages,
        has_laptop === 'Yes' ? 1 : 0, has_bike === 'Yes' ? 1 : 0,
-       mobile, email, region, interview_mode]);
+       mobile, email, region, interview_mode, normalizeUserCode(qr_code)]);
+
 
     const row = dbGet(`SELECT id, applied_at FROM job_applications WHERE mobile=? ORDER BY id DESC LIMIT 1`, [mobile]);
     const appId = 'IS-CAR-' + String(row.id).padStart(6, '0');

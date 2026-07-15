@@ -435,6 +435,22 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
       <div class="f-hint">Needed for local field visits &amp; pump verification work</div>
     </div>
 
+    <div class="f-group">
+      <label class="f-label">IndhanShodhak QR Code <span class="req">*</span></label>
+      <input class="f-input" type="text" id="qrCode" placeholder="e.g. BKTM7293" style="text-transform:uppercase">
+      <div class="f-hint">Don't have one? <a href="/app" style="color:var(--saffron,#e65100);font-weight:600">Register free on the IndhanShodhak app first</a>, then come back with your code.</div>
+    </div>
+
+    <div id="selectionCriteria" style="background:#fff8f0;border:1.5px dashed #FF9933;border-radius:12px;padding:16px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:#e65100;letter-spacing:0.5px;margin-bottom:8px">📋 SELECTION CRITERIA — PLEASE READ</div>
+      <p style="font-size:13px;color:#5a4632;line-height:1.6;margin:0 0 8px">
+        To be considered for this role, you'll need to help onboard a <b>minimum of 3 nearby fuel pumps</b> using your QR code as the referral — this is the practical work-sample for the Field Verifier position.
+      </p>
+      <p style="font-size:13px;color:#1a6b2e;line-height:1.6;margin:0;font-weight:600">
+        ✅ You'll be paid for every pump you register (₹100, ₹200 for CNG) — regardless of final job selection.
+      </p>
+    </div>
+
     <div id="formError" style="display:none;background:#ffebee;color:#b71c1c;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;"></div>
     <div id="formSuccess" style="display:none;background:#e8f5e9;color:#1a6b2e;padding:16px;border-radius:10px;font-size:13.5px;line-height:1.6;margin-bottom:14px;"></div>
 
@@ -489,6 +505,7 @@ async function submitApplication() {
   const interviewMode   = document.getElementById('interviewMode').value;
   const hasLaptop = document.querySelector('#deviceToggle input:checked')?.value;
   const hasBike   = document.querySelector('#bikeToggle input:checked')?.value;
+  const qrCode          = document.getElementById('qrCode').value.trim().toUpperCase();
 
   if(!fullName)          return show('Enter your full name');
   if(!address)           return show('Enter your address');
@@ -500,6 +517,7 @@ async function submitApplication() {
   if(!interviewMode)     return show('Select interview mode preference');
   if(!hasLaptop)          return show('Please answer: do you have a laptop/desktop?');
   if(!hasBike)            return show('Please answer: do you have a two-wheeler?');
+  if(!qrCode)             return show('Enter your IndhanShodhak QR Code — register free on the app first if you don\'t have one');
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = '⏳ Submitting...';
@@ -511,13 +529,14 @@ async function submitApplication() {
       body: JSON.stringify({
         full_name: fullName, address, qualification, languages,
         mobile, email, region, interview_mode: interviewMode,
-        has_laptop: hasLaptop, has_bike: hasBike,
+        has_laptop: hasLaptop, has_bike: hasBike, qr_code: qrCode,
       }),
     });
     const d = await r.json();
     if(d.success) {
       document.getElementById('careersForm').querySelectorAll('.f-input,.f-select').forEach(el => el.style.display='none');
       document.querySelectorAll('.f-toggle-row, .f-label, .f-hint').forEach(el => el.style.display='none');
+      const scEl = document.getElementById('selectionCriteria'); if(scEl) scEl.style.display='none';
       okEl.innerHTML = `✅ <b>Application Submitted!</b><br><br>
         📋 App ID: <b>${d.app_id||'—'}</b><br>
         📧 Confirmation sent to: <b>${email}</b><br><br>
