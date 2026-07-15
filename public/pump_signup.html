@@ -231,36 +231,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <div class="file-name" id="license-name">No file chosen</div>
       </div>
 
-      <div class="doc-card" id="wrap-aadhaar">
+      <div class="doc-card" id="wrap-idproof">
         <div class="doc-top">
           <span class="doc-icon">🪪</span>
           <div>
-            <div class="doc-name">Owner Aadhaar Card <span style="color:#b71c1c">*</span></div>
-            <div class="doc-hint">Front side — Name + number visible</div>
+            <div class="doc-name">Owner ID Proof <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">Front side — Name + ID number visible</div>
             <div class="doc-badge">📸 JPG · PNG · PDF accepted</div>
           </div>
         </div>
+        <label class="form-label" style="margin-top:8px">ID Type</label>
+        <select class="form-input" id="idProofType" style="margin-bottom:10px">
+          <option value="aadhaar">Aadhaar Card</option>
+          <option value="driving_licence">Driving Licence</option>
+          <option value="voter_id">Voter ID (EPIC)</option>
+          <option value="pan_card">PAN Card</option>
+        </select>
         <label class="choose-btn">📎 Choose File
-          <input type="file" id="doc-aadhaar" accept="image/jpeg,image/jpg,image/png,application/pdf" style="display:none"
-            onchange="handleFile(this,'wrap-aadhaar','aadhaar-name')">
+          <input type="file" id="doc-idproof" accept="image/jpeg,image/jpg,image/png,application/pdf" style="display:none"
+            onchange="handleFile(this,'wrap-idproof','idproof-name')">
         </label>
-        <div class="file-name" id="aadhaar-name">No file chosen</div>
-      </div>
-
-      <div class="doc-card" id="wrap-selfie">
-        <div class="doc-top">
-          <span class="doc-icon">🤳</span>
-          <div>
-            <div class="doc-name">Selfie at Pump <span style="color:#b71c1c">*</span></div>
-            <div class="doc-hint">You at your pump — board visible</div>
-            <div class="doc-badge">📸 JPG · PNG · PDF accepted</div>
-          </div>
-        </div>
-        <label class="choose-btn">📎 Choose File
-          <input type="file" id="doc-selfie" accept="image/jpeg,image/jpg,image/png,application/pdf" style="display:none"
-            onchange="handleFile(this,'wrap-selfie','selfie-name')">
-        </label>
-        <div class="file-name" id="selfie-name">No file chosen</div>
+        <div class="file-name" id="idproof-name">No file chosen</div>
       </div>
     </div>
 
@@ -636,13 +627,12 @@ async function submitApplication(){
   if(!district)  return show('Enter district name');
   if(!licenseNo) return show('Enter pump license number');
 
-  const licFile     = window._compressedFiles['doc-license']  || document.getElementById('doc-license').files[0];
-  const aadhaarFile = window._compressedFiles['doc-aadhaar']  || document.getElementById('doc-aadhaar').files[0];
-  const selfieFile  = window._compressedFiles['doc-selfie']   || document.getElementById('doc-selfie').files[0];
+  const licFile      = window._compressedFiles['doc-license'] || document.getElementById('doc-license').files[0];
+  const idProofFile  = window._compressedFiles['doc-idproof'] || document.getElementById('doc-idproof').files[0];
+  const idProofType  = document.getElementById('idProofType').value;
 
   if(!licFile)     return show('Upload Pump License Certificate');
-  if(!aadhaarFile) return show('Upload Aadhaar Card');
-  if(!selfieFile)  return show('Upload Selfie at Pump');
+  if(!idProofFile) return show('Upload ID Proof document');
 
   const fd = new FormData();
   fd.append('owner_name',    name);
@@ -660,8 +650,8 @@ async function submitApplication(){
   const refCode = document.getElementById('referralCode')?.value?.trim() || '';
   if(refCode) fd.append('referral_code', refCode);
   fd.append('license',       licFile);
-  fd.append('aadhaar',       aadhaarFile);
-  fd.append('selfie',        selfieFile);
+  fd.append('id_proof',      idProofFile);
+  fd.append('id_proof_type', idProofType);
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = '⏳ Submitting...';

@@ -351,6 +351,12 @@ async function initDB() {
       rating      INTEGER NOT NULL,
       created_at  TEXT DEFAULT (datetime('now'))
     )`,
+    // ── Flexible ID proof for public pump self-signup (Aadhaar/DL/Voter/PAN) ──
+    // doc_aadhaar column still stores the actual file path regardless of type
+    // (kept as-is so agent-assisted & claim-pump flows, which stay Aadhaar-only,
+    // are unaffected). This column just records WHICH type was uploaded so the
+    // AI verification prompt can ask the right questions for that document.
+    `ALTER TABLE pump_applications ADD COLUMN id_proof_type TEXT`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -1291,6 +1297,33 @@ Respond ONLY in this JSON format:
 Score guide: 85+=clear Aadhaar with name matching, 50-84=readable but partial mismatch, 0-49=wrong doc/name completely different/photo entirely absent or black.`;
 }
 
+// Generic ID-proof verifier for pump self-signup, covering whichever of the
+// 4 accepted document types (Aadhaar / Driving Licence / Voter ID / PAN) the
+// owner chose to upload. Same leniency rules as Aadhaar — Indian document
+// photo quality varies a lot and shouldn't be penalized.
+function buildIDProofPrompt(registeredName, idType) {
+  const docGuide = {
+    aadhaar:         { label: 'Aadhaar card',       idHint: '12-digit Aadhaar number' },
+    driving_licence: { label: 'Driving Licence',    idHint: 'DL number (state code + digits)' },
+    voter_id:        { label: 'Voter ID (EPIC) card', idHint: '10-character EPIC number' },
+    pan_card:        { label: 'PAN card',            idHint: '10-character PAN (5 letters+4 digits+1 letter)' },
+  };
+  const doc = docGuide[idType] || docGuide.aadhaar;
+  return `You are verifying a ${doc.label} for IndhanShodhak fuel app.
+Registered user name: "${registeredName}"
+
+Look at the ${doc.label} image and check:
+1. Is this clearly a ${doc.label}?
+2. Name visible on the document
+3. ID number visible? (${doc.idHint})
+4. Is the photo present on the document? (IMPORTANT: only fail photo if completely absent, entirely black, or entirely overexposed — pixelated/old/low quality photos are NORMAL in India and must PASS)
+
+Respond ONLY in this JSON format:
+{"is_valid_doc":true/false,"doc_type_found":"...","name_found":"...","id_number_visible":true/false,"photo_status":"present/absent/black/overexposed","name_match_pct":0-100,"score":0-100,"reason":"..."}
+
+Score guide: 85+=clear ${doc.label} with name matching, 50-84=readable but partial mismatch, 0-49=wrong doc/name completely different/photo entirely absent or black.`;
+}
+
 function buildSelfiePrompt() {
   return `You are verifying a petrol pump photo for IndhanShodhak fuel app.
 The pump owner should be standing at their actual petrol pump.
@@ -1353,12 +1386,16 @@ async function runVerificationJob(job) {
         reasons.push('License: ' + (parsed.reason||'checked'));
       }
 
-      // Check 2: Aadhaar
+      // Check 2: ID Proof — Aadhaar (agent/claim-pump flows) or one of
+      // Aadhaar/DL/Voter ID/PAN chosen at public self-signup (id_proof_type set)
       if(app.doc_aadhaar && fs.existsSync(app.doc_aadhaar)) {
-        const raw = await callAI(buildAadhaarPrompt(app.applicant_name), app.doc_aadhaar);
+        const prompt = app.id_proof_type
+          ? buildIDProofPrompt(app.applicant_name, app.id_proof_type)
+          : buildAadhaarPrompt(app.applicant_name);
+        const raw = await callAI(prompt, app.doc_aadhaar);
         const parsed = safeParseJSON(raw);
         scores.push(parsed.score||0);
-        reasons.push('Aadhaar: ' + (parsed.reason||'checked'));
+        reasons.push('ID proof: ' + (parsed.reason||'checked'));
       }
 
       // Check 3: Pump Selfie
@@ -1844,20 +1881,22 @@ const pumpRegUpload = multer({
 
 app.post('/api/pump-owner/register',
   pumpRegUpload.fields([
-    {name:'license', maxCount:1},
-    {name:'aadhaar', maxCount:1},
-    {name:'selfie',  maxCount:1},
+    {name:'license',  maxCount:1},
+    {name:'id_proof', maxCount:1},
   ]),
   async (req, res) => {
     try {
       const { owner_name, mobile, email, pump_name, oil_company,
               pin_code, address, district, state, license_number,
-              lat, lng, referral_code } = req.body;
+              lat, lng, referral_code, id_proof_type } = req.body;
 
       if(!owner_name||!mobile||!email||!pump_name||!license_number||!pin_code)
         return res.status(400).json({ error:'All fields are required' });
       if(mobile.length !== 10)
         return res.status(400).json({ error:'Invalid mobile number' });
+
+      const validIdTypes = ['aadhaar','driving_licence','voter_id','pan_card'];
+      const idType = validIdTypes.includes(id_proof_type) ? id_proof_type : 'aadhaar';
 
       const existing = dbGet(
         `SELECT id FROM pump_applications WHERE license_number=? AND status='pending'`,
@@ -1867,13 +1906,11 @@ app.post('/api/pump-owner/register',
         return res.status(409).json({ error:'Application with this license number already pending' });
 
       const files = req.files || {};
-      const licPath     = files.license?.[0]?.path || null;
-      const aadhaarPath = files.aadhaar?.[0]?.path || null;
-      const selfiePath  = files.selfie?.[0]?.path  || null;
+      const licPath     = files.license?.[0]?.path  || null;
+      const idProofPath = files.id_proof?.[0]?.path  || null;
 
       if(!licPath)     return res.status(400).json({ error:'Pump license document required' });
-      if(!aadhaarPath) return res.status(400).json({ error:'Aadhaar card required' });
-      if(!selfiePath)  return res.status(400).json({ error:'Selfie at pump required' });
+      if(!idProofPath) return res.status(400).json({ error:'ID proof document required (Aadhaar/Driving Licence/Voter ID/PAN)' });
 
       let user = dbGet(`SELECT id FROM users WHERE mobile=?`, [mobile]);
       if(!user){
@@ -1911,10 +1948,10 @@ app.post('/api/pump-owner/register',
 
       dbRun(`INSERT INTO pump_applications
              (user_id, pump_id, applicant_name, applicant_email,
-              license_number, doc_license, doc_aadhaar, doc_selfie, referral_code)
+              license_number, doc_license, doc_aadhaar, id_proof_type, referral_code)
              VALUES (?,?,?,?,?,?,?,?,?)`,
         [user.id, pump.id, owner_name, email,
-         license_number.toUpperCase(), licPath, aadhaarPath, selfiePath, validatedRef]);
+         license_number.toUpperCase(), licPath, idProofPath, idType, validatedRef]);
 
       // Also tag the pump record with referral code
       if(validatedRef && !validatedRef.startsWith('UNRECOGNIZED')) {
@@ -1926,7 +1963,7 @@ app.post('/api/pump-owner/register',
         [user.id]
       );
 
-      console.log(`[PUMP REGISTRATION] ${owner_name} | ${pump_name} | License: ${license_number}`);
+      console.log(`[PUMP REGISTRATION] ${owner_name} | ${pump_name} | License: ${license_number} | ID type: ${idType}`);
       // Trigger AI verification
       if(appRow?.id) triggerAIVerification(appRow.id, 'pump', 'pump');
       res.json({
