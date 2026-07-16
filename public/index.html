@@ -187,7 +187,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="filter-row">
     <div class="chip active" onclick="setFilter(this,'all')" id="f-all">All</div>
-    <div class="chip" onclick="setFilter(this,'cng')" id="f-cng">🔥 CNG</div>
+    <div class="chip" onclick="setFilter(this,'cng')" id="f-cng">🍃 CNG</div>
     <div class="chip" onclick="setFilter(this,'ev')" id="f-ev">⚡ EV Charging</div>
     <div class="chip" onclick="setFilter(this,'fuel')" id="f-fuel">⛽ Petrol + Diesel</div>
   </div>
@@ -323,7 +323,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div class="fuel-opt">
-      <span>🔥 CNG</span>
+      <span>🍃 CNG</span>
       <div class="tog-group">
         <button class="tog" onclick="setTog(this,'yes')">✓ Yes</button>
         <button class="tog" onclick="setTog(this,'no')">✗ No</button>
@@ -476,7 +476,7 @@ const T = {
     report_hint:  'You can report fuel status · Help community',
     nav_find:     'Find', nav_qr:'My QR', nav_report:'Report', nav_profile:'Profile',
     btn_lang:     '🌐 Lang', btn_myqr:'🎫 My QR',
-    f_all:'All', f_petrol:'⛽ Petrol', f_diesel:'🛢 Diesel', f_cng:'🔥 CNG', f_ev:'⚡ EV',
+    f_all:'All', f_petrol:'⛽ Petrol', f_diesel:'🛢 Diesel', f_cng:'🍃 CNG', f_ev:'⚡ EV',
     hidden_title:'pumps hidden near you', hidden_sub:'Subscribe to see all nearby pumps instead of only the 2 shown above', hidden_btn:'Subscribe',
   },
   hi: {
@@ -495,7 +495,7 @@ const T = {
     report_hint:  'ईंधन स्थिति बताएं · समुदाय की मदद करें',
     nav_find:     'खोजें', nav_qr:'मेरा QR', nav_report:'रिपोर्ट', nav_profile:'प्रोफाइल',
     btn_lang:     '🌐 भाषा', btn_myqr:'🎫 मेरा QR',
-    f_all:'सभी', f_petrol:'⛽ पेट्रोल', f_diesel:'🛢 डीज़ल', f_cng:'🔥 CNG', f_ev:'⚡ EV',
+    f_all:'सभी', f_petrol:'⛽ पेट्रोल', f_diesel:'🛢 डीज़ल', f_cng:'🍃 CNG', f_ev:'⚡ EV',
     hidden_title:'पंप आपके पास छिपे हैं', hidden_sub:'ऊपर दिखाए गए केवल 2 पंपों की बजाय सभी नजदीकी पंप देखने के लिए सदस्यता लें', hidden_btn:'सदस्यता लें',
   },
   mr: {
@@ -514,7 +514,7 @@ const T = {
     report_hint:  'तुम्ही इंधन स्थिती सांगू शकता · समाजाला मदत करा',
     nav_find:     'शोधा', nav_qr:'माझा QR', nav_report:'अहवाल', nav_profile:'प्रोफाइल',
     btn_lang:     '🌐 भाषा', btn_myqr:'🎫 माझा QR',
-    f_all:'सर्व', f_petrol:'⛽ पेट्रोल', f_diesel:'🛢 डिझेल', f_cng:'🔥 CNG', f_ev:'⚡ EV',
+    f_all:'सर्व', f_petrol:'⛽ पेट्रोल', f_diesel:'🛢 डिझेल', f_cng:'🍃 CNG', f_ev:'⚡ EV',
     hidden_title:'पंप तुमच्या जवळ लपलेले आहेत', hidden_sub:'वर दाखवलेल्या फक्त 2 पंपांऐवजी सर्व जवळचे पंप पाहण्यासाठी सदस्यता घ्या', hidden_btn:'सदस्यता घ्या',
   },
   gu: {
@@ -528,7 +528,7 @@ const T = {
     fuelid_msg_full:'🚨 ઇંધણ સંકટ — ફક્ત Fuel ID (QR) ધારકોને ઇંધણ. QR નહીં = ઇંધણ નહીં. તાત્કાલિક નોંધણી કરો!',
     report_hint:  'ઇંધણ સ્થિતિ જણાવો · સમુદાયને મદદ કરો',
     nav_find:'શોધો',nav_qr:'મારો QR',nav_report:'રિપોર્ટ',nav_profile:'પ્રોફાઇલ',btn_lang:'🌐 ભાષા',btn_myqr:'🎫 QR',
-    f_all:'બધા',f_petrol:'⛽ પેટ્રોલ',f_diesel:'🛢 ડીઝલ',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+    f_all:'બધા',f_petrol:'⛽ પેટ્રોલ',f_diesel:'🛢 ડીઝલ',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'પંપ તમારી નજીક છુપાયેલા છે', hidden_sub:'ઉપર બતાવેલા ફક્ત 2 પંપને બદલે બધા નજીકના પંપ જોવા સબ્સ્ક્રાઇબ કરો', hidden_btn:'સબ્સ્ક્રાઇબ કરો',
   },
   pa: {
@@ -542,7 +542,7 @@ const T = {
     fuelid_msg_full:'🚨 ਈਂਧਨ ਸੰਕਟ — ਸਿਰਫ਼ Fuel ID (QR) ਧਾਰਕਾਂ ਨੂੰ ਈਂਧਨ ਮਿਲੇਗਾ. QR ਨਹੀਂ = ਈਂਧਨ ਨਹੀਂ. ਤੁਰੰਤ ਰਜਿਸਟਰ ਕਰੋ!',
     report_hint:  'ਬਾਲਣ ਸਥਿਤੀ ਦੱਸੋ · ਭਾਈਚਾਰੇ ਦੀ ਮਦਦ ਕਰੋ',
     nav_find:'ਲੱਭੋ',nav_qr:'ਮੇਰਾ QR',nav_report:'ਰਿਪੋਰਟ',nav_profile:'ਪ੍ਰੋਫਾਈਲ',btn_lang:'🌐 ਭਾਸ਼ਾ',btn_myqr:'🎫 QR',
-    f_all:'ਸਾਰੇ',f_petrol:'⛽ ਪੈਟਰੋਲ',f_diesel:'🛢 ਡੀਜ਼ਲ',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+    f_all:'ਸਾਰੇ',f_petrol:'⛽ ਪੈਟਰੋਲ',f_diesel:'🛢 ਡੀਜ਼ਲ',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'ਪੰਪ ਤੁਹਾਡੇ ਨੇੜੇ ਲੁਕੇ ਹੋਏ ਹਨ', hidden_sub:'ਉੱਪਰ ਦਿਖਾਏ ਸਿਰਫ਼ 2 ਪੰਪਾਂ ਦੀ ਬਜਾਏ ਸਾਰੇ ਨੇੜਲੇ ਪੰਪ ਵੇਖਣ ਲਈ ਗਾਹਕੀ ਲਓ', hidden_btn:'ਗਾਹਕੀ ਲਓ',
   },
   ta: {
@@ -556,10 +556,10 @@ const T = {
     fuelid_msg_full:'🚨 எரிபொருள் நெருக்கடி — Fuel ID (QR) உடையவர்களுக்கு மட்டும் எரிபொருள். QR இல்லை = எரிபொருள் இல்லை. உடனே பதிவு செய்யுங்கள்!',
     report_hint:  'எரிபொருள் நிலையைத் தெரிவியுங்கள் · சமூகத்திற்கு உதவுங்கள்',
     nav_find:'தேடு',nav_qr:'என் QR',nav_report:'அறிக்கை',nav_profile:'சுயவிவரம்',btn_lang:'🌐 மொழி',btn_myqr:'🎫 QR',
-    f_all:'அனைத்தும்',f_petrol:'⛽ பெட்ரோல்',f_diesel:'🛢 டீசல்',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+    f_all:'அனைத்தும்',f_petrol:'⛽ பெட்ரோல்',f_diesel:'🛢 டீசல்',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'பம்ப்கள் உங்களுக்கு அருகில் மறைக்கப்பட்டுள்ளன', hidden_sub:'மேலே காட்டப்பட்ட 2 பம்ப்களுக்கு பதிலாக அனைத்து அருகிலுள்ள பம்ப்களையும் காண சந்தா பெறுங்கள்', hidden_btn:'சந்தா பெறுங்கள்',
   },
-  te: {header_sub:'ఇంధన లభ్యత వెతకండి',lbl_search:'దగ్గరలో పెట్రోల్ పంపులు',lbl_gps:'GPS వాడండి',pump_section:'దగ్గరలో పెట్రోల్ పంపులు',fuelid_msg:'QR కోడ్ కోసం నమోదు చేయండి.',report_sub:'ఇప్పుడు ఏ ఇంధనం అందుబాటులో ఉంది?',nav_find:'వెతకు',nav_qr:'నా QR',nav_report:'నివేదిక',nav_profile:'ప్రొఫైల్',btn_lang:'🌐 భాష',btn_myqr:'🎫 QR',f_all:'అన్నీ',f_petrol:'⛽ పెట్రోల్',f_diesel:'🛢 డీజిల్',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  te: {header_sub:'ఇంధన లభ్యత వెతకండి',lbl_search:'దగ్గరలో పెట్రోల్ పంపులు',lbl_gps:'GPS వాడండి',pump_section:'దగ్గరలో పెట్రోల్ పంపులు',fuelid_msg:'QR కోడ్ కోసం నమోదు చేయండి.',report_sub:'ఇప్పుడు ఏ ఇంధనం అందుబాటులో ఉంది?',nav_find:'వెతకు',nav_qr:'నా QR',nav_report:'నివేదిక',nav_profile:'ప్రొఫైల్',btn_lang:'🌐 భాష',btn_myqr:'🎫 QR',f_all:'అన్నీ',f_petrol:'⛽ పెట్రోల్',f_diesel:'🛢 డీజిల్',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'పంపులు మీ దగ్గర దాచబడ్డాయి', hidden_sub:'పైన చూపిన 2 పంపులకు బదులుగా అన్ని సమీప పంపులను చూడటానికి సభ్యత్వం తీసుకోండి', hidden_btn:'సభ్యత్వం తీసుకోండి'},
     fuelid_title_pre:'⚠️ ఇప్పుడే నమోదు చేయండి — ధృవీకరణ మోడ్ యాక్టివ్!',
     fuelid_msg_pre:'⚠️ హెచ్చరిక — త్వరలో ధృవీకరణ అవసరం. ఇప్పుడే Fuel ID కోసం నమోదు చేయండి! సంక్షోభంలో QR ఉన్నవారికి ముందు ఇంధనం.',
@@ -568,7 +568,7 @@ const T = {
     fuelid_title_full:'🚨 ఇంధన సంక్షోభం — Fuel ID తప్పనిసరి!',
     fuelid_msg_full:'🚨 ఇంధన సంక్షోభం — Fuel ID (QR) ఉన్నవారికి మాత్రమే ఇంధనం. QR లేదు = ఇంధనం లేదు. వెంటనే నమోదు చేయండి!',
     report_hint:  'ఇంధన స్థితిని తెలియజేయండి · సమాజానికి సహాయం చేయండి',
-  kn: {header_sub:'ಇಂಧನ ಲಭ್ಯತೆ ಹುಡುಕಿ',lbl_search:'ಹತ್ತಿರದ ಪೆಟ್ರೋಲ್ ಪಂಪ್',lbl_gps:'GPS ಬಳಸಿ',pump_section:'ಹತ್ತಿರದ ಪೆಟ್ರೋಲ್ ಪಂಪ್',fuelid_msg:'QR ಕೋಡ್‌ಗೆ ನೋಂದಾಯಿಸಿ.',report_sub:'ಈಗ ಯಾವ ಇಂಧನ ಲಭ್ಯವಿದೆ?',nav_find:'ಹುಡುಕು',nav_qr:'ನನ್ನ QR',nav_report:'ವರದಿ',nav_profile:'ಪ್ರೊಫೈಲ್',btn_lang:'🌐 ಭಾಷೆ',btn_myqr:'🎫 QR',f_all:'ಎಲ್ಲಾ',f_petrol:'⛽ ಪೆಟ್ರೋಲ್',f_diesel:'🛢 ಡೀಸೆಲ್',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  kn: {header_sub:'ಇಂಧನ ಲಭ್ಯತೆ ಹುಡುಕಿ',lbl_search:'ಹತ್ತಿರದ ಪೆಟ್ರೋಲ್ ಪಂಪ್',lbl_gps:'GPS ಬಳಸಿ',pump_section:'ಹತ್ತಿರದ ಪೆಟ್ರೋಲ್ ಪಂಪ್',fuelid_msg:'QR ಕೋಡ್‌ಗೆ ನೋಂದಾಯಿಸಿ.',report_sub:'ಈಗ ಯಾವ ಇಂಧನ ಲಭ್ಯವಿದೆ?',nav_find:'ಹುಡುಕು',nav_qr:'ನನ್ನ QR',nav_report:'ವರದಿ',nav_profile:'ಪ್ರೊಫೈಲ್',btn_lang:'🌐 ಭಾಷೆ',btn_myqr:'🎫 QR',f_all:'ಎಲ್ಲಾ',f_petrol:'⛽ ಪೆಟ್ರೋಲ್',f_diesel:'🛢 ಡೀಸೆಲ್',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'ಪಂಪ್‌ಗಳು ನಿಮ್ಮ ಹತ್ತಿರ ಮರೆಯಾಗಿವೆ', hidden_sub:'ಮೇಲೆ ತೋರಿಸಿದ 2 ಪಂಪ್‌ಗಳ ಬದಲು ಎಲ್ಲಾ ಹತ್ತಿರದ ಪಂಪ್‌ಗಳನ್ನು ನೋಡಲು ಚಂದಾ ಪಡೆಯಿರಿ', hidden_btn:'ಚಂದಾ ಪಡೆಯಿರಿ'},
     fuelid_title_pre:'⚠️ ಈಗಲೇ ನೋಂದಾಯಿಸಿ — ಪರಿಶೀಲನೆ ಮೋಡ್ ಸಕ್ರಿಯ!',
     fuelid_msg_pre:'⚠️ ಎಚ್ಚರಿಕೆ — ಶೀಘ್ರದಲ್ಲೇ ಪರಿಶೀಲನೆ ಅಗತ್ಯ. ಈಗಲೇ Fuel ID ಗಾಗಿ ನೋಂದಾಯಿಸಿ! ಬಿಕ್ಕಟ್ಟಿನಲ್ಲಿ QR ಉಳ್ಳವರಿಗೆ ಮೊದಲು ಇಂಧನ.',
@@ -577,7 +577,7 @@ const T = {
     fuelid_title_full:'🚨 ಇಂಧನ ಬಿಕ್ಕಟ್ಟು — Fuel ID ಕಡ್ಡಾಯ!',
     fuelid_msg_full:'🚨 ಇಂಧನ ಬಿಕ್ಕಟ್ಟು — Fuel ID (QR) ಉಳ್ಳವರಿಗೆ ಮಾತ್ರ ಇಂಧನ. QR ಇಲ್ಲ = ಇಂಧನ ಇಲ್ಲ. ತಕ್ಷಣ ನೋಂದಾಯಿಸಿ!',
     report_hint:  'ಇಂಧನ ಸ್ಥಿತಿ ತಿಳಿಸಿ · ಸಮುದಾಯಕ್ಕೆ ಸಹಾಯ ಮಾಡಿ',
-  bn: {header_sub:'জ্বালানি প্রাপ্যতা খুঁজুন',lbl_search:'কাছের পেট্রোল পাম্প',lbl_gps:'GPS ব্যবহার করুন',pump_section:'কাছের পেট্রোল পাম্প',fuelid_msg:'QR কোডের জন্য নিবন্ধন করুন।',report_sub:'এখন কোন জ্বালানি পাওয়া যাচ্ছে?',nav_find:'খুঁজুন',nav_qr:'আমার QR',nav_report:'রিপোর্ট',nav_profile:'প্রোফাইল',btn_lang:'🌐 ভাষা',btn_myqr:'🎫 QR',f_all:'সব',f_petrol:'⛽ পেট্রোল',f_diesel:'🛢 ডিজেল',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  bn: {header_sub:'জ্বালানি প্রাপ্যতা খুঁজুন',lbl_search:'কাছের পেট্রোল পাম্প',lbl_gps:'GPS ব্যবহার করুন',pump_section:'কাছের পেট্রোল পাম্প',fuelid_msg:'QR কোডের জন্য নিবন্ধন করুন।',report_sub:'এখন কোন জ্বালানি পাওয়া যাচ্ছে?',nav_find:'খুঁজুন',nav_qr:'আমার QR',nav_report:'রিপোর্ট',nav_profile:'প্রোফাইল',btn_lang:'🌐 ভাষা',btn_myqr:'🎫 QR',f_all:'সব',f_petrol:'⛽ পেট্রোল',f_diesel:'🛢 ডিজেল',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'পাম্পগুলো আপনার কাছে লুকানো আছে', hidden_sub:'উপরে দেখানো মাত্র ২টি পাম্পের পরিবর্তে সব কাছের পাম্প দেখতে সাবস্ক্রাইব করুন', hidden_btn:'সাবস্ক্রাইব করুন'},
     fuelid_title_pre:'⚠️ এখনই নিবন্ধন করুন — যাচাই মোড চালু!',
     fuelid_msg_pre:'⚠️ সতর্কতা — শীঘ্রই যাচাই প্রয়োজন। এখনই Fuel ID এর জন্য নিবন্ধন করুন! সংকটে QR ধারকরা প্রথমে জ্বালানি পাবেন।',
@@ -586,7 +586,7 @@ const T = {
     fuelid_title_full:'🚨 জ্বালানি সংকট — Fuel ID বাধ্যতামূলক!',
     fuelid_msg_full:'🚨 জ্বালানি সংকট — শুধুমাত্র Fuel ID (QR) ধারকরা জ্বালানি পাবেন। QR নেই = জ্বালানি নেই। তাৎক্ষণিক নিবন্ধন করুন!',
     report_hint:  'জ্বালানির অবস্থা জানান · সম্প্রদায়কে সাহায্য করুন',
-  ml: {header_sub:'ഇന്ധനം ലഭ്യത കണ്ടെത്തുക',lbl_search:'അടുത്ത പെട്രോൾ പമ്പ്',lbl_gps:'GPS ഉപയോഗിക്കുക',pump_section:'അടുത്ത പെട്രോൾ പമ്പ്',fuelid_msg:'QR കോഡിനായി രജിസ്റ്റർ ചെയ്യുക.',report_sub:'ഇപ്പോൾ ഏത് ഇന്ധനം ലഭ്യമാണ്?',nav_find:'കണ്ടെത്തുക',nav_qr:'എൻ്റെ QR',nav_report:'റിപ്പോർട്ട്',nav_profile:'പ്രൊഫൈൽ',btn_lang:'🌐 ഭാഷ',btn_myqr:'🎫 QR',f_all:'എല്ലാം',f_petrol:'⛽ പെട്രോൾ',f_diesel:'🛢 ഡീസൽ',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  ml: {header_sub:'ഇന്ധനം ലഭ്യത കണ്ടെത്തുക',lbl_search:'അടുത്ത പെട്രോൾ പമ്പ്',lbl_gps:'GPS ഉപയോഗിക്കുക',pump_section:'അടുത്ത പെട്രോൾ പമ്പ്',fuelid_msg:'QR കോഡിനായി രജിസ്റ്റർ ചെയ്യുക.',report_sub:'ഇപ്പോൾ ഏത് ഇന്ധനം ലഭ്യമാണ്?',nav_find:'കണ്ടെത്തുക',nav_qr:'എൻ്റെ QR',nav_report:'റിപ്പോർട്ട്',nav_profile:'പ്രൊഫൈൽ',btn_lang:'🌐 ഭാഷ',btn_myqr:'🎫 QR',f_all:'എല്ലാം',f_petrol:'⛽ പെട്രോൾ',f_diesel:'🛢 ഡീസൽ',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'പമ്പുകൾ നിങ്ങളുടെ അടുത്ത് മറഞ്ഞിരിക്കുന്നു', hidden_sub:'മുകളിൽ കാണിച്ച 2 പമ്പുകൾക്ക് പകരം എല്ലാ അടുത്തുള്ള പമ്പുകളും കാണാൻ സബ്‌സ്‌ക്രൈബ് ചെയ്യൂ', hidden_btn:'സബ്‌സ്‌ക്രൈബ് ചെയ്യൂ'},
     fuelid_title_pre:'⚠️ ഇപ്പോൾ രജിസ്റ്റർ ചെയ്യൂ — പരിശോധന മോഡ് സജീവം!',
     fuelid_msg_pre:'⚠️ മുന്നറിയിപ്പ് — ഉടൻ പരിശോധന ആവശ്യം. ഇപ്പോൾ Fuel ID ക്ക് രജിസ്റ്റർ ചെയ്യൂ! പ്രതിസന്ധിയിൽ QR ഉള്ളവർക്ക് ആദ്യം ഇന്ധനം.',
@@ -595,7 +595,7 @@ const T = {
     fuelid_title_full:'🚨 ഇന്ധന പ്രതിസന്ധി — Fuel ID നിർബന്ധം!',
     fuelid_msg_full:'🚨 ഇന്ധന പ്രതിസന്ധി — Fuel ID (QR) ഉള്ളവർക്ക് മാത്രം ഇന്ധനം. QR ഇല്ല = ഇന്ധനം ഇല്ല. ഉടൻ രജിസ്റ്റർ ചെയ്യൂ!',
     report_hint:  'ഇന്ധന നില അറിയിക്കൂ · സമൂഹത്തെ സഹായിക്കൂ',
-  or: {header_sub:'ଇନ୍ଧନ ଉପଲବ୍ଧତା ଖୋଜନ୍ତୁ',lbl_search:'ନଜଦୀକ ପେଟ୍ରୋଲ ପମ୍ପ',lbl_gps:'GPS ବ୍ୟବହାର କରନ୍ତୁ',pump_section:'ନଜଦୀକ ପେଟ୍ରୋଲ ପମ୍ପ',fuelid_msg:'QR କୋଡ ପାଇଁ ପଞ୍ଜୀକରଣ କରନ୍ତୁ।',report_sub:'ବର୍ତ୍ତମାନ କେଉଁ ଇନ୍ଧନ ଉପଲବ୍ଧ?',nav_find:'ଖୋଜ',nav_qr:'ମୋ QR',nav_report:'ରିପୋର୍ଟ',nav_profile:'ପ୍ରୋଫାଇଲ',btn_lang:'🌐 ଭାଷା',btn_myqr:'🎫 QR',f_all:'ସମସ୍ତ',f_petrol:'⛽ ପେଟ୍ରୋଲ',f_diesel:'🛢 ଡିଜେଲ',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  or: {header_sub:'ଇନ୍ଧନ ଉପଲବ୍ଧତା ଖୋଜନ୍ତୁ',lbl_search:'ନଜଦୀକ ପେଟ୍ରୋଲ ପମ୍ପ',lbl_gps:'GPS ବ୍ୟବହାର କରନ୍ତୁ',pump_section:'ନଜଦୀକ ପେଟ୍ରୋଲ ପମ୍ପ',fuelid_msg:'QR କୋଡ ପାଇଁ ପଞ୍ଜୀକରଣ କରନ୍ତୁ।',report_sub:'ବର୍ତ୍ତମାନ କେଉଁ ଇନ୍ଧନ ଉପଲବ୍ଧ?',nav_find:'ଖୋଜ',nav_qr:'ମୋ QR',nav_report:'ରିପୋର୍ଟ',nav_profile:'ପ୍ରୋଫାଇଲ',btn_lang:'🌐 ଭାଷା',btn_myqr:'🎫 QR',f_all:'ସମସ୍ତ',f_petrol:'⛽ ପେଟ୍ରୋଲ',f_diesel:'🛢 ଡିଜେଲ',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'ପମ୍ପଗୁଡ଼ିକ ଆପଣଙ୍କ ପାଖରେ ଲୁଚି ଅଛି', hidden_sub:'ଉପରେ ଦେଖାଯାଇଥିବା 2 ପମ୍ପ ପରିବର୍ତ୍ତେ ସମସ୍ତ ନିକଟସ୍ଥ ପମ୍ପ ଦେଖିବାକୁ ସଦସ୍ୟ ହୁଅନ୍ତୁ', hidden_btn:'ସଦସ୍ୟ ହୁଅନ୍ତୁ'},
     fuelid_title_pre:'⚠️ ଏବେ ପଞ୍ଜୀକରଣ କରନ୍ତୁ — ଯାଞ୍ଚ ମୋଡ ଚାଲୁ!',
     fuelid_msg_pre:'⚠️ ସତର୍କତା — ଶୀଘ୍ର ଯାଞ୍ଚ ଆବଶ୍ୟକ. ଏବେ Fuel ID ପାଇଁ ପଞ୍ଜୀକରଣ କରନ୍ତୁ! ସଂକଟରେ QR ଧାରକଙ୍କୁ ପ୍ରଥମ ଇନ୍ଧନ.',
@@ -604,7 +604,7 @@ const T = {
     fuelid_title_full:'🚨 ଇନ୍ଧନ ସଂକଟ — Fuel ID ଆବଶ୍ୟକ!',
     fuelid_msg_full:'🚨 ଇନ୍ଧନ ସଂକଟ — କେବଳ Fuel ID (QR) ଧାରକଙ୍କୁ ଇନ୍ଧନ. QR ନାହିଁ = ଇନ୍ଧନ ନାହିଁ. ତୁରନ୍ତ ପଞ୍ଜୀକରଣ କରନ୍ତୁ!',
     report_hint:  'ଇନ୍ଧନ ସ୍ଥିତି ଜଣାନ୍ତୁ · ସମୁଦାୟକୁ ସାହାଯ୍ୟ କରନ୍ତୁ',
-  ur: {header_sub:'ایندھن کی دستیابی تلاش کریں',lbl_search:'قریبی پیٹرول پمپ تلاش کریں',lbl_gps:'GPS استعمال کریں',pump_section:'قریبی پیٹرول پمپ',fuelid_msg:'QR کوڈ کے لیے رجسٹر کریں۔',report_sub:'ابھی کون سا ایندھن دستیاب ہے؟',nav_find:'تلاش',nav_qr:'میرا QR',nav_report:'رپورٹ',nav_profile:'پروفائل',btn_lang:'🌐 زبان',btn_myqr:'🎫 QR',f_all:'سب',f_petrol:'⛽ پیٹرول',f_diesel:'🛢 ڈیزل',f_cng:'🔥 CNG',f_ev:'⚡ EV',
+  ur: {header_sub:'ایندھن کی دستیابی تلاش کریں',lbl_search:'قریبی پیٹرول پمپ تلاش کریں',lbl_gps:'GPS استعمال کریں',pump_section:'قریبی پیٹرول پمپ',fuelid_msg:'QR کوڈ کے لیے رجسٹر کریں۔',report_sub:'ابھی کون سا ایندھن دستیاب ہے؟',nav_find:'تلاش',nav_qr:'میرا QR',nav_report:'رپورٹ',nav_profile:'پروفائل',btn_lang:'🌐 زبان',btn_myqr:'🎫 QR',f_all:'سب',f_petrol:'⛽ پیٹرول',f_diesel:'🛢 ڈیزل',f_cng:'🍃 CNG',f_ev:'⚡ EV',
     hidden_title:'پمپ آپ کے قریب چھپے ہوئے ہیں', hidden_sub:'اوپر دکھائے گئے صرف 2 پمپس کی بجائے تمام قریبی پمپس دیکھنے کے لیے سبسکرائب کریں', hidden_btn:'سبسکرائب کریں'},
     fuelid_title_pre:'⚠️ ابھی رجسٹر کریں — تصدیق موڈ فعال!',
     fuelid_msg_pre:'⚠️ خبردار — جلد تصدیق ضروری. ابھی Fuel ID کے لیے رجسٹر کریں! بحران میں QR والوں کو پہلے ایندھن ملے گا۔',
@@ -630,7 +630,7 @@ let LANG = localStorage.getItem('indhan_lang') || 'en';
 async function checkApplicantFlagStatus() {
   try {
     const r = await fetch('/api/applicant/flag-status', {
-      headers: { 'Authorization': 'Bearer ' + TOKEN }
+      headers: { 'x-auth-token': TOKEN }
     });
     if(!r.ok) return;
     const d = await r.json();
@@ -1438,9 +1438,9 @@ function renderPumps(pumpsRaw, isPremium, price){
     const pId   = p.id || 0;
     const isCNGStation = p.category === 'cng';
     return `<div class="pump-card${isV?(isCNGStation?' cng-verified':' verified'):''}" data-pump-id="${pId}">
-      ${isV ? (isCNGStation ? `<div class="cng-badge">🔥 IndhanShodhak Verified CNG</div>` : `<div class="verified-badge">✅ IndhanShodhak Verified Pump</div>`) : ''}
+      ${isV ? (isCNGStation ? `<div class="cng-badge">🍃 IndhanShodhak Verified CNG</div>` : `<div class="verified-badge">✅ IndhanShodhak Verified Pump</div>`) : ''}
       <div class="pump-top">
-        <div class="pump-name">${isV?(isCNGStation?'🔥':'🟢'):'⚫'} ${p.name||'Unknown Pump'}</div>
+        <div class="pump-name">${isV?(isCNGStation?'🍃':'🟢'):'⚫'} ${p.name||'Unknown Pump'}</div>
         <div class="pump-status" style="color:${open?'#2e7d32':'#888'}">${open?'● OPEN':'⚫ NO STOCK'}</div>
       </div>
       <div class="pump-addr">📍 ${p.address||''} ${p.district?'· '+p.district:''} ${p.pin_code?'· '+p.pin_code:''}</div>
@@ -1648,7 +1648,7 @@ function updateMapMarkers(pumps){
     if(!p.lat||!p.lng) return;
     // Category-based coloring: CNG=orange, EV=blue, fuel=oil-company color (existing behavior)
     let col, emoji;
-    if(p.category === 'cng'){ col = '#e65100'; emoji = '🔥'; }
+    if(p.category === 'cng'){ col = '#2e7d32'; emoji = '🍃'; }
     else if(p.category === 'ev'){ col = '#1565c0'; emoji = '⚡'; }
     else { col = colors[p.oil_company]||colors['Other']; emoji = '⛽'; }
     const icon=L.divIcon({className:'',

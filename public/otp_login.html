@@ -81,6 +81,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .role-pump:hover{background:#ffe0b2;border-color:#e65100}
 .role-govt{background:#e3f2fd;border-color:#90caf9;color:#1565c0}
 .role-govt:hover{background:#bbdefb;border-color:#1565c0}
+.role-verify{background:#f3e5f5;border-color:#ce93d8;color:#7b1fa2}
+.role-verify:hover{background:#e1bee7;border-color:#7b1fa2}
 .role-icon{font-size:26px;flex-shrink:0}
 .role-text-title{font-size:14px;font-weight:700;display:block}
 .role-text-sub{font-size:11px;opacity:.8;display:block;margin-top:1px}
@@ -250,6 +252,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             🏛️ Govt Login
           </button>
           <div class="role-err" id="govt-err"></div>
+        </div>
+
+        <!-- Document Verifier / Enrollment Agent — Big Button -->
+        <button class="role-btn role-verify" onclick="toggleRole('verify')">
+          <span class="role-icon">🪪</span>
+          <div style="flex:1">
+            <span class="role-text-title">Document Verifier / Enrollment Agent</span>
+            <span class="role-text-sub">Verify documents · Enroll pumps in field</span>
+          </div>
+          <span class="role-arrow" id="arr-verify">▼</span>
+        </button>
+        <div class="role-expand" id="expand-verify" style="border-color:#ce93d8">
+          <input class="role-input" id="verify-id" type="text" placeholder="Login ID"
+            onfocus="this.style.borderColor='#7b1fa2'" onblur="this.style.borderColor='#e0e0e0'">
+          <div style="position:relative">
+            <input class="role-input" id="verify-pwd" type="password" placeholder="Password"
+              onfocus="this.style.borderColor='#7b1fa2'" onblur="this.style.borderColor='#e0e0e0'"
+              onkeypress="if(event.key==='Enter')roleLogin('verify')"
+              style="padding-right:40px;width:100%;box-sizing:border-box">
+            <span onclick="toggleEye('verify-pwd','verify-eye')" id="verify-eye"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;color:#aaa">👁️</span>
+          </div>
+          <button class="role-login-btn" style="background:#7b1fa2" onclick="roleLogin('verify')">
+            🪪 Login
+          </button>
+          <div class="role-err" id="verify-err"></div>
         </div>
 
       </div><!-- end step1 -->
@@ -453,7 +481,7 @@ function hideErr(id){document.getElementById(id).style.display='none';}
 
 // Toggle role expand
 function toggleRole(r){
-  ['pump','govt'].forEach(x=>{
+  ['pump','govt','verify'].forEach(x=>{
     const exp=document.getElementById('expand-'+x);
     const arr=document.getElementById('arr-'+x);
     if(x===r){
@@ -488,6 +516,7 @@ async function roleLogin(r){
       if(d.role==='pump_owner') window.location.replace('/pump-owner');
       else if(d.role==='govt_official') window.location.replace('/govt');
       else if(d.role==='doc_verifier') window.location.replace('/verify');
+      else if(d.role==='enrollment_agent') window.location.replace('/agent');
       else if(d.role==='super_admin') window.location.replace('/admin');
       else window.location.replace('/app');
     } else {

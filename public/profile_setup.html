@@ -105,10 +105,59 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="qrCodeText" style="font-size:24px;font-weight:800;letter-spacing:5px;color:#fff;font-family:monospace">—</div>
       <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px">Type this code at pump if QR scan fails</div>
     </div>
-    <button class="download-btn" id="downloadBtn" onclick="downloadQR()">⬇️ Save QR to Phone</button>
     <div class="upgrade-hint" id="upgradeHint">
       ⬆️ Apply for higher priority below to increase fuel limit<br>
       P4 Farmer → 30L · P3 Transport → 50L · P2 Doctor → 20L · P1 Emergency → Full Tank
+    </div>
+  </div>
+
+  <!-- APPLICANT PROGRESS — only shown if this user's QR code matches a
+       career application. Hidden by default; JS reveals it after checking. -->
+  <div class="card" id="applicantCard" style="display:none">
+    <div class="card-title">🚀 Your Job Application</div>
+    <div style="background:#f8f9fb;border-radius:10px;padding:14px;margin-bottom:14px">
+      <table style="width:100%;font-size:13px;color:#333;border-collapse:collapse">
+        <tr><td style="padding:3px 0;color:#888;width:110px">Application No.</td><td style="padding:3px 0;font-weight:600" id="ap-appno">—</td></tr>
+        <tr><td style="padding:3px 0;color:#888">Date</td><td style="padding:3px 0;font-weight:600" id="ap-date">—</td></tr>
+        <tr><td style="padding:3px 0;color:#888">Region</td><td style="padding:3px 0;font-weight:600" id="ap-region">—</td></tr>
+        <tr><td style="padding:3px 0;color:#888">Interview Mode</td><td style="padding:3px 0;font-weight:600" id="ap-mode">—</td></tr>
+      </table>
+    </div>
+
+    <div id="ap-reportBanner" style="display:none;padding:10px 14px;border-radius:10px;font-size:12.5px;margin-bottom:14px;line-height:1.6"></div>
+
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#555;margin-bottom:6px">
+        <span>Pumps Verified</span>
+        <span id="ap-progress-txt" style="font-weight:700">0 of 3</span>
+      </div>
+      <div style="background:#eee;border-radius:10px;height:10px;overflow:hidden">
+        <div id="ap-progress-bar" style="background:linear-gradient(90deg,#FF9933,#22c55e);height:100%;width:0%;transition:width .5s ease;border-radius:10px"></div>
+      </div>
+    </div>
+
+    <!-- Below 3 pumps: just the tracker above. At 3+, this unlocks: -->
+    <div id="ap-eligible-section" style="display:none">
+      <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px;margin-bottom:14px;text-align:center">
+        <div style="font-size:13px;font-weight:700;color:#1a6b2e" id="ap-percentile">—</div>
+        <div style="font-size:10.5px;color:#666;margin-top:4px">Ranking is indicative only. Final job selection is at IndhanShodhak's sole discretion and may consider factors beyond pump count.</div>
+      </div>
+
+      <div id="ap-claim-form">
+        <div class="card-title" style="font-size:14px">💰 Claim Your Bonus</div>
+        <div class="form-group">
+          <label class="form-label">UPI-Linked Mobile Number</label>
+          <input class="form-input" type="tel" id="ap-upi-mobile" maxlength="10" placeholder="10-digit mobile">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Registered Name (as per UPI)</label>
+          <input class="form-input" type="text" id="ap-upi-name" placeholder="Full name on your UPI account">
+        </div>
+        <div id="ap-claim-msg" style="font-size:12px;margin-bottom:10px"></div>
+        <button class="form-submit" onclick="claimBonus()" id="ap-claim-btn">💰 Claim Bonus</button>
+      </div>
+
+      <div id="ap-claim-status" style="display:none;background:#e8f5e9;border-radius:10px;padding:12px;font-size:13px;color:#1a6b2e;text-align:center"></div>
     </div>
   </div>
 
@@ -706,19 +755,6 @@ async function applyTier(){
 }
 
 // ══════════════════════════════════════════
-// DOWNLOAD QR
-// ══════════════════════════════════════════
-function downloadQR(){
-  const canvas = document.querySelector('#qrCanvas canvas');
-  if(!canvas){ alert('Generate QR first'); return; }
-  const img = canvas.toDataURL('image/png');
-  const a = document.createElement('a');
-  a.href = img;
-  a.download = 'IndhanShodhak_FuelID_' + (currentTier) + '.png';
-  a.click();
-}
-
-// ══════════════════════════════════════════
 // LOAD PROFILE ON OPEN
 // ══════════════════════════════════════════
 async function loadProfile(){
@@ -780,6 +816,89 @@ async function loadProfile(){
 
 loadTierLimits();
 loadProfile();
+loadApplicantDashboard();
+
+// ── Career Applicant Progress (Profile page) ──────────────────────────
+async function loadApplicantDashboard() {
+  if(!TOKEN) return;
+  try {
+    const r = await fetch('/api/applicant/dashboard', { headers: { 'x-auth-token': TOKEN } });
+    if(!r.ok) return;
+    const d = await r.json();
+    if(!d.tracked) return; // not a career applicant — leave card hidden
+
+    document.getElementById('applicantCard').style.display = 'block';
+    document.getElementById('ap-appno').textContent  = d.app_no;
+    document.getElementById('ap-date').textContent   = d.applied_date;
+    document.getElementById('ap-region').textContent = d.region;
+    document.getElementById('ap-mode').textContent    = d.interview_mode;
+
+    const pct = Math.min(100, Math.round((d.verified_pumps / 3) * 100));
+    document.getElementById('ap-progress-txt').textContent = `${d.verified_pumps} of 3`;
+    document.getElementById('ap-progress-bar').style.width = pct + '%';
+
+    // Reporting status banner
+    const banner = document.getElementById('ap-reportBanner');
+    const reportMsgs = {
+      warned:       { bg:'#fff8e1', color:'#7a5b00', text:'⚠️ 3 of your recent reports were flagged as inaccurate. Continued false reporting will get you delisted.' },
+      suspended:    { bg:'#ffebee', color:'#7a1010', text:'🚫 Your account is currently suspended due to repeated inaccurate reporting.' },
+      disqualified: { bg:'#eceff1', color:'#37474f', text:'❌ Disqualified from the current enrollment process due to repeated false reporting.' },
+    };
+    if(reportMsgs[d.report_status]) {
+      const m = reportMsgs[d.report_status];
+      banner.style.background = m.bg; banner.style.color = m.color;
+      banner.textContent = m.text;
+      banner.style.display = 'block';
+    }
+
+    if(d.eligible) {
+      document.getElementById('ap-eligible-section').style.display = 'block';
+      document.getElementById('ap-percentile').textContent =
+        d.percentile_band ? `🏆 You're in the ${d.percentile_band} of applicants` : '📈 Keep it up — standings update as more people register pumps';
+
+      if(d.claim) {
+        // Already claimed — show status instead of the form
+        document.getElementById('ap-claim-form').style.display = 'none';
+        const statusEl = document.getElementById('ap-claim-status');
+        statusEl.style.display = 'block';
+        statusEl.textContent = d.claim.status === 'paid'
+          ? `✅ Bonus of ₹${d.claim.amount} paid!`
+          : `⏳ Bonus claim of ₹${d.claim.amount} submitted — under review.`;
+      }
+    }
+  } catch(e) { /* silent fail */ }
+}
+
+async function claimBonus() {
+  const mobile = document.getElementById('ap-upi-mobile').value.trim();
+  const name   = document.getElementById('ap-upi-name').value.trim();
+  const msgEl  = document.getElementById('ap-claim-msg');
+  msgEl.style.color = '#b71c1c';
+  if(mobile.length !== 10) { msgEl.textContent = 'Enter valid 10-digit UPI mobile number'; return; }
+  if(!name) { msgEl.textContent = 'Enter your registered UPI name'; return; }
+
+  const btn = document.getElementById('ap-claim-btn');
+  btn.disabled = true; btn.textContent = '⏳ Submitting...';
+  try {
+    const r = await fetch('/api/applicant/claim-bonus', {
+      method: 'POST', headers: { 'x-auth-token': TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ upi_mobile: mobile, upi_name: name }),
+    });
+    const d = await r.json();
+    if(d.success) {
+      document.getElementById('ap-claim-form').style.display = 'none';
+      const statusEl = document.getElementById('ap-claim-status');
+      statusEl.style.display = 'block';
+      statusEl.textContent = `⏳ Bonus claim of ₹${d.amount} submitted for ${d.pumps} pumps — under review.`;
+    } else {
+      msgEl.textContent = d.error || 'Claim failed';
+      btn.disabled = false; btn.textContent = '💰 Claim Bonus';
+    }
+  } catch(e) {
+    msgEl.textContent = 'Network error, try again';
+    btn.disabled = false; btn.textContent = '💰 Claim Bonus';
+  }
+}
 
 // ── Load Points on Profile Page ───────────────────────────────────────
 async function loadProfilePoints() {

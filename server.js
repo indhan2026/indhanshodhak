@@ -392,6 +392,19 @@ async function initDB() {
       reapply_after     TEXT,
       updated_at        TEXT DEFAULT (datetime('now'))
     )`,
+    // ── Career applicant bonus claims — ₹100/fuel pump, ₹200/CNG pump ──
+    `CREATE TABLE IF NOT EXISTS bonus_claims (
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      qr_code            TEXT NOT NULL,
+      applicant_name     TEXT NOT NULL,
+      upi_mobile         TEXT NOT NULL,
+      upi_name           TEXT NOT NULL,
+      pumps_at_claim     INTEGER NOT NULL,
+      amount             INTEGER NOT NULL,
+      status             TEXT NOT NULL DEFAULT 'pending',
+      claimed_at         TEXT DEFAULT (datetime('now')),
+      paid_at            TEXT
+    )`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -2079,6 +2092,101 @@ app.get('/api/applicant/flag-status', requireAuth(), (req, res) => {
     tracked: true, show_banner: showBanner, status,
     suspended_until: flag.suspended_until, reapply_after: flag.reapply_after,
   });
+});
+
+// Consolidated applicant dashboard for the Profile page — one call returns
+// application summary, verified-pump progress, reporting status, and (once
+// eligible) the percentile band. Only ever shows the logged-in user's OWN
+// data — never anyone else's.
+app.get('/api/applicant/dashboard', requireAuth(), (req, res) => {
+  const user = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
+  if(!user?.user_code) return res.json({ tracked: false });
+
+  const application = dbGet(
+    `SELECT id, full_name, region, interview_mode, applied_at
+     FROM job_applications WHERE qr_code=? ORDER BY id DESC LIMIT 1`, [user.user_code]);
+  if(!application) return res.json({ tracked: false });
+
+  const appNo = 'IS-CAR-' + String(application.id).padStart(6, '0');
+  const appliedDate = new Date(application.applied_at + 'Z').toLocaleDateString('en-IN',
+    { day:'2-digit', month:'long', year:'numeric' });
+
+  // Only admin-approved (is_verified=1) pumps count — matches the "only
+  // admin-approved pumps count toward bonus, no gaming the AI stage" rule.
+  const verifiedPumps = dbAll(
+    `SELECT category FROM petrol_pumps WHERE career_qr_referral=? AND is_verified=1`, [user.user_code]);
+  const verifiedCount = verifiedPumps.length;
+  const eligible = verifiedCount >= 3;
+
+  // Reporting status (same logic as /api/applicant/flag-status)
+  const flag = dbGet('SELECT * FROM applicant_report_flags WHERE qr_code=?', [user.user_code]);
+  let reportStatus = 'good';
+  if(flag) {
+    let status = flag.status;
+    if(status === 'suspended' && flag.suspended_until && new Date(flag.suspended_until) <= new Date()) status = 'post_suspension';
+    if(['warned','suspended','disqualified'].includes(status)) reportStatus = status;
+  }
+
+  // Percentile band — only computed once eligible, and only ever shown as a
+  // band (never an exact rank number) with the discretion disclaimer.
+  let percentileBand = null;
+  if(eligible) {
+    const allCounts = dbAll(`
+      SELECT ja.qr_code, COUNT(pp.id) as cnt
+      FROM job_applications ja
+      LEFT JOIN petrol_pumps pp ON pp.career_qr_referral = ja.qr_code AND pp.is_verified = 1
+      GROUP BY ja.qr_code
+    `);
+    const total = allCounts.length;
+    const better = allCounts.filter(a => a.cnt > verifiedCount).length;
+    const percentile = total > 0 ? Math.round((better / total) * 100) : 0;
+    percentileBand = percentile <= 10 ? 'Top 10%' : percentile <= 25 ? 'Top 25%' : percentile <= 50 ? 'Top 50%' : null;
+  }
+
+  const existingClaim = dbGet(
+    `SELECT status, amount, claimed_at FROM bonus_claims WHERE qr_code=? ORDER BY id DESC LIMIT 1`, [user.user_code]);
+
+  res.json({
+    tracked: true,
+    app_no: appNo,
+    applied_date: appliedDate,
+    region: application.region,
+    interview_mode: application.interview_mode,
+    verified_pumps: verifiedCount,
+    eligible,
+    report_status: reportStatus,
+    percentile_band: percentileBand,
+    claim: existingClaim || null,
+  });
+});
+
+app.post('/api/applicant/claim-bonus', requireAuth(), (req, res) => {
+  const { upi_mobile, upi_name } = req.body;
+  if(!upi_mobile || upi_mobile.length !== 10) return res.status(400).json({ error: 'Valid 10-digit UPI-linked mobile required' });
+  if(!upi_name || !upi_name.trim()) return res.status(400).json({ error: 'Registered UPI name required' });
+
+  const user = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
+  if(!user?.user_code) return res.status(403).json({ error: 'Not eligible' });
+
+  const application = dbGet('SELECT full_name FROM job_applications WHERE qr_code=? ORDER BY id DESC LIMIT 1', [user.user_code]);
+  if(!application) return res.status(403).json({ error: 'No job application found for this QR code' });
+
+  const verifiedPumps = dbAll(
+    `SELECT category FROM petrol_pumps WHERE career_qr_referral=? AND is_verified=1`, [user.user_code]);
+  if(verifiedPumps.length < 3)
+    return res.status(400).json({ error: `Need at least 3 admin-approved pumps to claim (you have ${verifiedPumps.length})` });
+
+  const existing = dbGet(`SELECT id FROM bonus_claims WHERE qr_code=? AND status IN ('pending','paid')`, [user.user_code]);
+  if(existing) return res.status(409).json({ error: 'A bonus claim already exists for this QR code' });
+
+  // ₹100 per fuel/petrol/diesel pump, ₹200 per CNG pump
+  const amount = verifiedPumps.reduce((sum, p) => sum + (p.category === 'cng' ? 200 : 100), 0);
+
+  dbRun(`INSERT INTO bonus_claims (qr_code, applicant_name, upi_mobile, upi_name, pumps_at_claim, amount)
+         VALUES (?,?,?,?,?,?)`,
+    [user.user_code, application.full_name, upi_mobile, upi_name.trim(), verifiedPumps.length, amount]);
+
+  res.json({ success: true, amount, pumps: verifiedPumps.length });
 });
 
 app.post('/api/careers/apply', (req, res) => {
