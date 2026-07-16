@@ -380,6 +380,18 @@ async function initDB() {
     // two referral programs never collide or get mixed up in reporting.
     `ALTER TABLE pump_applications ADD COLUMN career_qr_referral TEXT`,
     `ALTER TABLE petrol_pumps ADD COLUMN career_qr_referral TEXT`,
+    // ── Career applicant false-report tracking & escalation ──
+    `CREATE TABLE IF NOT EXISTS applicant_report_flags (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      qr_code           TEXT NOT NULL UNIQUE,
+      consecutive_false INTEGER NOT NULL DEFAULT 0,
+      total_false       INTEGER NOT NULL DEFAULT 0,
+      status            TEXT NOT NULL DEFAULT 'active',
+      suspended_until   TEXT,
+      disqualified_at   TEXT,
+      reapply_after     TEXT,
+      updated_at        TEXT DEFAULT (datetime('now'))
+    )`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -1793,7 +1805,32 @@ app.post('/api/reports/submit', requireAuth(), (req,res) => {
   if (!pump) return res.status(404).json({ error:'Pump not found' });
   if (req.user.role==='pump_owner' && pump.owner_user_id!==req.user.id)
     return res.status(403).json({ error:'You can only update your own pump' });
+
+  // ── Career applicant false-report check (only affects users whose QR
+  // code matches a job application — everyone else is untouched) ──
+  const reporterUser = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
+  const isApplicant = reporterUser?.user_code
+    ? dbGet('SELECT id FROM job_applications WHERE qr_code=?', [reporterUser.user_code])
+    : null;
+  if(isApplicant) {
+    const flagRow = getApplicantFlagRow(reporterUser.user_code);
+    if(flagRow.status === 'suspended' && flagRow.suspended_until && new Date(flagRow.suspended_until) > new Date()) {
+      return res.status(403).json({
+        error: `Your account is suspended until ${new Date(flagRow.suspended_until).toLocaleString('en-IN')} due to repeated inaccurate reporting.`
+      });
+    }
+  }
+
   const hrs = parseInt(req.user.role==='pump_owner' ? getSetting('report_expiry_owner') : getSetting('report_expiry_user'));
+  const reportedFields = { petrol: petrol?1:0, diesel: diesel?1:0, cng: cng?1:0, ev: ev?1:0 };
+
+  // Run the comparison BEFORE inserting this report, so it's judged against
+  // what existed already — not against itself.
+  if(isApplicant) {
+    const isFalse = checkApplicantReportAccuracy(pump_id, reportedFields);
+    if(isFalse !== null) processApplicantReportResult(reporterUser.user_code, isFalse);
+  }
+
   dbRun(`INSERT INTO fuel_reports (pump_id,reported_by,reporter_role,petrol,diesel,cng,ev,queue_length,restock_note,expires_at)
          VALUES (?,?,?,?,?,?,?,?,?,datetime('now','+${hrs} hours'))`,
     [pump_id,req.user.id,req.user.role,petrol?1:0,diesel?1:0,cng?1:0,ev?1:0,queue_length||'none',restock_note||null]);
@@ -1920,6 +1957,130 @@ function findUserByCode(raw) {
   return dbGet('SELECT id, name, mobile FROM users WHERE user_code=?', [code]);
 }
 
+// ══════════════════════════════════════════════════════════════
+// CAREER APPLICANT FALSE-REPORT DETECTION & ESCALATION
+// ══════════════════════════════════════════════════════════════
+// Only applies to users whose OWN QR code (user_code) matches a qr_code on
+// a job_applications row — i.e. they applied for the Field Verifier role
+// and are doing their 3-pump work-sample. Regular public reporting is
+// completely untouched by any of this.
+
+function getApplicantFlagRow(qrCode) {
+  dbRun(`INSERT OR IGNORE INTO applicant_report_flags (qr_code) VALUES (?)`, [qrCode]);
+  return dbGet(`SELECT * FROM applicant_report_flags WHERE qr_code=?`, [qrCode]);
+}
+
+// Compares a freshly-submitted report's fuel-availability fields against the
+// most authoritative other report on the same pump within the last 2 hours.
+// Pump owner's own report wins if one exists in that window; otherwise falls
+// back to any other user's report. Returns true (false report) / false
+// (matches) / null (nothing to compare against yet — not judged either way).
+function checkApplicantReportAccuracy(pumpId, reportedFields) {
+  const ownerRow = dbGet(
+    `SELECT petrol,diesel,cng,ev FROM fuel_reports
+     WHERE pump_id=? AND reporter_role='pump_owner' AND created_at >= datetime('now','-2 hours')
+     ORDER BY created_at DESC LIMIT 1`, [pumpId]);
+  const compareRow = ownerRow || dbGet(
+    `SELECT petrol,diesel,cng,ev FROM fuel_reports
+     WHERE pump_id=? AND created_at >= datetime('now','-2 hours')
+     ORDER BY created_at DESC LIMIT 1`, [pumpId]);
+  if(!compareRow) return null;
+  return (reportedFields.petrol !== compareRow.petrol) ||
+         (reportedFields.diesel !== compareRow.diesel) ||
+         (reportedFields.cng    !== compareRow.cng)    ||
+         (reportedFields.ev     !== compareRow.ev);
+}
+
+function sendApplicantEscalationEmail(qrCode, stage) {
+  const applicant = dbGet(`SELECT full_name, email FROM job_applications WHERE qr_code=? ORDER BY id DESC LIMIT 1`, [qrCode]);
+  if(!applicant?.email) return;
+  const subjects = {
+    warned:       '⚠️ IndhanShodhak — Reporting Accuracy Warning',
+    suspended:    '🚫 IndhanShodhak — Account Suspended (24 Hours)',
+    disqualified: '❌ IndhanShodhak — Enrollment Application Disqualified',
+  };
+  const bodies = {
+    warned: `<p>Dear ${applicant.full_name},</p>
+      <p>3 of your recent fuel reports did not match the pump owner's or other verifiers' data for the same pump and time window.</p>
+      <p><b>Continued false reporting will result in delisting from the qualifying list for the Field Verifier role.</b></p>
+      <p>Please make sure you're reporting accurate, real-time fuel availability only.</p>`,
+    suspended: `<p>Dear ${applicant.full_name},</p>
+      <p>Following the earlier warning, another inaccurate report was detected. Your account has been <b>suspended for 24 hours</b> — you won't be able to submit fuel reports during this window.</p>
+      <p>Reporting will resume automatically after the suspension period. Please ensure accuracy going forward.</p>`,
+    disqualified: `<p>Dear ${applicant.full_name},</p>
+      <p>Repeated inaccurate reporting was detected again after your suspension period. You have been <b>disqualified from the current enrollment process</b>.</p>
+      <p>You're welcome to reapply after 3 days with a fresh commitment to accurate reporting.</p>`,
+  };
+  sendEmail(applicant.email, subjects[stage], `<div style="font-family:sans-serif;font-size:14px;color:#333;line-height:1.6">${bodies[stage]}</div>`);
+}
+
+// Runs after a report is saved. Updates the applicant's flag state and fires
+// escalation actions (email, status change) per the ladder:
+//   3 consecutive false            → warned
+//   1 more false after warned      → suspended 24h
+//   3 more false after suspension  → disqualified, 3-day reapply cooldown
+// The master toggle only gates the escalation ACTIONS — comparison and
+// counting always run quietly in the background regardless, so no history
+// is lost if the feature gets paused and re-enabled later.
+function processApplicantReportResult(qrCode, isFalse) {
+  let row = getApplicantFlagRow(qrCode);
+
+  // Resume from suspension once the window has passed
+  if(row.status === 'suspended' && row.suspended_until && new Date(row.suspended_until) <= new Date()) {
+    dbRun(`UPDATE applicant_report_flags SET status='post_suspension', consecutive_false=0 WHERE qr_code=?`, [qrCode]);
+    row = getApplicantFlagRow(qrCode);
+  }
+  if(row.status === 'disqualified') return;
+
+  if(!isFalse) {
+    dbRun(`UPDATE applicant_report_flags SET consecutive_false=0, updated_at=datetime('now') WHERE qr_code=?`, [qrCode]);
+    return;
+  }
+
+  const newConsecutive = row.consecutive_false + 1;
+  const newTotalFalse  = row.total_false + 1;
+  dbRun(`UPDATE applicant_report_flags SET consecutive_false=?, total_false=?, updated_at=datetime('now') WHERE qr_code=?`,
+    [newConsecutive, newTotalFalse, qrCode]);
+
+  const enabled = getSetting('false_report_warnings_enabled') !== '0';
+  if(!enabled) return; // paused — counted above, but no escalation action taken
+
+  if(row.status === 'active' && newConsecutive >= 3) {
+    dbRun(`UPDATE applicant_report_flags SET status='warned' WHERE qr_code=?`, [qrCode]);
+    sendApplicantEscalationEmail(qrCode, 'warned');
+  } else if(row.status === 'warned' && newConsecutive >= 4) {
+    const suspendUntil = new Date(Date.now() + 24*3600*1000).toISOString();
+    dbRun(`UPDATE applicant_report_flags SET status='suspended', suspended_until=?, consecutive_false=0 WHERE qr_code=?`,
+      [suspendUntil, qrCode]);
+    sendApplicantEscalationEmail(qrCode, 'suspended');
+  } else if(row.status === 'post_suspension' && newConsecutive >= 3) {
+    const reapplyAfter = new Date(Date.now() + 72*3600*1000).toISOString();
+    dbRun(`UPDATE applicant_report_flags SET status='disqualified', disqualified_at=datetime('now'), reapply_after=? WHERE qr_code=?`,
+      [reapplyAfter, qrCode]);
+    sendApplicantEscalationEmail(qrCode, 'disqualified');
+  }
+}
+
+// Personal status check — only ever shows an applicant THEIR OWN status, never anyone else's
+app.get('/api/applicant/flag-status', requireAuth(), (req, res) => {
+  const user = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
+  if(!user?.user_code) return res.json({ tracked: false });
+  const isApplicant = dbGet('SELECT id FROM job_applications WHERE qr_code=?', [user.user_code]);
+  if(!isApplicant) return res.json({ tracked: false });
+
+  const enabled = getSetting('false_report_warnings_enabled') !== '0';
+  const flag = dbGet('SELECT * FROM applicant_report_flags WHERE qr_code=?', [user.user_code]);
+  if(!enabled || !flag) return res.json({ tracked: true, show_banner: false });
+
+  let status = flag.status;
+  if(status === 'suspended' && flag.suspended_until && new Date(flag.suspended_until) <= new Date()) status = 'post_suspension';
+  const showBanner = ['warned','suspended','disqualified'].includes(status);
+  res.json({
+    tracked: true, show_banner: showBanner, status,
+    suspended_until: flag.suspended_until, reapply_after: flag.reapply_after,
+  });
+});
+
 app.post('/api/careers/apply', (req, res) => {
   try {
     const { full_name, address, qualification, languages, mobile, email,
@@ -1937,6 +2098,13 @@ app.post('/api/careers/apply', (req, res) => {
     const qrUser = findUserByCode(qr_code);
     if(!qrUser)
       return res.status(400).json({ error: 'QR Code not found. Please register free at indhanshodhak.in first, then use your QR code here.' });
+
+    const flagCheck = dbGet('SELECT status, reapply_after FROM applicant_report_flags WHERE qr_code=?', [normalizeUserCode(qr_code)]);
+    if(flagCheck?.status === 'disqualified' && flagCheck.reapply_after && new Date(flagCheck.reapply_after) > new Date()) {
+      return res.status(400).json({
+        error: `This QR code was disqualified from the enrollment process due to repeated false reporting. You can reapply after ${new Date(flagCheck.reapply_after).toLocaleString('en-IN')}.`
+      });
+    }
 
     const validRegions = ['North India','South India','East India','West India','Central India','Northeast India'];
     if(!validRegions.includes(region))
@@ -2107,24 +2275,44 @@ app.post('/api/pump-owner/register',
           console.log(`[GPS SAVED] ${pump_name} → lat:${pumpLat} lng:${pumpLng} ✅`);
       }
 
-      // Validate referral code if provided
-      let validatedRef = null;
+      // ── Referral code auto-detection ──
+      // The same "Referral Code" box on the form is shared by two different
+      // programs: MR field agents (format MR001, MR002...) and career
+      // applicants tracking pump referrals with their own QR code (format
+      // BKTM7293). The two formats never overlap, so we can tell them apart
+      // and route to the correct column without needing a second form field.
+      let validatedRef = null;      // MR agent referral (existing system, unchanged)
+      let careerQrRef  = null;      // Career applicant QR referral (new)
       if(referral_code && referral_code.trim()) {
-        const mrRow = dbGet(`SELECT mr_code FROM mr_agents WHERE mr_code=? AND status='active'`,
-          [referral_code.trim().toUpperCase()]);
-        validatedRef = mrRow ? referral_code.trim().toUpperCase() : `UNRECOGNIZED:${referral_code.trim()}`;
+        const codeInput = referral_code.trim().toUpperCase();
+        if(/^MR\d+$/.test(codeInput)) {
+          // MR agent format — validate against mr_agents (existing behavior)
+          const mrRow = dbGet(`SELECT mr_code FROM mr_agents WHERE mr_code=? AND status='active'`, [codeInput]);
+          validatedRef = mrRow ? codeInput : `UNRECOGNIZED:${referral_code.trim()}`;
+        } else {
+          // Not MR format — check if it's a valid career-applicant QR code
+          const qrUser = findUserByCode(codeInput);
+          if(qrUser) {
+            careerQrRef = normalizeUserCode(codeInput);
+          } else {
+            validatedRef = `UNRECOGNIZED:${referral_code.trim()}`;
+          }
+        }
       }
 
       dbRun(`INSERT INTO pump_applications
              (user_id, pump_id, applicant_name, applicant_email,
-              license_number, doc_license, doc_aadhaar, id_proof_type, referral_code)
-             VALUES (?,?,?,?,?,?,?,?,?)`,
+              license_number, doc_license, doc_aadhaar, id_proof_type, referral_code, career_qr_referral)
+             VALUES (?,?,?,?,?,?,?,?,?,?)`,
         [user.id, pump.id, owner_name, email,
-         license_number.toUpperCase(), licPath, idProofPath, idType, validatedRef]);
+         license_number.toUpperCase(), licPath, idProofPath, idType, validatedRef, careerQrRef]);
 
-      // Also tag the pump record with referral code
+      // Also tag the pump record with whichever referral matched
       if(validatedRef && !validatedRef.startsWith('UNRECOGNIZED')) {
         dbRun(`UPDATE petrol_pumps SET referral_code=? WHERE id=?`, [validatedRef, pump.id]);
+      }
+      if(careerQrRef) {
+        dbRun(`UPDATE petrol_pumps SET career_qr_referral=? WHERE id=?`, [careerQrRef, pump.id]);
       }
 
       const appRow = dbGet(
@@ -3120,7 +3308,7 @@ app.get('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
 });
 
 app.post('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
-  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers','careers_posted_date','careers_salary_min','careers_salary_max'];
+  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers','careers_posted_date','careers_salary_min','careers_salary_max','crisis_banner_enabled','false_report_warnings_enabled'];
   const updated=[];
   for (const [k,v] of Object.entries(req.body)) {
     if (allowed.includes(k)) { dbRun(`INSERT OR REPLACE INTO settings(key,value)VALUES(?,?)`,[k,String(v)]); updated.push(k); }
@@ -3592,11 +3780,13 @@ app.get('/api/admin/transactions', requireAuth(['super_admin']), (req, res) => {
 app.get('/api/public/crisis-status', (req, res) => {
   const rationing    = getSetting('rationing_mode')    === '1';
   const verification = getSetting('verification_mode') === '1';
+  // Default ON (preserves current always-visible behavior) unless admin explicitly turns it off
+  const bannerEnabled = getSetting('crisis_banner_enabled') !== '0';
   let mode = 'normal';
   if(rationing && verification) mode = 'full-crisis';
   else if(rationing)            mode = 'emergency';
   else if(verification)         mode = 'pre-crisis';
-  res.json({ rationing, verification, mode });
+  res.json({ rationing, verification, mode, banner_enabled: bannerEnabled });
 });
 
 

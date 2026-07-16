@@ -198,6 +198,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="section-lbl" id="pump-section-lbl">Nearby Petrol Pumps</div>
 
+  <!-- Career applicant false-report warning — only shown to the specific
+       applicant if THEIR OWN reporting has been flagged. Never shown to
+       anyone else. -->
+  <div id="applicantWarningBanner" style="display:none;margin:10px 12px;padding:14px 16px;border-radius:12px;font-size:13px;line-height:1.6"></div>
+
   <!-- Fuel ID Registration Card — always visible, Aadhaar optional with benefits msg -->
   <div class="fuelid-card" id="fuelIdCard">
     <div class="fuelid-title" id="fuelid-title">🎫 Get Your Fuel ID — Be Crisis Ready!</div>
@@ -619,16 +624,56 @@ let LANG = localStorage.getItem('indhan_lang') || 'en';
 
 // ── Crisis Mode Banner ────────────────────────────────────────────────────
 // Checks server mode once on load; updates fuelid card text + color
+// Career applicant false-report status — shows the logged-in user's OWN
+// warning/suspension/disqualification status if they're a tracked career
+// applicant. Silent no-op for everyone else.
+async function checkApplicantFlagStatus() {
+  try {
+    const r = await fetch('/api/applicant/flag-status', {
+      headers: { 'Authorization': 'Bearer ' + TOKEN }
+    });
+    if(!r.ok) return;
+    const d = await r.json();
+    const el = document.getElementById('applicantWarningBanner');
+    if(!el || !d.tracked || !d.show_banner) return;
+
+    const styles = {
+      warned:       { bg:'#fff8e1', border:'#f9a825', color:'#7a5b00', icon:'⚠️' },
+      suspended:    { bg:'#ffebee', border:'#c62828', color:'#7a1010', icon:'🚫' },
+      disqualified: { bg:'#eceff1', border:'#546e7a', color:'#37474f', icon:'❌' },
+    };
+    const msgs = {
+      warned: '3 of your recent fuel reports were flagged as inaccurate. Continued false reporting will get you delisted from the qualifying list for the Field Verifier role.',
+      suspended: `Your account is suspended until ${d.suspended_until ? new Date(d.suspended_until).toLocaleString('en-IN') : 'soon'} due to repeated inaccurate reporting.`,
+      disqualified: `You've been disqualified from the current enrollment process due to repeated false reporting.${d.reapply_after ? ' You can reapply after ' + new Date(d.reapply_after).toLocaleString('en-IN') + '.' : ''}`,
+    };
+    const s = styles[d.status] || styles.warned;
+    el.style.background = s.bg;
+    el.style.border = `1.5px solid ${s.border}`;
+    el.style.color = s.color;
+    el.innerHTML = `${s.icon} ${msgs[d.status] || ''}`;
+    el.style.display = 'block';
+  } catch(e) { /* silent fail */ }
+}
+
 async function checkCrisisMode() {
   try {
     const r = await fetch('/api/public/crisis-status');
     if(!r.ok) return;
-    const { mode } = await r.json();
+    const { mode, banner_enabled } = await r.json();
     window._crisisMode = mode;
 
     const card  = document.getElementById('fuelIdCard');
     const title = document.getElementById('fuelid-title');
     if(!card) return;
+
+    // Admin can turn this promo off entirely during non-emergency periods —
+    // it has no value showing "Be Crisis Ready" when there's nothing to prepare for.
+    if(banner_enabled === false) {
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = '';
 
     // Remove all mode classes first
     card.classList.remove('pre-crisis','emergency','full-crisis');
@@ -707,6 +752,7 @@ document.querySelectorAll('.lang-opt').forEach((el,i) => {
 // Apply saved language on load
 applyLang(LANG);
 checkCrisisMode(); // Update fuelid card for current mode
+checkApplicantFlagStatus(); // Show personal false-report warning if applicable
 
 // ── Trial status check — show banner only last 2 days ─────────
 async function checkTrialStatus() {
