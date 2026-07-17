@@ -101,6 +101,11 @@ body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text)
 }
 .network-line { stroke-dasharray:5 5; animation:dashMove 3.5s linear infinite; }
 @keyframes dashMove { to { stroke-dashoffset:-40; } }
+@keyframes taglineBounce {
+  0%,100% { transform:translateY(0); }
+  50%      { transform:translateY(-6px); }
+}
+.tagline-bounce { animation:taglineBounce 2.4s ease-in-out infinite; display:inline-block; }
 
 /* ===== FORM SECTION ===== */
 .form-section { background:var(--bg2); padding:60px 20px 80px; }
@@ -352,13 +357,18 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
     <p>Takes 3 minutes. No documents needed now — we'll verify those at your interview.</p>
   </div>
 
+  <div style="text-align:center;margin-bottom:12px">
+    <div class="tagline-bounce" style="font-size:15px;font-weight:800;color:var(--green-bright);font-family:'Baloo 2',cursive">अपना हुनर दिखाओ और नौकरी पाओ</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px">Show Your Talent and Get the Job</div>
+  </div>
+
   <div class="pay-strip">
     <div class="pay-item">
       <div class="num" id="salaryDisplay">₹25,000 – ₹56,000</div>
-      <div class="lbl">PER MONTH</div>
+      <div class="lbl">मासिक वेतन · PER MONTH</div>
     </div>
-    <div class="pay-item"><div class="num">🏠</div><div class="lbl">WORK FROM HOME</div></div>
-    <div class="pay-item"><div class="num">🇮🇳</div><div class="lbl">PAN-INDIA ROLES</div></div>
+    <div class="pay-item"><div class="num">🏠</div><div class="lbl">घर से काम · WORK FROM HOME</div></div>
+    <div class="pay-item"><div class="num">🇮🇳</div><div class="lbl">पूरे भारत में · PAN-INDIA ROLES</div></div>
   </div>
 
   <form class="form-card" id="careersForm" onsubmit="return false;">
@@ -442,13 +452,22 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
     </div>
 
     <div id="selectionCriteria" style="background:#fff8f0;border:1.5px dashed #FF9933;border-radius:12px;padding:16px;margin-bottom:20px">
-      <div style="font-size:12px;font-weight:700;color:#e65100;letter-spacing:0.5px;margin-bottom:8px">📋 SELECTION CRITERIA — PLEASE READ</div>
-      <p style="font-size:13px;color:#5a4632;line-height:1.6;margin:0 0 8px">
-        To be considered for this role, you'll need to help onboard a <b>minimum of 3 nearby fuel pumps</b> using your QR code as the referral — this is the practical work-sample for the Field Verifier position.
+      <div style="font-size:12px;font-weight:700;color:#e65100;letter-spacing:0.5px;margin-bottom:10px">📋 नौकरी पाने के लिए पूर्व-शर्त · PRE-REQUISITE FOR ENROLLMENT</div>
+      <p style="font-size:13px;color:#5a4632;line-height:1.75;margin:0 0 10px">
+        <b>हिंदी:</b> अपने QR कोड का उपयोग करके <b>कम से कम 3 नजदीकी पेट्रोल पंप</b> रजिस्टर करने में मदद करें। इसके बाद, <b>अगले 10 दिनों तक</b> नजदीकी पंपों की <b>सही और रियल-टाइम ईंधन उपलब्धता</b> की जानकारी भेजें। हमारा सिस्टम हर रिपोर्ट की <b>अपने आप जांच</b> करता है — <b style="color:#c62828">गलत या झूठी रिपोर्टिंग तुरंत पकड़ी जाती है और आपको भर्ती प्रक्रिया से हटाया जा सकता है।</b> अपनी प्रगति आप कभी भी अपने Profile पेज पर देख सकते हैं। चयन होने पर हम आपको कॉल या ईमेल करेंगे।
       </p>
-      <p style="font-size:13px;color:#1a6b2e;line-height:1.6;margin:0;font-weight:600">
+      <div style="border-top:1px dashed #e5c9a8;margin:10px 0"></div>
+      <p style="font-size:13px;color:#5a4632;line-height:1.7;margin:0 0 10px">
+        <b>English:</b> Help onboard <b>at least 3 nearby fuel pumps</b> using your QR code as referral. Then, for the <b>next 10 days</b>, submit <b>accurate real-time fuel availability</b> for nearby pumps. Our system automatically cross-checks every report — <b style="color:#c62828">false or inaccurate reporting is auto-detected and can get you delisted from the recruitment process.</b> Track your progress anytime on your Profile page. If shortlisted, we'll reach out via call or email.
+      </p>
+      <p style="font-size:13px;color:#1a6b2e;line-height:1.6;margin:0 0 14px;font-weight:600">
+        ✅ हर पंप के लिए भुगतान मिलेगा (₹100, CNG के लिए ₹200) — चाहे नौकरी मिले या न मिले।<br>
         ✅ You'll be paid for every pump you register (₹100, ₹200 for CNG) — regardless of final job selection.
       </p>
+      <a href="/pump-guide" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0a1f38,#0f2d18);border:1.5px solid rgba(34,197,94,0.4);color:#22c55e;text-decoration:none;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:700;transition:all 0.2s">
+        📖 पंप रजिस्ट्रेशन गाइड देखें — How to Get a Pump Registered →
+      </a>
     </div>
 
     <div id="formError" style="display:none;background:#ffebee;color:#b71c1c;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;"></div>
