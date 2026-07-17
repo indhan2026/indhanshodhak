@@ -2103,7 +2103,7 @@ app.get('/api/applicant/dashboard', requireAuth(), (req, res) => {
   if(!user?.user_code) return res.json({ tracked: false });
 
   const application = dbGet(
-    `SELECT id, full_name, region, interview_mode, applied_at
+    `SELECT id, full_name, mobile, email, region, interview_mode, applied_at, qr_code
      FROM job_applications WHERE qr_code=? ORDER BY id DESC LIMIT 1`, [user.user_code]);
   if(!application) return res.json({ tracked: false });
 
@@ -2114,7 +2114,7 @@ app.get('/api/applicant/dashboard', requireAuth(), (req, res) => {
   // Only admin-approved (is_verified=1) pumps count — matches the "only
   // admin-approved pumps count toward bonus, no gaming the AI stage" rule.
   const verifiedPumps = dbAll(
-    `SELECT category FROM petrol_pumps WHERE career_qr_referral=? AND is_verified=1`, [user.user_code]);
+    `SELECT name, tehsil, district, oil_company FROM petrol_pumps WHERE career_qr_referral=? AND is_verified=1`, [user.user_code]);
   const verifiedCount = verifiedPumps.length;
   const eligible = verifiedCount >= 3;
 
@@ -2146,13 +2146,25 @@ app.get('/api/applicant/dashboard', requireAuth(), (req, res) => {
   const existingClaim = dbGet(
     `SELECT status, amount, claimed_at FROM bonus_claims WHERE qr_code=? ORDER BY id DESC LIMIT 1`, [user.user_code]);
 
+  const isCNG = (p) => /cng/i.test((p.name||'') + ' ' + (p.oil_company||''));
+  const pumpList = verifiedPumps.map(p => ({
+    name: p.name,
+    location: [p.tehsil, p.district].filter(Boolean).join(', '),
+    is_cng: isCNG(p),
+  }));
+
   res.json({
     tracked: true,
     app_no: appNo,
+    full_name: application.full_name,
+    mobile: application.mobile,
+    email: application.email,
+    qr_code: application.qr_code,
     applied_date: appliedDate,
     region: application.region,
     interview_mode: application.interview_mode,
     verified_pumps: verifiedCount,
+    pump_list: pumpList,
     eligible,
     report_status: reportStatus,
     percentile_band: percentileBand,
@@ -2172,15 +2184,17 @@ app.post('/api/applicant/claim-bonus', requireAuth(), (req, res) => {
   if(!application) return res.status(403).json({ error: 'No job application found for this QR code' });
 
   const verifiedPumps = dbAll(
-    `SELECT category FROM petrol_pumps WHERE career_qr_referral=? AND is_verified=1`, [user.user_code]);
+    `SELECT name, oil_company FROM petrol_pumps WHERE career_qr_referral=? AND is_verified=1`, [user.user_code]);
   if(verifiedPumps.length < 3)
     return res.status(400).json({ error: `Need at least 3 admin-approved pumps to claim (you have ${verifiedPumps.length})` });
 
   const existing = dbGet(`SELECT id FROM bonus_claims WHERE qr_code=? AND status IN ('pending','paid')`, [user.user_code]);
   if(existing) return res.status(409).json({ error: 'A bonus claim already exists for this QR code' });
 
-  // ₹100 per fuel/petrol/diesel pump, ₹200 per CNG pump
-  const amount = verifiedPumps.reduce((sum, p) => sum + (p.category === 'cng' ? 200 : 100), 0);
+  // ₹100 per fuel/petrol/diesel pump, ₹200 per CNG pump.
+  // CNG isn't a stored column, so detect from name/oil_company text.
+  const isCNG = (p) => /cng/i.test((p.name||'') + ' ' + (p.oil_company||''));
+  const amount = verifiedPumps.reduce((sum, p) => sum + (isCNG(p) ? 200 : 100), 0);
 
   dbRun(`INSERT INTO bonus_claims (qr_code, applicant_name, upi_mobile, upi_name, pumps_at_claim, amount)
          VALUES (?,?,?,?,?,?)`,
@@ -2265,10 +2279,16 @@ app.post('/api/careers/apply', (req, res) => {
 <tr><td style="padding:4px 0;color:#888;">Mobile</td><td style="padding:4px 0;font-weight:600;">+91 ${mobile}</td></tr>
 <tr><td style="padding:4px 0;color:#888;">Email</td><td style="padding:4px 0;font-weight:600;">${email}</td></tr>
 <tr><td style="padding:4px 0;color:#888;">Interview Mode</td><td style="padding:4px 0;font-weight:600;">${interview_mode}</td></tr>
-</table></td></tr></table></td></tr>
+<tr><td colspan="2" style="padding:8px 0 2px;"><div style="border-top:1px dashed #ddd;"></div></td></tr>
+<tr><td style="padding:6px 0;color:#888;">🎫 Your QR Code</td><td style="padding:6px 0;"><span style="font-family:monospace;font-size:16px;font-weight:800;letter-spacing:2px;color:#0a1f38;background:#fff3e0;padding:3px 10px;border-radius:6px;">${normalizeUserCode(qr_code)}</span></td></tr>
+</table>
+<div style="font-size:11px;color:#888;margin-top:10px;line-height:1.5;">📌 Use this QR code as your referral when helping pumps register. Every pump verified with your code counts toward your bonus &amp; job eligibility.</div>
+</td></tr></table></td></tr>
 <tr><td style="padding:0 30px 24px;">
-<div style="font-size:11px;font-weight:700;color:#1a6b2e;letter-spacing:0.5px;margin-bottom:10px;">🕓 WHAT HAPPENS NEXT</div>
-<p style="font-size:13px;color:#444;line-height:1.7;margin:0;">Our team is reviewing applications from your region. If shortlisted, we'll reach out via <b>call or email</b> to schedule your interview — no documents needed right now, we'll verify those in person.</p>
+<div style="font-size:11px;font-weight:700;color:#1a6b2e;letter-spacing:0.5px;margin-bottom:10px;">📋 नौकरी पाने के लिए पूर्व-शर्त · PRE-REQUISITE FOR THE JOB</div>
+<p style="font-size:13px;color:#444;line-height:1.8;margin:0 0 12px;"><b>हिंदी:</b> अपने QR कोड का उपयोग करके <b>कम से कम 3 नजदीकी पेट्रोल पंप</b> रजिस्टर करने में मदद करें। इसके बाद, <b>अगले 10 दिनों तक</b> नजदीकी पंपों की <b>सही और रियल-टाइम ईंधन उपलब्धता</b> की जानकारी भेजें। हमारा सिस्टम हर रिपोर्ट की <b>अपने आप जांच</b> करता है — <b style="color:#c62828;">गलत या झूठी रिपोर्टिंग तुरंत पकड़ी जाती है और आपको भर्ती प्रक्रिया से हटाया जा सकता है।</b> अपनी प्रगति आप कभी भी अपने Profile पेज पर देख सकते हैं। चयन होने पर हम आपको कॉल या ईमेल करेंगे।</p>
+<div style="border-top:1px dashed #ddd;margin:12px 0;"></div>
+<p style="font-size:13px;color:#444;line-height:1.7;margin:0;"><b>English:</b> Help onboard <b>at least 3 nearby fuel pumps</b> using your QR code as referral. Then, for the <b>next 10 days</b>, submit <b>accurate real-time fuel availability</b> for nearby pumps. Our system automatically cross-checks every report — <b style="color:#c62828;">false or inaccurate reporting is auto-detected and can get you delisted from the recruitment process.</b> Track your progress anytime on your Profile page. If shortlisted, we'll reach out via call or email.</p>
 </td></tr>
 <tr><td style="padding:18px 30px;background:#fff8f0;border-top:1px dashed #FF9933;border-bottom:1px dashed #138808;text-align:center;">
 <p style="font-size:12.5px;color:#7a5230;font-style:italic;margin:0;line-height:1.6;">"Be part of India's first live fuel data network —<br>जनतेसाठी, जनतेकडून · By the people, for the people"</p>
