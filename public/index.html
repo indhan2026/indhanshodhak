@@ -442,6 +442,73 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <span style="margin-left:auto">→</span>
       </a>
+
+      <!-- Job Application Card — only shown if this user applied via careers form -->
+      <div id="profApplicantRow" style="display:none;margin-bottom:8px">
+        <div onclick="toggleApplicantCard()"
+          style="display:flex;align-items:center;gap:10px;padding:12px 14px;
+          background:#f0faf4;border-radius:12px;cursor:pointer;border:1.5px solid rgba(34,197,94,0.3)">
+          <span style="font-size:20px">🚀</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#1a6b2e">Job Application</div>
+            <div style="font-size:11px;color:#888" id="profApplicantSub">View your enrollment progress</div>
+          </div>
+          <span style="margin-left:auto;color:#1a6b2e;font-size:13px" id="profApplicantArrow">▼</span>
+        </div>
+        <!-- Expanded card content -->
+        <div id="profApplicantCard" style="display:none;background:#fff;border:1px solid rgba(34,197,94,0.2);border-radius:0 0 12px 12px;padding:14px">
+
+          <div style="background:#f8f9fb;border-radius:10px;padding:12px;margin-bottom:12px">
+            <table style="width:100%;font-size:12.5px;color:#333;border-collapse:collapse">
+              <tr><td style="padding:3px 0;color:#888;width:110px">Application No.</td><td style="padding:3px 0;font-weight:600" id="pa-appno">—</td></tr>
+              <tr><td style="padding:3px 0;color:#888">Name</td><td style="padding:3px 0;font-weight:600" id="pa-name">—</td></tr>
+              <tr><td style="padding:3px 0;color:#888">Region</td><td style="padding:3px 0;font-weight:600" id="pa-region">—</td></tr>
+              <tr><td style="padding:3px 0;color:#888">Date</td><td style="padding:3px 0;font-weight:600" id="pa-date">—</td></tr>
+              <tr><td style="padding:3px 0;color:#888">🎫 QR Code</td><td style="padding:3px 0"><span id="pa-qr" style="font-family:monospace;font-weight:800;background:#fff3e0;padding:2px 8px;border-radius:5px;color:#0a1f38">—</span></td></tr>
+            </table>
+          </div>
+
+          <div id="pa-reportBanner" style="display:none;padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:10px;line-height:1.6"></div>
+
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:5px">
+              <span>Pumps Verified</span>
+              <span id="pa-progress-txt" style="font-weight:700">0 of 3</span>
+            </div>
+            <div style="background:#eee;border-radius:8px;height:8px;overflow:hidden">
+              <div id="pa-progress-bar" style="background:linear-gradient(90deg,#FF9933,#22c55e);height:100%;width:0%;transition:width .5s ease;border-radius:8px"></div>
+            </div>
+            <div id="pa-progress-hint" style="font-size:11px;color:#888;margin-top:6px">Verify 3 admin-approved pumps to unlock ranking &amp; bonus.</div>
+          </div>
+
+          <div id="pa-pump-list-wrap" style="margin-bottom:12px;display:none">
+            <div style="font-size:11.5px;font-weight:700;color:#555;margin-bottom:6px">⛽ Pumps Verified</div>
+            <div id="pa-pump-list"></div>
+          </div>
+
+          <div id="pa-eligible-section" style="display:none">
+            <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:10px;margin-bottom:10px;text-align:center">
+              <div style="font-size:12.5px;font-weight:700;color:#1a6b2e" id="pa-percentile">—</div>
+              <div style="font-size:10px;color:#888;margin-top:3px">Ranking is indicative only. Final selection at IndhanShodhak's discretion.</div>
+            </div>
+            <div id="pa-claim-form">
+              <div style="font-size:12.5px;font-weight:700;color:#333;margin-bottom:8px">💰 Claim Your Bonus</div>
+              <input type="tel" id="pa-upi-mobile" maxlength="10" placeholder="PhonePe / GPay / Paytm Mobile Number"
+                style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+              <input type="text" id="pa-upi-name" placeholder="Account Holder Name (linked to this number)"
+                style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+              <div style="font-size:11px;color:#888;margin-bottom:8px">💡 Name must match the account linked to the number above.</div>
+              <div id="pa-claim-msg" style="font-size:12px;color:#b71c1c;margin-bottom:8px"></div>
+              <button onclick="profileClaimBonus()" id="pa-claim-btn"
+                style="width:100%;padding:12px;background:#1a6b2e;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">
+                💰 Claim Bonus
+              </button>
+            </div>
+            <div id="pa-claim-status" style="display:none;background:#e8f5e9;border-radius:8px;padding:10px;font-size:12.5px;color:#1a6b2e;text-align:center"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Logout -->
       <button onclick="userLogout()"
         style="width:100%;padding:12px;background:#ffebee;color:#b71c1c;border:none;
@@ -1132,7 +1199,10 @@ async function submitReport() {
 }
 
 // ── Other helpers ─────────────────────────────────────────────
-function openModal(id){ document.getElementById(id).classList.add('open'); }
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  if(id === 'profileModal') loadProfileApplicant();
+}
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-bg').forEach(m =>
   m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
@@ -1472,6 +1542,113 @@ function renderPumps(pumpsRaw, isPremium, price){
 checkTrialStatus();
 
 // ── Logout ─────────────────────────────────────────────────────
+// ── Job Application in My Profile drawer ─────────────────────
+let _applicantLoaded = false;
+async function loadProfileApplicant() {
+  if(_applicantLoaded) return; // only fetch once per session
+  if(!TOKEN) return;
+  try {
+    const r = await fetch('/api/applicant/dashboard', { headers: { 'x-auth-token': TOKEN } });
+    if(!r.ok) return;
+    const d = await r.json();
+    if(!d.tracked) return;
+    _applicantLoaded = true;
+
+    // Show the row
+    document.getElementById('profApplicantRow').style.display = 'block';
+    document.getElementById('profApplicantSub').textContent =
+      `${d.app_no} · ${d.verified_pumps} of 3 pumps`;
+
+    // Fill details
+    document.getElementById('pa-appno').textContent  = d.app_no;
+    document.getElementById('pa-name').textContent    = d.full_name || '—';
+    document.getElementById('pa-region').textContent  = d.region || '—';
+    document.getElementById('pa-date').textContent    = d.applied_date || '—';
+    document.getElementById('pa-qr').textContent      = d.qr_code || '—';
+
+    // Progress bar
+    const pct = Math.min(100, Math.round((d.verified_pumps / 3) * 100));
+    document.getElementById('pa-progress-txt').textContent = `${d.verified_pumps} of 3`;
+    document.getElementById('pa-progress-bar').style.width = pct + '%';
+    if(d.eligible) document.getElementById('pa-progress-hint').style.display = 'none';
+
+    // Pump list
+    if(d.pump_list && d.pump_list.length) {
+      document.getElementById('pa-pump-list-wrap').style.display = 'block';
+      document.getElementById('pa-pump-list').innerHTML = d.pump_list.map(p =>
+        `<div style="background:#f0f9f2;border:1px solid #cde9d4;border-radius:6px;padding:7px 10px;font-size:12px;color:#1a6b2e;margin-bottom:5px">
+          ✅ ${p.name}${p.is_cng?' 🍃':''}${p.location?' — '+p.location:''}
+        </div>`).join('');
+    }
+
+    // Report status banner
+    const banner = document.getElementById('pa-reportBanner');
+    const msgs = {
+      warned:       { bg:'#fff8e1', color:'#7a5b00', text:'⚠️ 3 recent reports flagged inaccurate. Continued false reporting = delisted.' },
+      suspended:    { bg:'#ffebee', color:'#7a1010', text:'🚫 Account suspended due to repeated inaccurate reporting.' },
+      disqualified: { bg:'#eceff1', color:'#37474f', text:'❌ Disqualified from enrollment due to repeated false reporting.' },
+    };
+    if(msgs[d.report_status]) {
+      const m = msgs[d.report_status];
+      banner.style.background = m.bg; banner.style.color = m.color;
+      banner.textContent = m.text; banner.style.display = 'block';
+    }
+
+    // Eligible section
+    if(d.eligible) {
+      document.getElementById('pa-eligible-section').style.display = 'block';
+      document.getElementById('pa-percentile').textContent =
+        d.percentile_band ? `🏆 You're in the ${d.percentile_band} of applicants`
+                          : '📈 Keep registering pumps to improve your standing';
+      if(d.claim) {
+        document.getElementById('pa-claim-form').style.display = 'none';
+        const s = document.getElementById('pa-claim-status');
+        s.style.display = 'block';
+        s.textContent = d.claim.status === 'paid'
+          ? `✅ Bonus of ₹${d.claim.amount} paid!`
+          : `⏳ Claim of ₹${d.claim.amount} submitted — under review.`;
+      }
+    }
+  } catch(e) { /* silent fail */ }
+}
+
+function toggleApplicantCard() {
+  const card  = document.getElementById('profApplicantCard');
+  const arrow = document.getElementById('profApplicantArrow');
+  const open  = card.style.display === 'block';
+  card.style.display  = open ? 'none' : 'block';
+  arrow.textContent   = open ? '▼' : '▲';
+}
+
+async function profileClaimBonus() {
+  const mobile = document.getElementById('pa-upi-mobile').value.trim();
+  const name   = document.getElementById('pa-upi-name').value.trim();
+  const msgEl  = document.getElementById('pa-claim-msg');
+  if(mobile.length !== 10) { msgEl.textContent = 'Enter valid 10-digit mobile'; return; }
+  if(!name) { msgEl.textContent = 'Enter account holder name'; return; }
+  const btn = document.getElementById('pa-claim-btn');
+  btn.disabled = true; btn.textContent = '⏳ Submitting...';
+  try {
+    const r = await fetch('/api/applicant/claim-bonus', {
+      method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({ upi_mobile:mobile, upi_name:name }),
+    });
+    const d = await r.json();
+    if(d.success) {
+      document.getElementById('pa-claim-form').style.display = 'none';
+      const s = document.getElementById('pa-claim-status');
+      s.style.display = 'block';
+      s.textContent = `⏳ Bonus claim of ₹${d.amount} submitted for ${d.pumps} pumps — under review.`;
+    } else {
+      msgEl.textContent = d.error || 'Claim failed';
+      btn.disabled = false; btn.textContent = '💰 Claim Bonus';
+    }
+  } catch(e) {
+    msgEl.textContent = 'Network error — try again';
+    btn.disabled = false; btn.textContent = '💰 Claim Bonus';
+  }
+}
+
 function userLogout(){
   localStorage.clear();
   sessionStorage.clear();
