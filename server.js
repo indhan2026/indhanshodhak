@@ -2517,7 +2517,8 @@ app.get('/api/pump-owner/nearby-competitors', requireAuth(['pump_owner','super_a
 });
 
 app.get('/pump-signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
-app.get('/careers', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'careers.html')));
+app.get('/careers',    (req,res) => res.sendFile(path.join(PUBLIC_PATH,'careers.html')));
+app.get('/pump-guide', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_guide.html')));
 app.get('/pump-subscribe.html', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump-subscribe.html')));
 app.get('/pump_signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
 
