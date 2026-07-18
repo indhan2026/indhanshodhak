@@ -5446,10 +5446,12 @@ initDB().then(() => {
       const provider  = getSetting('ai_provider') || 'gemini';
 
       // New registrations today
-      const newUsers  = parseInt(dbGet(`SELECT COUNT(*) as c FROM users WHERE DATE(created_at)=?`,[today])?.c||0);
-      const newPumps  = parseInt(dbGet(`SELECT COUNT(*) as c FROM pump_applications WHERE DATE(applied_at)=?`,[today])?.c||0);
-      const newTier   = parseInt(dbGet(`SELECT COUNT(*) as c FROM user_fuel_applications WHERE DATE(applied_at)=?`,[today])?.c||0);
-      const reports   = parseInt(dbGet(`SELECT COUNT(*) as c FROM fuel_reports WHERE DATE(created_at)=?`,[today])?.c||0);
+      const newUsers    = parseInt(dbGet(`SELECT COUNT(*) as c FROM users WHERE DATE(created_at)=?`,[today])?.c||0);
+      const newPumps    = parseInt(dbGet(`SELECT COUNT(*) as c FROM pump_applications WHERE DATE(applied_at)=?`,[today])?.c||0);
+      const newTier     = parseInt(dbGet(`SELECT COUNT(*) as c FROM user_fuel_applications WHERE DATE(applied_at)=?`,[today])?.c||0);
+      const reports     = parseInt(dbGet(`SELECT COUNT(*) as c FROM fuel_reports WHERE DATE(created_at)=?`,[today])?.c||0);
+      const careerToday = parseInt(dbGet(`SELECT COUNT(*) as c FROM job_applications WHERE DATE(applied_at)=?`,[today])?.c||0);
+      const careerTotal = parseInt(dbGet(`SELECT COUNT(*) as c FROM job_applications`)?.c||0);
 
       // Skip if nothing happened today
       if(approved+rejected+escalated+failed+newUsers+newPumps+reports === 0) {
@@ -5487,6 +5489,14 @@ initDB().then(() => {
               <tr><td style="padding:4px 0;font-size:13px">⛽ Pump Applications</td><td style="text-align:right;font-weight:600">${newPumps}</td></tr>
               <tr><td style="padding:4px 0;font-size:13px">🎫 Tier Upgrade Requests</td><td style="text-align:right;font-weight:600">${newTier}</td></tr>
               <tr><td style="padding:4px 0;font-size:13px">📋 Fuel Reports Filed</td><td style="text-align:right;font-weight:600">${reports}</td></tr>
+            </table>
+          </div>
+
+          <div style="margin-bottom:16px;border-top:1px solid #e0e0e0;padding-top:12px">
+            <div style="font-size:13px;font-weight:700;color:#555;margin-bottom:8px">📝 Career Applications</div>
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:4px 0;font-size:13px">📨 Today</td><td style="text-align:right;font-weight:700;color:${careerToday>0?'#1a6b2e':'#333'}">${careerToday}</td></tr>
+              <tr><td style="padding:4px 0;font-size:13px">📁 Total Received</td><td style="text-align:right;font-weight:700;color:#333">${careerTotal}</td></tr>
             </table>
           </div>
 
