@@ -165,6 +165,7 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
   <div class="tab" onclick="showTab('tiers',this)">🎯 Tiers</div>
   <div class="tab" onclick="showTab('settings',this)">⚙️ Settings</div>
   <div class="tab" onclick="showTab('careers',this)">🚀 Careers</div>
+  <div class="tab" onclick="showTab('bonus',this)">💰 Bonus Claims</div>
 </div>
 
 <!-- DASHBOARD — NO revenue here -->
@@ -315,16 +316,16 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
 
     <!-- ═══ MR FIELD AGENTS ═══ -->
     <div class="card" style="border:1.5px solid #e65100">
-      <div class="card-title" style="color:#e65100">🛵 MR Field Agents — Referral Management</div>
-      <div style="font-size:12px;color:#888;margin-bottom:12px">
-        Add MRs who will enroll pumps on ground. Each MR gets a unique code (MR001, MR002...) to give pump owners at registration time.
+      <div class="card-title" style="color:#e65100">🛵 Field Agents — MR & Enrollment Management</div>
+      <div style="font-size:12px;color:#888;margin-bottom:14px">
+        Create and manage all field agents in one place. MR agents get a referral code (MR001...) for pump owners to enter. Enrollment agents get a login to access the agent dashboard at <b>/agent</b>.
       </div>
 
-      <!-- Add MR Form -->
-      <div style="background:#fff3e0;border-radius:10px;padding:12px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:600;color:#e65100;margin-bottom:10px">➕ Add New MR Agent</div>
+      <!-- ➕ Add MR Agent -->
+      <div style="background:#fff3e0;border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:#e65100;margin-bottom:10px">➕ Add MR Field Agent (Referral Code)</div>
         <div class="form-group">
-          <label class="form-label">MR Full Name</label>
+          <label class="form-label">Full Name</label>
           <input class="form-input" type="text" id="mr-name" placeholder="e.g. Ramesh Patil">
         </div>
         <div class="form-group">
@@ -333,14 +334,42 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
         </div>
         <div class="form-group">
           <label class="form-label">Notes (optional)</label>
-          <input class="form-input" type="text" id="mr-notes" placeholder="e.g. Covers Nevasa + Shrirampur route">
+          <input class="form-input" type="text" id="mr-notes" placeholder="e.g. Covers Nevasa + Shrirampur">
         </div>
         <button class="form-submit" style="background:#e65100" onclick="addMRAgent()">🛵 Add MR Agent</button>
         <div id="mr-add-msg" style="font-size:12px;margin-top:8px;text-align:center"></div>
       </div>
 
-      <!-- MR List -->
-      <div style="font-size:12px;font-weight:600;color:#333;margin-bottom:8px">👥 Current MR Agents</div>
+      <!-- ➕ Create Enrollment Agent Login -->
+      <div style="background:#fff3e0;border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:#e65100;margin-bottom:10px">➕ Create Enrollment Agent Login (Dashboard Access)</div>
+        <div style="font-size:11.5px;color:#888;margin-bottom:10px">Agent logs into /agent with these credentials. Auto-gets an MR referral code. Can register pumps on behalf of owners only — no admin access.</div>
+        <div class="form-group">
+          <label class="form-label">Login ID</label>
+          <input class="form-input" type="text" id="a-loginid" placeholder="e.g. AGENT_NEWASA">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password (min 6 chars)</label>
+          <input class="form-input" type="password" id="a-pass" placeholder="Agent password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Agent Name</label>
+          <input class="form-input" type="text" id="a-name" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Agent Phone</label>
+          <input class="form-input" type="tel" id="a-phone" placeholder="10-digit mobile" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Region (optional)</label>
+          <input class="form-input" type="text" id="a-region" placeholder="e.g. Newasa, Sangamner">
+        </div>
+        <button class="form-submit" style="background:#e65100" onclick="createAgent()">🛵 Create Agent Login</button>
+        <div id="a-msg" style="font-size:12px;margin-top:8px;text-align:center"></div>
+      </div>
+
+      <!-- 📋 All Agents List (MR + Enrollment) -->
+      <div style="font-size:12px;font-weight:600;color:#333;margin-bottom:8px">👥 All Agents — Credentials & Control</div>
       <div id="mr-agents-list" style="font-size:12px;color:#aaa;text-align:center;padding:12px">⏳ Loading...</div>
     </div>
 
@@ -349,10 +378,6 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
       <div class="card-title" style="color:#2e7d32">🔍 Create Document Verifier Login</div>
       <div style="font-size:12px;color:#888;margin-bottom:10px">
         Verifier logs in at <b>/login?role=verify</b> using these credentials.
-      </div>
-      <div style="background:#e8f5e9;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:#1b5e20;line-height:1.7">
-        💡 Login ID must be unique — not a mobile number.<br>
-        Example: <b>VERIFY_AHN_01</b> or <b>DOC_VERIFY_2026</b>
       </div>
       <div class="form-group">
         <label class="form-label">Login ID (custom)</label>
@@ -381,36 +406,6 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
         <input class="form-input" type="password" id="g-pass" placeholder="Set a strong password">
       </div>
       <button class="form-submit" style="background:#1a237e" onclick="createGovt()">🏛️ Create Govt Login</button>
-    </div>
-
-    <!-- ═══ CREATE ENROLLMENT AGENT ═══ -->
-    <div class="card" style="border:1.5px solid #e65100">
-      <div class="card-title" style="color:#e65100">🛵 Create Enrollment Agent Login</div>
-      <div style="font-size:12px;color:#888;margin-bottom:10px">
-        Restricted role — can only search pumps by region and register pumps on behalf of owners.<br>
-        Cannot approve/reject/deregister or see other owners' private data. Auto-gets an MR referral code.
-      </div>
-      <div class="form-group">
-        <label class="form-label">Agent Login ID</label>
-        <input class="form-input" type="text" id="a-loginid" placeholder="e.g. AGENT_NEWASA">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password (min 6 chars)</label>
-        <input class="form-input" type="password" id="a-pass" placeholder="Agent password">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Agent Name</label>
-        <input class="form-input" type="text" id="a-name" placeholder="Full name of agent">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Agent Phone</label>
-        <input class="form-input" type="tel" id="a-phone" placeholder="10-digit mobile" maxlength="10">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Assigned Region (optional)</label>
-        <input class="form-input" type="text" id="a-region" placeholder="e.g. Newasa, Sangamner">
-      </div>
-      <button class="form-submit" style="background:#e65100" onclick="createAgent()">🛵 Create Agent Login</button>
     </div>
 
     <!-- ═══ STAFF ACCOUNTS TABLE ═══ -->
@@ -726,6 +721,22 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
     </div>
     <button class="form-submit" onclick="saveCareersSettings()">💾 Save Careers Settings</button>
     <div id="careers-settings-msg" style="font-size:12px;margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- BONUS CLAIMS TAB -->
+<div class="tab-content" id="tab-bonus">
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">💰 Bonus Claims — Applicant Payouts</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select id="bonus-status-filter" class="form-input" style="flex:1;min-width:140px" onchange="loadBonusClaims()">
+        <option value="">All Statuses</option>
+        <option value="pending">⏳ Pending</option>
+        <option value="paid">✅ Paid</option>
+      </select>
+    </div>
+    <div id="bonus-total" style="font-size:12px;color:#888;margin-bottom:10px">Loading...</div>
+    <div id="bonus-list" style="font-size:12px;color:#aaa;text-align:center;padding:12px">⏳ Loading claims...</div>
   </div>
 </div>
 
@@ -1158,6 +1169,54 @@ function showTab(name,el){
       const frEl=document.getElementById('tog-false-report'); if(frEl) frEl.checked = s.false_report_warnings_enabled !== '0';
     });
   }
+  if(name==='bonus') loadBonusClaims();
+}
+
+// ── Bonus Claims Functions ─────────────────────────────────────
+async function loadBonusClaims(){
+  const el = document.getElementById('bonus-list');
+  const totalEl = document.getElementById('bonus-total');
+  if(!el) return;
+  const status = document.getElementById('bonus-status-filter').value;
+  const params = status ? `?status=${status}` : '';
+  el.innerHTML = '⏳ Loading...';
+  try {
+    const d = await api('/api/admin/bonus-claims' + params);
+    if(!d || !d.claims){ el.innerHTML = '<div style="color:#b71c1c;text-align:center">Error loading claims</div>'; return; }
+    totalEl.textContent = `${d.total} claim${d.total===1?'':'s'} found`;
+    if(!d.claims.length){ el.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">No bonus claims yet.</div>'; return; }
+    el.innerHTML = d.claims.map(c => `
+      <div style="padding:12px;background:#f9f9f9;border-radius:10px;margin-bottom:8px;border-left:3px solid ${c.status==='paid'?'#22c55e':'#FF9933'}">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#222">${c.applicant_name}</div>
+            <div style="font-size:11px;color:#888">QR: ${c.qr_code} · ${c.region||'—'} · ${c.pumps_at_claim} pumps</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:16px;font-weight:800;color:${c.status==='paid'?'#1a6b2e':'#e65100'}">₹${c.amount}</div>
+            <div style="font-size:11px;color:#888">${c.status==='paid'?'✅ Paid':'⏳ Pending'}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#555;margin-top:8px;line-height:1.6">
+          📱 PhonePe/GPay: <b>${c.upi_mobile}</b> &nbsp;|&nbsp;
+          👤 Name: <b>${c.upi_name}</b><br>
+          ✉️ ${c.email||'—'} &nbsp;|&nbsp; 📅 Claimed: ${new Date(c.claimed_at).toLocaleDateString('en-IN')}
+          ${c.paid_at ? `&nbsp;|&nbsp; 💳 Paid: ${new Date(c.paid_at).toLocaleDateString('en-IN')}` : ''}
+        </div>
+        ${c.status==='pending' ? `
+        <button onclick="markBonusPaid(${c.id})"
+          style="margin-top:10px;background:#1a6b2e;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer">
+          💳 Mark as Paid
+        </button>` : ''}
+      </div>`).join('');
+  } catch(e){ el.innerHTML = '<div style="color:#b71c1c;text-align:center">Error loading claims</div>'; }
+}
+
+async function markBonusPaid(id){
+  if(!confirm('Mark this claim as PAID? This will send a confirmation email to the applicant.')) return;
+  const d = await api(`/api/admin/bonus-claims/${id}/pay`, 'POST', {});
+  if(d?.success){ loadBonusClaims(); }
+  else alert('Failed to update — try again');
 }
 
 // ── Careers Functions ─────────────────────────────────────────

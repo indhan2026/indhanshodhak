@@ -2288,10 +2288,12 @@ app.post('/api/careers/apply', (req, res) => {
 <div style="font-size:11px;color:#888;margin-top:10px;line-height:1.5;">📌 Use this QR code as your referral when helping pumps register. Every pump verified with your code counts toward your bonus &amp; job eligibility.</div>
 </td></tr></table></td></tr>
 <tr><td style="padding:0 30px 24px;">
+<div style="font-size:12px;font-style:italic;color:#e65100;font-weight:700;margin-bottom:8px;">अच्छी नौकरी पाने के लिए पहले पसीना बहाना होगा। यह सिर्फ एक काम नहीं — यह आपकी काबिलियत साबित करने का मौका है।</div>
+<div style="font-size:11px;color:#888;margin-bottom:12px;font-style:italic;">To get a good job, first you have to sweat for it. This isn't just a job — it's your chance to prove what you're capable of.</div>
 <div style="font-size:11px;font-weight:700;color:#1a6b2e;letter-spacing:0.5px;margin-bottom:10px;">📋 नौकरी पाने के लिए पूर्व-शर्त · PRE-REQUISITE FOR THE JOB</div>
-<p style="font-size:13px;color:#444;line-height:1.8;margin:0 0 12px;"><b>हिंदी:</b> अपने QR कोड का उपयोग करके <b>कम से कम 3 नजदीकी पेट्रोल पंप</b> रजिस्टर करने में मदद करें। इसके बाद, <b>अगले 10 दिनों तक</b> नजदीकी पंपों की <b>सही और रियल-टाइम ईंधन उपलब्धता</b> की जानकारी भेजें। हमारा सिस्टम हर रिपोर्ट की <b>अपने आप जांच</b> करता है — <b style="color:#c62828;">गलत या झूठी रिपोर्टिंग तुरंत पकड़ी जाती है और आपको भर्ती प्रक्रिया से हटाया जा सकता है।</b> अपनी प्रगति आप कभी भी अपने Profile पेज पर देख सकते हैं। चयन होने पर हम आपको कॉल या ईमेल करेंगे।</p>
+<p style="font-size:13px;color:#444;line-height:1.8;margin:0 0 12px;"><b>हिंदी:</b> अपने QR कोड का उपयोग करके <b>कम से कम 3 नजदीकी पेट्रोल पंप</b> रजिस्टर करने में मदद करें — <b style="color:#138808;">जिनमें से कम से कम 1 CNG पंप होना ज़रूरी है।</b> CNG data सबसे ज़्यादा valuable है। इसके बाद, <b>अगले 10 दिनों तक</b> सही fuel data report करें। <b style="color:#c62828;">गलत रिपोर्टिंग = भर्ती प्रक्रिया से बाहर।</b></p>
 <div style="border-top:1px dashed #ddd;margin:12px 0;"></div>
-<p style="font-size:13px;color:#444;line-height:1.7;margin:0;"><b>English:</b> Help onboard <b>at least 3 nearby fuel pumps</b> using your QR code as referral. Then, for the <b>next 10 days</b>, submit <b>accurate real-time fuel availability</b> for nearby pumps. Our system automatically cross-checks every report — <b style="color:#c62828;">false or inaccurate reporting is auto-detected and can get you delisted from the recruitment process.</b> Track your progress anytime on your Profile page. If shortlisted, we'll reach out via call or email.</p>
+<p style="font-size:13px;color:#444;line-height:1.7;margin:0;"><b>English:</b> Help onboard <b>at least 3 nearby fuel pumps</b> — <b style="color:#138808;">at least 1 must be a CNG station.</b> CNG availability data is the most critical for users. Report accurate fuel data for <b>the next 10 days</b>. <b style="color:#c62828;">False reporting = disqualification from the recruitment process.</b></p>
 </td></tr>
 <tr><td style="padding:18px 30px;background:#fff8f0;border-top:1px dashed #FF9933;border-bottom:1px dashed #138808;text-align:center;">
 <p style="font-size:12.5px;color:#7a5230;font-style:italic;margin:0;line-height:1.6;">"Be part of India's first live fuel data network —<br>जनतेसाठी, जनतेकडून · By the people, for the people"</p>
@@ -2313,6 +2315,42 @@ app.post('/api/careers/apply', (req, res) => {
     console.error('[CAREERS] Apply error:', e.message);
     res.status(500).json({ error: 'Submission failed. Please try again.' });
   }
+});
+
+// Admin Bonus Claims — view all + mark paid
+app.get('/api/admin/bonus-claims', requireAuth(['super_admin']), (req, res) => {
+  const { status } = req.query;
+  let sql = `SELECT bc.*, ja.mobile, ja.email, ja.region
+             FROM bonus_claims bc
+             LEFT JOIN job_applications ja ON ja.qr_code = bc.qr_code
+             WHERE 1=1`;
+  const params = [];
+  if(status) { sql += ` AND bc.status=?`; params.push(status); }
+  sql += ` ORDER BY bc.claimed_at DESC`;
+  const rows = dbAll(sql, params);
+  res.json({ claims: rows, total: rows.length });
+});
+
+app.post('/api/admin/bonus-claims/:id/pay', requireAuth(['super_admin']), (req, res) => {
+  const { id } = req.params;
+  const claim = dbGet(`SELECT * FROM bonus_claims WHERE id=?`, [id]);
+  if(!claim) return res.status(404).json({ error: 'Claim not found' });
+  dbRun(`UPDATE bonus_claims SET status='paid', paid_at=datetime('now') WHERE id=?`, [id]);
+  // Notify applicant
+  if(claim.upi_mobile) {
+    const appRow = dbGet(`SELECT email, full_name FROM job_applications WHERE qr_code=? ORDER BY id DESC LIMIT 1`, [claim.qr_code]);
+    if(appRow?.email) {
+      sendEmail(appRow.email, '✅ IndhanShodhak — Bonus Payment Confirmed!',
+        `<div style="font-family:sans-serif;padding:20px">
+          <h2 style="color:#1a6b2e">✅ Bonus Paid!</h2>
+          <p>Dear ${appRow.full_name},</p>
+          <p>Your bonus of <b>₹${claim.amount}</b> for ${claim.pumps_at_claim} verified pumps has been sent to your UPI number <b>${claim.upi_mobile}</b>.</p>
+          <p>Thank you for helping build India's fuel data network!</p>
+          <p style="color:#888;font-size:12px">— IndhanShodhak Team</p>
+        </div>`);
+    }
+  }
+  res.json({ success: true });
 });
 
 app.get('/api/admin/careers', requireAuth(['super_admin']), (req, res) => {
@@ -3105,21 +3143,21 @@ app.post('/api/admin/cache-clear', requireAuth(['super_admin','doc_verifier']), 
 
 app.post('/api/pump-owner/apply/:pumpId',
   requireAuth(),
-  upload.fields([{name:'license',maxCount:1},{name:'aadhaar',maxCount:1},{name:'selfie',maxCount:1}]),
+  upload.fields([{name:'license',maxCount:1},{name:'aadhaar',maxCount:1}]),
   async (req,res) => {
     const pumpId = parseInt(req.params.pumpId);
     const { license_number, applicant_email } = req.body;
     if (!license_number) return res.status(400).json({ error:'license_number required' });
-    if (!req.files?.license||!req.files?.aadhaar||!req.files?.selfie)
-      return res.status(400).json({ error:'All 3 documents required' });
+    if (!req.files?.license||!req.files?.aadhaar)
+      return res.status(400).json({ error:'All documents required' });
     const pump = dbGet(`SELECT * FROM petrol_pumps WHERE id=?`,[pumpId]);
     if (!pump) return res.status(404).json({ error:'Pump not found' });
     const exists = dbGet(`SELECT id FROM pump_applications WHERE user_id=? AND pump_id=? AND status='pending'`,[req.user.id,pumpId]);
     if (exists) return res.status(409).json({ error:'Application already submitted' });
-    dbRun(`INSERT INTO pump_applications (user_id,pump_id,applicant_name,applicant_email,license_number,doc_license,doc_aadhaar,doc_selfie)
-           VALUES (?,?,?,?,?,?,?,?)`,
+    dbRun(`INSERT INTO pump_applications (user_id,pump_id,applicant_name,applicant_email,license_number,doc_license,doc_aadhaar)
+           VALUES (?,?,?,?,?,?,?)`,
       [req.user.id,pumpId,req.user.name,applicant_email||null,license_number,
-       req.files.license[0].path,req.files.aadhaar[0].path,req.files.selfie[0].path]);
+       req.files.license[0].path,req.files.aadhaar[0].path]);
     const app_row = dbGet(`SELECT id FROM pump_applications WHERE user_id=? AND pump_id=? ORDER BY applied_at DESC LIMIT 1`,[req.user.id,pumpId]);
     const verifiers = dbAll(`SELECT email FROM users WHERE role IN ('doc_verifier','super_admin') AND email IS NOT NULL`);
     verifiers.forEach(v => sendEmail(v.email,`[IndhanShodhak] New Pump Application #${app_row?.id}`,`<p>${req.user.name} applied for <b>${pump.name}</b>. <a href="${process.env.APP_URL||'http://localhost:3000'}/verify">Review</a></p>`));
