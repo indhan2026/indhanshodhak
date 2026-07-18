@@ -22,6 +22,9 @@ const DB_PATH     = process.env.NODE_ENV === 'production'
 const UPLOAD_PATH = process.env.NODE_ENV === 'production'
   ? '/data/uploads/pump-docs'
   : path.join(__dirname, 'uploads', 'pump-docs');
+const CACHE_FILE   = process.env.NODE_ENV === 'production'
+  ? '/data/location_cache.json'
+  : path.join(__dirname, 'location_cache.json');
 const PUBLIC_PATH = path.join(__dirname, 'public');
 
 if (!fs.existsSync(UPLOAD_PATH)) fs.mkdirSync(UPLOAD_PATH, { recursive: true });
@@ -2845,6 +2848,54 @@ app.get('/api/pump-owner/scan-status', requireAuth(['pump_owner','super_admin'])
 // ══════════════════════════════════════════════════════════════
 const locationCache = new Map();
 
+// ── Disk persistence — survives Render redeploys/restarts ──────
+// locationCache is in-memory only; without this, every deploy wipes it
+// even though entries are meant to live up to 8760hrs (1yr). Mirrored to
+// a plain JSON file on the SAME persistent disk as indhan.db, kept
+// separate from the sql.js DB so cache writes never trigger a full
+// db.export() re-serialization of the main database.
+let cacheDirty = false;
+
+function loadCacheFromDisk() {
+  try {
+    if(!fs.existsSync(CACHE_FILE)) { console.log('[CACHE DISK] No cache file yet — starting fresh'); return; }
+    const raw = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+    let loaded = 0, skipped = 0;
+    for(const [key, entry] of Object.entries(raw)) {
+      if(Date.now() > entry.expires) { skipped++; continue; } // don't resurrect hard-expired entries
+      locationCache.set(key, entry);
+      loaded++;
+    }
+    console.log(`[CACHE DISK] Restored ${loaded} entries from disk (${skipped} expired, skipped)`);
+  } catch(e) {
+    console.error('[CACHE DISK] Load failed — starting with empty cache:', e.message);
+  }
+}
+
+function flushCacheToDisk() {
+  if(!cacheDirty) return;
+  try {
+    const obj = Object.fromEntries(locationCache.entries());
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(obj));
+    cacheDirty = false;
+    console.log(`[CACHE DISK] Flushed ${locationCache.size} entries to disk`);
+  } catch(e) {
+    console.error('[CACHE DISK] Flush failed:', e.message);
+  }
+}
+
+loadCacheFromDisk();
+setInterval(flushCacheToDisk, 30000); // periodic save every 30s, only writes if dirty
+
+// Render sends SIGTERM ~60s before killing the old instance on a redeploy,
+// with a 30s grace window to clean up. Flush immediately on receipt so
+// anything cached in the last <30s (since the last periodic save) isn't lost.
+process.on('SIGTERM', () => {
+  console.log('[SIGTERM] Received — flushing cache to disk before shutdown');
+  flushCacheToDisk();
+  process.exit(0);
+});
+
 function cacheGet(key) {
   const entry = locationCache.get(key);
   if(!entry) return null;
@@ -2862,12 +2913,14 @@ function cacheSet(key, data, hours) {
     cachedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + hours * 3600000).toISOString()
   });
+  cacheDirty = true;
 }
 
 function cacheClear(pattern) {
   for(const key of locationCache.keys()) {
     if(!pattern || key.startsWith(pattern)) locationCache.delete(key);
   }
+  cacheDirty = true;
 }
 
 // ── STALE-WHILE-REVALIDATE ──────────────────────────────────────
