@@ -231,7 +231,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="file-name" id="e-fn-license">No file chosen</div>
     </div>
     <div class="doc-upload">
-      <div class="doc-label">Owner Aadhaar Card *</div>
+      <div class="doc-label">Owner ID Proof *</div>
+      <div style="margin-bottom:6px">
+        <label style="font-size:11.5px;color:#555;display:block;margin-bottom:4px">ID Type</label>
+        <select id="e-id-type" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fafafa">
+          <option value="Aadhaar Card">Aadhaar Card</option>
+          <option value="Driving Licence">Driving Licence</option>
+          <option value="Voter ID">Voter ID</option>
+          <option value="PAN Card">PAN Card</option>
+        </select>
+      </div>
       <label class="choose-btn">Choose File
         <input type="file" accept="image/jpeg" style="display:none" id="e-doc-aadhaar"
           onchange="handleAgentFile(this,'e-fn-aadhaar')">
@@ -464,9 +473,12 @@ function renderPumpResults(pumps){
   }
   el.innerHTML = filtered.map((p) => {
     const origIdx = pumps.indexOf(p);
-    const icon = p.category==='cng' ? '🔥' : p.category==='ev' ? '⚡' : (p.is_verified?'✅':'⛽');
+    const icon = p.category==='cng' ? '🍃' : p.category==='ev' ? '⚡' : (p.is_verified?'✅':'⛽');
+    const pumpId   = p.id   || '';
+    const placeId  = p.place_id || '';
+    const pumpName = (p.name||'').replace(/'/g,"\\'");
     return `
-    <div class="pump-item ${p.is_verified?'verified':''}">
+    <div class="pump-item ${p.is_verified?'verified':''}" id="pump-card-${origIdx}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="pump-name">${icon} ${p.name}</div>
@@ -474,13 +486,38 @@ function renderPumpResults(pumps){
         </div>
       </div>
       <div class="pump-tags">
-        ${p.category==='cng'?'<span class="pump-tag" style="background:#fff3e0;border:1px solid #ffcc80;color:#e65100">🔥 CNG</span>':''}
+        ${p.category==='cng'?'<span class="pump-tag" style="background:#e8f5e9;border:1px solid #a5d6a7;color:#1a6b2e">🍃 CNG</span>':''}
         ${p.category==='ev'?'<span class="pump-tag" style="background:#e3f2fd;border:1px solid #90caf9;color:#1565c0">⚡ EV</span>':''}
         ${p.is_verified?'<span class="pump-tag tag-v">✅ Verified</span>':'<span class="pump-tag tag-u">⏳ Unverified</span>'}
         ${p.has_owner?'<span class="pump-tag tag-o">👤 Has Owner</span>':'<span class="pump-tag tag-u">🔵 No Owner</span>'}
         ${p.oil_company?'<span class="pump-tag" style="background:#f5f5f5;border:1px solid #ddd;color:#555">'+p.oil_company+'</span>':''}
       </div>
-      ${!p.is_verified?`<button class="enroll-btn" onclick="openEnrollModal(${origIdx})">🛵 Enroll This Pump</button>`:''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+        ${!p.is_verified?`<button class="enroll-btn" onclick="openEnrollModal(${origIdx})">🛵 Enroll This Pump</button>`:''}
+        <button class="enroll-btn" style="background:#1565c0" onclick="toggleFuelPanel(${origIdx})">📊 Report Fuel Status</button>
+      </div>
+      <div id="fuel-panel-${origIdx}" style="display:none;margin-top:10px;background:#f0f7ff;border:1px solid #90caf9;border-radius:10px;padding:12px">
+        <div style="font-size:12px;font-weight:700;color:#1565c0;margin-bottom:10px">📊 Current Fuel Status — Report Now</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          ${['cng','petrol','diesel','ev'].map(fuel => `
+          <div style="background:#fff;border:1.5px solid #e0e0e0;border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:12px;font-weight:600;color:#333;margin-bottom:6px">
+              ${fuel==='cng'?'🍃 CNG':fuel==='petrol'?'⛽ Petrol':fuel==='diesel'?'🛢️ Diesel':'⚡ EV'}
+            </div>
+            <div style="display:flex;gap:4px;justify-content:center">
+              <button onclick="setFuel(${origIdx},'${fuel}',true,this)"
+                style="padding:4px 10px;border-radius:6px;border:1.5px solid #c8e6c9;background:#e8f5e9;color:#1a6b2e;font-size:11px;font-weight:600;cursor:pointer">✅ Yes</button>
+              <button onclick="setFuel(${origIdx},'${fuel}',false,this)"
+                style="padding:4px 10px;border-radius:6px;border:1.5px solid #ffcdd2;background:#ffebee;color:#b71c1c;font-size:11px;font-weight:600;cursor:pointer">❌ No</button>
+            </div>
+          </div>`).join('')}
+        </div>
+        <div id="fuel-msg-${origIdx}" style="font-size:12px;color:#888;margin-bottom:8px"></div>
+        <button onclick="submitFuelReport(${origIdx},'${pumpId}','${placeId}','${pumpName}')"
+          style="width:100%;padding:10px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">
+          📤 Submit Report
+        </button>
+      </div>
     </div>
   `;}).join('');
 }
@@ -563,7 +600,9 @@ async function submitEnrollment(){
   const licFile = document.getElementById('e-doc-license').files[0];
   const aadFile = document.getElementById('e-doc-aadhaar').files[0];
   if(!licFile) return show('Upload Pump License Certificate');
-  if(!aadFile) return show('Upload Owner Aadhaar Card');
+  if(!aadFile) return show('Upload Owner ID Proof');
+
+  const idType = document.getElementById('e-id-type').value;
 
   const fd = new FormData();
   fd.append('owner_name', ownerName);
@@ -580,6 +619,7 @@ async function submitEnrollment(){
   fd.append('license_number', license);
   fd.append('lat', document.getElementById('e-pump-lat').value);
   fd.append('lng', document.getElementById('e-pump-lng').value);
+  fd.append('id_proof_type', idType);
   fd.append('license', licFile);
   fd.append('aadhaar', aadFile);
 
@@ -602,6 +642,77 @@ async function submitEnrollment(){
   } catch(e){
     show('Network error — try again');
     btn.disabled=false; btn.textContent='📤 Submit for Verification';
+  }
+}
+
+// ── FUEL STATUS REPORTING FROM AGENT DASHBOARD ────────────────
+const _fuelState = {};
+
+function toggleFuelPanel(idx){
+  const panel = document.getElementById(`fuel-panel-${idx}`);
+  if(!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if(!_fuelState[idx]) _fuelState[idx] = {cng:null,petrol:null,diesel:null,ev:null};
+}
+
+function setFuel(idx, fuel, val, btn){
+  if(!_fuelState[idx]) _fuelState[idx] = {cng:null,petrol:null,diesel:null,ev:null};
+  _fuelState[idx][fuel] = val;
+  const siblings = btn.parentElement.querySelectorAll('button');
+  siblings.forEach(b => { b.style.outline='none'; b.style.fontWeight='600'; });
+  btn.style.outline = '2px solid ' + (val ? '#1a6b2e' : '#b71c1c');
+  btn.style.fontWeight = '800';
+}
+
+async function submitFuelReport(idx, pumpId, placeId, pumpName){
+  const state = _fuelState[idx] || {};
+  const msgEl = document.getElementById(`fuel-msg-${idx}`);
+  if(state.petrol===null && state.diesel===null && state.cng===null && state.ev===null){
+    msgEl.style.color='#b71c1c';
+    msgEl.textContent='Please select at least one fuel status before submitting.';
+    return;
+  }
+  msgEl.style.color='#888'; msgEl.textContent='⏳ Submitting...';
+  try {
+    let r;
+    if(pumpId){
+      r = await fetch('/api/reports/submit',{
+        method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+        body:JSON.stringify({
+          pump_id:parseInt(pumpId),
+          petrol: state.petrol!==null?state.petrol:undefined,
+          diesel: state.diesel!==null?state.diesel:undefined,
+          cng:    state.cng!==null?state.cng:undefined,
+          ev:     state.ev!==null?state.ev:undefined,
+          queue_length:'none'
+        })
+      });
+    } else {
+      const pump = _agentPumps.find(p=>p.place_id===placeId);
+      r = await fetch('/api/reports/submit-external',{
+        method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+        body:JSON.stringify({
+          place_id:placeId, name:pumpName,
+          lat:pump?.lat, lng:pump?.lng, address:pump?.address,
+          petrol: state.petrol!==null?state.petrol:undefined,
+          diesel: state.diesel!==null?state.diesel:undefined,
+          cng:    state.cng!==null?state.cng:undefined,
+          ev:     state.ev!==null?state.ev:undefined,
+          queue_length:'none'
+        })
+      });
+    }
+    const d = await r.json();
+    if(d.success||d.message){
+      msgEl.style.color='#1a6b2e';
+      msgEl.textContent='✅ Report submitted! Now visible to users in 30km range.';
+    } else {
+      msgEl.style.color='#b71c1c';
+      msgEl.textContent='❌ '+(d.error||'Submission failed');
+    }
+  } catch(e){
+    msgEl.style.color='#b71c1c';
+    msgEl.textContent='❌ Network error — try again';
   }
 }
 </script>
