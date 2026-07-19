@@ -3643,6 +3643,7 @@ app.patch('/api/admin/enrollment-agents/:id/password', requireAuth(['super_admin
   if(!agent) return res.status(404).json({ error: 'Agent not found' });
   dbRun(`UPDATE users SET password_hash=?, plain_password=? WHERE id=?`,
     [hashPwd(password), password, req.params.id]);
+  console.log(`[AGENT-PWD] Agent ID:${req.params.id} password changed by admin`);
   res.json({ success: true });
 });
 
