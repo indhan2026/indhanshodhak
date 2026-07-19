@@ -478,7 +478,7 @@ function renderPumpResults(pumps){
   el.innerHTML = filtered.map((p) => {
     const origIdx = pumps.indexOf(p);
     const icon = p.category==='cng' ? '🍃' : p.category==='ev' ? '⚡' : (p.is_verified?'✅':'⛽');
-    const pumpId  = p.id   || '';
+    const pumpId  = p.source === 'db' ? (p.id || '') : '';
     const placeId = p.place_id || '';
     const pumpName = (p.name||'').replace(/'/g,"\\'");
     return `
@@ -494,10 +494,21 @@ function renderPumpResults(pumps){
       </div>
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:8px">
         ${!p.is_verified?`<button class="enroll-btn" onclick="openEnrollModal(${origIdx})">🛵 Enroll</button>`:''}
-        <button class="fuel-pill" onclick="cyclePill(this,'🍃 CNG')">🍃 CNG</button>
-        <button class="fuel-pill" onclick="cyclePill(this,'⛽ Petrol')">⛽ Petrol</button>
-        <button class="fuel-pill" onclick="cyclePill(this,'🛢️ Diesel')">🛢️ Diesel</button>
-        <button class="fuel-pill" onclick="cyclePill(this,'⚡ EV')">⚡ EV</button>
+        ${(()=>{
+          const pills=[
+            {key:'cng',   label:'🍃 CNG'},
+            {key:'petrol',label:'⛽ Petrol'},
+            {key:'diesel',label:'🛢️ Diesel'},
+            {key:'ev',    label:'⚡ EV'},
+          ];
+          return pills.map(({key,label})=>{
+            const v = p.fuel ? p.fuel[key] : null;
+            const cls = v===1 ? 'fuel-pill available' : v===0 ? 'fuel-pill unavailable' : 'fuel-pill';
+            const txt = v===1 ? '✓ '+label : v===0 ? '✗ '+label : label;
+            const ds  = v===1 ? 'available' : v===0 ? 'unavailable' : 'unset';
+            return `<button class="${cls}" data-state="${ds}" onclick="cyclePill(this,'${label}')">${txt}</button>`;
+          }).join('');
+        })()}
         <button class="fuel-pill-submit" onclick="submitFuelReport(this,${origIdx},'${pumpId}','${placeId}','${pumpName}')">📤 Report</button>
       </div>
       <div id="fuel-msg-${origIdx}" style="font-size:11.5px;font-weight:600;color:#1a6b2e;margin-top:4px;min-height:14px"></div>
@@ -680,7 +691,7 @@ async function submitFuelReport(btn, idx, pumpId, placeId, pumpName){
       const pump = _agentPumps.find(p=>p.place_id===placeId);
       r = await fetch('/api/reports/submit-external',{
         method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
-        body:JSON.stringify({ place_id:placeId, name:pumpName, lat:pump?.lat, lng:pump?.lng, address:pump?.address, ...state, queue_length:'none' })
+        body:JSON.stringify({ external_id:placeId, pump_name:pumpName, pump_lat:pump?.lat, pump_lng:pump?.lng, pump_address:pump?.address, pump_oil_company:pump?.oil_company, ...state, queue_length:'none' })
       });
     }
     const d = await r.json();

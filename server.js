@@ -3742,9 +3742,33 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
       has_owner: p.has_owner !== undefined ? p.has_owner : !!p.owner_user_id,
       source: p.source || 'db',
       category: p.category || 'fuel',
+      place_id: p.place_id || null,  // Google Place ID — needed for submit-external
     }));
 
-    res.json({ pumps: safePumps, total: safePumps.length });
+    // Attach latest non-expired fuel report per DB pump so pills
+    // show current status on page load / refresh (admin-set expiry window)
+    const dbIds = safePumps
+      .filter(p => p.source === 'db' && typeof p.id === 'number')
+      .map(p => p.id);
+    const fuelMap = {};
+    if(dbIds.length > 0) {
+      const ph = dbIds.map(() => '?').join(',');
+      const rows = dbAll(
+        `SELECT r.pump_id, r.cng, r.petrol, r.diesel, r.ev
+         FROM fuel_reports r
+         WHERE r.pump_id IN (${ph})
+           AND r.expires_at > datetime('now')
+           AND r.created_at = (
+             SELECT MAX(r2.created_at) FROM fuel_reports r2
+             WHERE r2.pump_id = r.pump_id AND r2.expires_at > datetime('now')
+           )`,
+        dbIds
+      );
+      rows.forEach(r => { fuelMap[r.pump_id] = { cng:r.cng, petrol:r.petrol, diesel:r.diesel, ev:r.ev }; });
+    }
+    const pumpsWithFuel = safePumps.map(p => ({ ...p, fuel: fuelMap[p.id] || null }));
+
+    res.json({ pumps: pumpsWithFuel, total: pumpsWithFuel.length });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
