@@ -3619,6 +3619,33 @@ app.post('/api/admin/create-agent', requireAuth(['super_admin']), (req, res) => 
   });
 });
 
+// ── Admin: Enrollment Agent management ──────────────────────────
+app.get('/api/admin/enrollment-agents', requireAuth(['super_admin']), (req, res) => {
+  const agents = dbAll(`
+    SELECT u.id, u.mobile as login_id, u.name, u.plain_password, u.created_at
+    FROM users u WHERE u.role = 'enrollment_agent' ORDER BY u.id DESC
+  `);
+  const enriched = agents.map(a => {
+    const mr = dbGet(
+      `SELECT mr_code, mr_phone, notes, status FROM mr_agents WHERE mr_name=? ORDER BY id DESC LIMIT 1`,
+      [a.name]
+    );
+    return { ...a, mr_code: mr?.mr_code||'—', mr_phone: mr?.mr_phone||'', region: mr?.notes||'', status: mr?.status||'active' };
+  });
+  res.json({ agents: enriched });
+});
+
+app.patch('/api/admin/enrollment-agents/:id/password', requireAuth(['super_admin']), (req, res) => {
+  const { password } = req.body;
+  if(!password || password.length < 6)
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  const agent = dbGet(`SELECT id FROM users WHERE id=? AND role='enrollment_agent'`, [req.params.id]);
+  if(!agent) return res.status(404).json({ error: 'Agent not found' });
+  dbRun(`UPDATE users SET password_hash=?, plain_password=? WHERE id=?`,
+    [hashPwd(password), password, req.params.id]);
+  res.json({ success: true });
+});
+
 // Agent: Get districts list for dropdown
 app.get('/api/agent/districts', requireAuth(['enrollment_agent','super_admin']), (req, res) => {
   const districts = dbAll(

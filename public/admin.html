@@ -1306,27 +1306,115 @@ async function loadMRAgents(){
   const el = document.getElementById('mr-agents-list');
   if(!el) return;
   try {
-    const r = await fetch('/api/admin/mr-agents', {headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'}});
-    const d = await r.json();
-    if(!d.agents || d.agents.length === 0){
-      el.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">No MR agents added yet. Add your first MR above.</div>';
-      return;
+    // Load both MR agents and Enrollment agents in parallel
+    const [mrRes, enRes] = await Promise.all([
+      fetch('/api/admin/mr-agents', {headers:{'x-auth-token':TOKEN}}),
+      fetch('/api/admin/enrollment-agents', {headers:{'x-auth-token':TOKEN}})
+    ]);
+    const mrData = await mrRes.json();
+    const enData = await enRes.json();
+
+    const mrAgents = mrData.agents || [];
+    const enAgents = enData.agents || [];
+
+    let html = '';
+
+    // ── Section 1: MR Field Agents (referral code only) ──
+    if(mrAgents.length) {
+      html += `<div style="font-size:11px;font-weight:700;color:#e65100;letter-spacing:0.4px;margin-bottom:8px">🛵 MR FIELD AGENTS (Referral Code)</div>`;
+      html += mrAgents.map(a => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${a.status==='active'?'#fff8f0':'#f5f5f5'};border-radius:10px;margin-bottom:6px;flex-wrap:wrap;border:1px solid ${a.status==='active'?'#ffcc80':'#e0e0e0'}">
+          <div style="background:${a.status==='active'?'#e65100':'#9e9e9e'};color:white;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;font-family:monospace">${a.mr_code}</div>
+          <div style="flex:1;min-width:120px">
+            <div style="font-size:13px;font-weight:600;color:#222">${a.mr_name}</div>
+            <div style="font-size:11px;color:#888">📱 ${a.mr_phone||'—'} ${a.notes?'· '+a.notes:''}</div>
+          </div>
+          <div style="font-size:11px;color:${a.status==='active'?'#1a6b2e':'#b71c1c'};font-weight:600">${a.status==='active'?'✅ Active':'⛔ Inactive'}</div>
+          <button onclick="toggleMRStatus(${a.id},'${a.status==='active'?'inactive':'active'}')"
+            style="font-size:11px;padding:4px 10px;border:none;border-radius:8px;cursor:pointer;background:${a.status==='active'?'#ffebee':'#e8f5e9'};color:${a.status==='active'?'#b71c1c':'#1a6b2e'}">
+            ${a.status==='active'?'Deactivate':'Activate'}
+          </button>
+        </div>`).join('');
     }
-    el.innerHTML = d.agents.map(a => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${a.status==='active'?'#e8f5e9':'#f5f5f5'};border-radius:10px;margin-bottom:8px;flex-wrap:wrap">
-        <div style="background:${a.status==='active'?'#e65100':'#9e9e9e'};color:white;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;font-family:monospace">${a.mr_code}</div>
-        <div style="flex:1;min-width:120px">
-          <div style="font-size:13px;font-weight:600;color:#222">${a.mr_name}</div>
-          <div style="font-size:11px;color:#888">📱 ${a.mr_phone} ${a.notes?'· '+a.notes:''}</div>
-        </div>
-        <div style="font-size:11px;color:${a.status==='active'?'#1a6b2e':'#b71c1c'};font-weight:600">${a.status==='active'?'✅ Active':'⛔ Inactive'}</div>
-        <button onclick="toggleMRStatus(${a.id},'${a.status==='active'?'inactive':'active'}')"
-          style="font-size:11px;padding:4px 10px;border:none;border-radius:8px;cursor:pointer;background:${a.status==='active'?'#ffebee':'#e8f5e9'};color:${a.status==='active'?'#b71c1c':'#1a6b2e'}">
-          ${a.status==='active'?'Deactivate':'Activate'}
-        </button>
-      </div>
-    `).join('');
+
+    // ── Section 2: Enrollment Agents (login + password visible) ──
+    if(enAgents.length) {
+      html += `<div style="font-size:11px;font-weight:700;color:#1565c0;letter-spacing:0.4px;margin:14px 0 8px">🔑 ENROLLMENT AGENTS (Dashboard Login)</div>`;
+      html += enAgents.map(a => `
+        <div style="padding:12px;background:#f0f4ff;border-radius:10px;margin-bottom:8px;border:1px solid #90caf9">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+            <div style="background:#1565c0;color:white;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;font-family:monospace">${a.mr_code||'—'}</div>
+            <div style="flex:1;min-width:120px">
+              <div style="font-size:13px;font-weight:600;color:#222">${a.name}</div>
+              <div style="font-size:11px;color:#888">📱 ${a.mr_phone||'—'} ${a.region?'· '+a.region:''}</div>
+            </div>
+            <div style="font-size:11px;color:${a.status==='active'?'#1a6b2e':'#b71c1c'};font-weight:600">${a.status==='active'?'✅ Active':'⛔ Inactive'}</div>
+          </div>
+          <div style="background:#fff;border-radius:8px;padding:10px;font-size:12px;line-height:1.8">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="color:#888;width:90px">🔑 Login ID</span>
+              <code style="background:#f5f5f5;padding:2px 8px;border-radius:5px;font-size:13px;font-weight:700;color:#1565c0">${a.login_id}</code>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="color:#888;width:90px">🔒 Password</span>
+              <code id="pwd-${a.id}" style="background:#f5f5f5;padding:2px 8px;border-radius:5px;font-size:13px;letter-spacing:2px">••••••</code>
+              <button onclick="togglePwd(${a.id},'${a.plain_password||''}')"
+                style="font-size:11px;padding:3px 8px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:#fff;color:#555">
+                👁️ Show
+              </button>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <input id="newpwd-${a.id}" type="password" placeholder="New password (min 6 chars)"
+                style="padding:6px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:12.5px;width:180px">
+              <button onclick="changeAgentPassword(${a.id})"
+                style="padding:6px 12px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
+                💾 Change
+              </button>
+              <span id="pwdmsg-${a.id}" style="font-size:11.5px;font-weight:600"></span>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    if(!mrAgents.length && !enAgents.length) {
+      html = '<div style="color:#aaa;text-align:center;padding:12px">No agents added yet.</div>';
+    }
+
+    el.innerHTML = html;
   } catch(e){ el.innerHTML = '<div style="color:#b71c1c;text-align:center">Error loading agents</div>'; }
+}
+
+function togglePwd(id, pwd){
+  const el = document.getElementById('pwd-' + id);
+  const btn = el.nextElementSibling;
+  if(el.textContent === '••••••'){
+    el.textContent = pwd || '(not stored)';
+    el.style.letterSpacing = '0';
+    btn.textContent = '🙈 Hide';
+  } else {
+    el.textContent = '••••••';
+    el.style.letterSpacing = '2px';
+    btn.textContent = '👁️ Show';
+  }
+}
+
+async function changeAgentPassword(id){
+  const input = document.getElementById('newpwd-' + id);
+  const msg   = document.getElementById('pwdmsg-' + id);
+  const pwd   = input.value.trim();
+  if(pwd.length < 6){ msg.style.color='#b71c1c'; msg.textContent='Min 6 chars'; return; }
+  try {
+    const r = await fetch(`/api/admin/enrollment-agents/${id}/password`, {
+      method:'PATCH', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({ password: pwd })
+    });
+    const d = await r.json();
+    if(d.success){
+      msg.style.color='#1a6b2e'; msg.textContent='✅ Changed!';
+      input.value='';
+      setTimeout(() => loadMRAgents(), 1500);
+    } else { msg.style.color='#b71c1c'; msg.textContent = d.error||'Error'; }
+  } catch(e){ msg.style.color='#b71c1c'; msg.textContent='Network error'; }
 }
 
 async function addMRAgent(){
