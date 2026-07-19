@@ -40,6 +40,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tag-u{background:#fff3e0;color:#e65100;border:1px solid #ffcc80}
 .tag-o{background:#e3f2fd;color:#1565c0;border:1px solid #90caf9}
 .enroll-btn{padding:5px 12px;background:#e65100;color:white;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;margin-top:6px}
+.fuel-pill{padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid #ddd;background:#f5f5f5;color:#888;transition:all .15s;user-select:none}
+.fuel-pill.available{background:#e8f5e9;border-color:#a5d6a7;color:#1a6b2e}
+.fuel-pill.unavailable{background:#ffebee;border-color:#ef9a9a;color:#c62828}
+.fuel-pill-submit{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:#1565c0;color:#fff}
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;z-index:10000;overflow-y:auto;padding:20px}
 .modal-box{background:white;border-radius:16px;max-width:480px;margin:20px auto;padding:20px;position:relative}
 .modal-close{position:absolute;top:12px;right:14px;font-size:20px;cursor:pointer;color:#888;background:none;border:none}
@@ -474,17 +478,13 @@ function renderPumpResults(pumps){
   el.innerHTML = filtered.map((p) => {
     const origIdx = pumps.indexOf(p);
     const icon = p.category==='cng' ? '🍃' : p.category==='ev' ? '⚡' : (p.is_verified?'✅':'⛽');
-    const pumpId   = p.id   || '';
-    const placeId  = p.place_id || '';
+    const pumpId  = p.id   || '';
+    const placeId = p.place_id || '';
     const pumpName = (p.name||'').replace(/'/g,"\\'");
     return `
     <div class="pump-item ${p.is_verified?'verified':''}" id="pump-card-${origIdx}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="pump-name">${icon} ${p.name}</div>
-          <div class="pump-addr">📍 ${p.address||''} ${p.tehsil?'· '+p.tehsil:''} ${p.district?'· '+p.district:''}</div>
-        </div>
-      </div>
+      <div class="pump-name">${icon} ${p.name}</div>
+      <div class="pump-addr">📍 ${p.address||''} ${p.tehsil?'· '+p.tehsil:''} ${p.district?'· '+p.district:''}</div>
       <div class="pump-tags">
         ${p.category==='cng'?'<span class="pump-tag" style="background:#e8f5e9;border:1px solid #a5d6a7;color:#1a6b2e">🍃 CNG</span>':''}
         ${p.category==='ev'?'<span class="pump-tag" style="background:#e3f2fd;border:1px solid #90caf9;color:#1565c0">⚡ EV</span>':''}
@@ -492,32 +492,15 @@ function renderPumpResults(pumps){
         ${p.has_owner?'<span class="pump-tag tag-o">👤 Has Owner</span>':'<span class="pump-tag tag-u">🔵 No Owner</span>'}
         ${p.oil_company?'<span class="pump-tag" style="background:#f5f5f5;border:1px solid #ddd;color:#555">'+p.oil_company+'</span>':''}
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-        ${!p.is_verified?`<button class="enroll-btn" onclick="openEnrollModal(${origIdx})">🛵 Enroll This Pump</button>`:''}
-        <button class="enroll-btn" style="background:#1565c0" onclick="toggleFuelPanel(${origIdx})">📊 Report Fuel Status</button>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:8px">
+        ${!p.is_verified?`<button class="enroll-btn" onclick="openEnrollModal(${origIdx})">🛵 Enroll</button>`:''}
+        <button class="fuel-pill" onclick="cyclePill(this,'🍃 CNG')">🍃 CNG</button>
+        <button class="fuel-pill" onclick="cyclePill(this,'⛽ Petrol')">⛽ Petrol</button>
+        <button class="fuel-pill" onclick="cyclePill(this,'🛢️ Diesel')">🛢️ Diesel</button>
+        <button class="fuel-pill" onclick="cyclePill(this,'⚡ EV')">⚡ EV</button>
+        <button class="fuel-pill-submit" onclick="submitFuelReport(this,${origIdx},'${pumpId}','${placeId}','${pumpName}')">📤 Report</button>
       </div>
-      <div id="fuel-panel-${origIdx}" style="display:none;margin-top:10px;background:#f0f7ff;border:1px solid #90caf9;border-radius:10px;padding:12px">
-        <div style="font-size:11.5px;font-weight:700;color:#1565c0;margin-bottom:8px">📊 Report Fuel Status</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-          ${['cng','petrol','diesel','ev'].map(fuel => `
-          <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:6px 8px;display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:11.5px;font-weight:600;color:#333">
-              ${fuel==='cng'?'🍃 CNG':fuel==='petrol'?'⛽ Petrol':fuel==='diesel'?'🛢️ Diesel':'⚡ EV'}
-            </span>
-            <div style="display:flex;gap:3px">
-              <button onclick="setFuel(${origIdx},'${fuel}',true,this)"
-                style="padding:3px 8px;border-radius:5px;border:1px solid #c8e6c9;background:#e8f5e9;color:#1a6b2e;font-size:11px;font-weight:600;cursor:pointer">✅</button>
-              <button onclick="setFuel(${origIdx},'${fuel}',false,this)"
-                style="padding:3px 8px;border-radius:5px;border:1px solid #ffcdd2;background:#ffebee;color:#b71c1c;font-size:11px;font-weight:600;cursor:pointer">❌</button>
-            </div>
-          </div>`).join('')}
-        </div>
-        <div id="fuel-msg-${origIdx}" style="font-size:12px;color:#888;margin-bottom:6px"></div>
-        <button onclick="submitFuelReport(${origIdx},'${pumpId}','${placeId}','${pumpName}')"
-          style="padding:7px 18px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px">
-          📤 Submit Report
-        </button>
-      </div>
+      <div id="fuel-msg-${origIdx}" style="font-size:11.5px;font-weight:600;color:#1a6b2e;margin-top:4px;min-height:14px"></div>
     </div>
   `;}).join('');
 }
@@ -645,31 +628,44 @@ async function submitEnrollment(){
   }
 }
 
-// ── FUEL STATUS REPORTING FROM AGENT DASHBOARD ────────────────
-const _fuelState = {};
-
-function toggleFuelPanel(idx){
-  const panel = document.getElementById(`fuel-panel-${idx}`);
-  if(!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-  if(!_fuelState[idx]) _fuelState[idx] = {cng:null,petrol:null,diesel:null,ev:null};
+// ── FUEL PILL REPORTING ────────────────────────────────────────
+// Three-state cycle per pill: grey (unset) → ✓ green → ✗ red → grey
+function cyclePill(btn, label){
+  const state = btn.dataset.state || 'unset';
+  if(state === 'unset'){
+    btn.dataset.state = 'available';
+    btn.className = 'fuel-pill available';
+    btn.textContent = '✓ ' + label;
+  } else if(state === 'available'){
+    btn.dataset.state = 'unavailable';
+    btn.className = 'fuel-pill unavailable';
+    btn.textContent = '✗ ' + label;
+  } else {
+    btn.dataset.state = 'unset';
+    btn.className = 'fuel-pill';
+    btn.textContent = label;
+  }
 }
 
-function setFuel(idx, fuel, val, btn){
-  if(!_fuelState[idx]) _fuelState[idx] = {cng:null,petrol:null,diesel:null,ev:null};
-  _fuelState[idx][fuel] = val;
-  const siblings = btn.parentElement.querySelectorAll('button');
-  siblings.forEach(b => { b.style.outline='none'; b.style.fontWeight='600'; });
-  btn.style.outline = '2px solid ' + (val ? '#1a6b2e' : '#b71c1c');
-  btn.style.fontWeight = '800';
-}
-
-async function submitFuelReport(idx, pumpId, placeId, pumpName){
-  const state = _fuelState[idx] || {};
+async function submitFuelReport(btn, idx, pumpId, placeId, pumpName){
+  // Read pill states from the DOM — no separate state object needed
+  const row = btn.closest('div');
+  const pills = row.querySelectorAll('.fuel-pill');
+  const state = {};
+  pills.forEach(p => {
+    const s = p.dataset.state;
+    if(s === 'available' || s === 'unavailable'){
+      const lbl = p.textContent.replace(/[✓✗]\s*/,'').trim().toLowerCase();
+      if(lbl.includes('cng'))    state.cng    = s === 'available';
+      if(lbl.includes('petrol')) state.petrol = s === 'available';
+      if(lbl.includes('diesel')) state.diesel = s === 'available';
+      if(lbl.includes('ev'))     state.ev     = s === 'available';
+    }
+  });
   const msgEl = document.getElementById(`fuel-msg-${idx}`);
-  if(state.petrol===null && state.diesel===null && state.cng===null && state.ev===null){
-    msgEl.style.color='#b71c1c';
-    msgEl.textContent='Please select at least one fuel status before submitting.';
+  if(Object.keys(state).length === 0){
+    msgEl.style.color='#c62828';
+    msgEl.textContent='Tap a fuel pill first to set its status.';
     return;
   }
   msgEl.style.color='#888'; msgEl.textContent='⏳ Submitting...';
@@ -678,28 +674,13 @@ async function submitFuelReport(idx, pumpId, placeId, pumpName){
     if(pumpId){
       r = await fetch('/api/reports/submit',{
         method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
-        body:JSON.stringify({
-          pump_id:parseInt(pumpId),
-          petrol: state.petrol!==null?state.petrol:undefined,
-          diesel: state.diesel!==null?state.diesel:undefined,
-          cng:    state.cng!==null?state.cng:undefined,
-          ev:     state.ev!==null?state.ev:undefined,
-          queue_length:'none'
-        })
+        body:JSON.stringify({ pump_id:parseInt(pumpId), ...state, queue_length:'none' })
       });
     } else {
       const pump = _agentPumps.find(p=>p.place_id===placeId);
       r = await fetch('/api/reports/submit-external',{
         method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
-        body:JSON.stringify({
-          place_id:placeId, name:pumpName,
-          lat:pump?.lat, lng:pump?.lng, address:pump?.address,
-          petrol: state.petrol!==null?state.petrol:undefined,
-          diesel: state.diesel!==null?state.diesel:undefined,
-          cng:    state.cng!==null?state.cng:undefined,
-          ev:     state.ev!==null?state.ev:undefined,
-          queue_length:'none'
-        })
+        body:JSON.stringify({ place_id:placeId, name:pumpName, lat:pump?.lat, lng:pump?.lng, address:pump?.address, ...state, queue_length:'none' })
       });
     }
     const d = await r.json();
