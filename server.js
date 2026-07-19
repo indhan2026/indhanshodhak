@@ -1824,8 +1824,10 @@ app.post('/api/reports/submit', requireAuth(), (req,res) => {
 
   // ── Career applicant false-report check (only affects users whose QR
   // code matches a job application — everyone else is untouched) ──
+  // Enrollment agents call pump owners directly — their data is authoritative;
+  // they must never be suspended for data entry.
   const reporterUser = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
-  const isApplicant = reporterUser?.user_code
+  const isApplicant = (req.user.role !== 'enrollment_agent' && reporterUser?.user_code)
     ? dbGet('SELECT id FROM job_applications WHERE qr_code=?', [reporterUser.user_code])
     : null;
   if(isApplicant) {
@@ -2079,6 +2081,8 @@ function processApplicantReportResult(qrCode, isFalse) {
 
 // Personal status check — only ever shows an applicant THEIR OWN status, never anyone else's
 app.get('/api/applicant/flag-status', requireAuth(), (req, res) => {
+  // Enrollment agents are exempt — suspension logic does not apply to them
+  if(req.user.role === 'enrollment_agent') return res.json({ tracked: false });
   const user = dbGet('SELECT user_code FROM users WHERE id=?', [req.user.id]);
   if(!user?.user_code) return res.json({ tracked: false });
   const isApplicant = dbGet('SELECT id FROM job_applications WHERE qr_code=?', [user.user_code]);
