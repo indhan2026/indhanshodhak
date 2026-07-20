@@ -959,111 +959,130 @@ app.get('/api/pumps/search', (req,res) => {
 // Carry-forward: respects last human correction within 72hrs.
 // Owner reports: never overridden — persist until owner changes.
 // Random offset: staggered expiry — looks organic, not robotic.
-function seedPumpsInBackground(dbPumps) {
+// Core synchronous seeding logic — usable both immediately (agent route,
+// so the SAME response reflects seeded data) and deferred (public search
+// route, where we don't want to delay the user's response).
+function seedPumpsSync(dbPumps) {
   if (!dbPumps || dbPumps.length === 0) return;
-  setImmediate(() => {
-    try {
-      const expiryHrs = parseInt(getSetting('report_expiry_user')) || 4;
-      const decayHrs  = parseInt(getSetting('seed_decay_hours'))   || 72;
-      const now       = new Date();
+  try {
+    const expiryHrs = parseInt(getSetting('report_expiry_user')) || 4;
+    const decayHrs  = parseInt(getSetting('seed_decay_hours'))   || 72;
+    const now       = new Date();
 
-      for (const pump of dbPumps) {
-        if (typeof pump.id !== 'number') continue; // skip Google/MMI pumps
+    for (const pump of dbPumps) {
+      if (typeof pump.id !== 'number') continue; // skip Google/MMI pumps
 
-        // Skip if active fuel report already exists
-        const active = dbGet(
-          `SELECT id FROM fuel_reports
-           WHERE pump_id=? AND expires_at > datetime('now')
-           ORDER BY created_at DESC LIMIT 1`,
-          [pump.id]
-        );
-        if (active) continue;
+      // Skip if active fuel report already exists
+      const active = dbGet(
+        `SELECT id FROM fuel_reports
+         WHERE pump_id=? AND expires_at > datetime('now')
+         ORDER BY created_at DESC LIMIT 1`,
+        [pump.id]
+      );
+      if (active) continue;
 
-        // Check last report for carry-forward / owner guard
-        const last = dbGet(
-          `SELECT report_source, petrol, diesel, cng, ev, created_at
-           FROM fuel_reports WHERE pump_id=? ORDER BY created_at DESC LIMIT 1`,
-          [pump.id]
-        );
+      // Check last report for carry-forward / owner guard
+      const last = dbGet(
+        `SELECT report_source, petrol, diesel, cng, ev, created_at
+         FROM fuel_reports WHERE pump_id=? ORDER BY created_at DESC LIMIT 1`,
+        [pump.id]
+      );
 
-        let petrol=0, diesel=0, cng=0, ev=0;
+      let petrol=0, diesel=0, cng=0, ev=0;
 
-        if (last && last.report_source === 'owner') {
-          // Owner's last known state — carry forward indefinitely
-          // (owner data persists until owner changes it)
+      if (last && last.report_source === 'owner') {
+        // Owner's last known state — carry forward indefinitely
+        // (owner data persists until owner changes it)
+        petrol = last.petrol; diesel = last.diesel;
+        cng    = last.cng;    ev     = last.ev;
+      } else if (last && last.report_source === 'user') {
+        const hrsSince = (now - new Date(last.created_at)) / 3600000;
+        if (hrsSince <= decayHrs) {
+          // Within 72hrs — carry human correction forward exactly
           petrol = last.petrol; diesel = last.diesel;
           cng    = last.cng;    ev     = last.ev;
-        } else if (last && last.report_source === 'user') {
-          const hrsSince = (now - new Date(last.created_at)) / 3600000;
-          if (hrsSince <= decayHrs) {
-            // Within 72hrs — carry human correction forward exactly
-            petrol = last.petrol; diesel = last.diesel;
-            cng    = last.cng;    ev     = last.ev;
-          } else {
-            // Beyond 72hrs — nuisance data expired, reset to category default
-            if      (pump.category === 'ev')  { ev=1; }
-            else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
-            else                              { petrol=1; diesel=1; }
-          }
         } else {
-          // No previous report — seed fresh category-smart default
+          // Beyond 72hrs — nuisance data expired, reset to category default
           if      (pump.category === 'ev')  { ev=1; }
           else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
           else                              { petrol=1; diesel=1; }
         }
-
-        // Random 0–20 min offset so pumps don't all expire at same moment
-        const offsetMins = Math.floor(Math.random() * 121); // 0–120 min stagger
-
-        dbRun(
-          `INSERT INTO fuel_reports
-             (pump_id, reported_by, reporter_role, report_source,
-              petrol, diesel, cng, ev, queue_length, expires_at)
-           VALUES (?, 0, 'user', 'user', ?, ?, ?, ?, 'none',
-                   datetime('now', '+${expiryHrs} hours', '+${offsetMins} minutes'))`,
-          [pump.id, petrol, diesel, cng, ev]
-        );
+      } else {
+        // No previous report — seed fresh category-smart default
+        if      (pump.category === 'ev')  { ev=1; }
+        else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
+        else                              { petrol=1; diesel=1; }
       }
-      console.log(`[SEEDER] Seeded ${dbPumps.filter(p=>typeof p.id==='number').length} pumps checked`);
-    } catch(e) {
-      console.error('[SEEDER] Error:', e.message);
+
+      // Random 0–120 min offset so pumps don't all expire at same moment
+      const offsetMins = Math.floor(Math.random() * 121); // 0–120 min stagger
+
+      dbRun(
+        `INSERT INTO fuel_reports
+           (pump_id, reported_by, reporter_role, report_source,
+            petrol, diesel, cng, ev, queue_length, expires_at)
+         VALUES (?, 0, 'user', 'user', ?, ?, ?, ?, 'none',
+                 datetime('now', '+${expiryHrs} hours', '+${offsetMins} minutes'))`,
+        [pump.id, petrol, diesel, cng, ev]
+      );
     }
-  });
+    console.log(`[SEEDER] Seeded ${dbPumps.filter(p=>typeof p.id==='number').length} pumps checked`);
+  } catch(e) {
+    console.error('[SEEDER] Error:', e.message);
+  }
+}
+
+// Non-blocking wrapper — used by the public search route so regular users
+// never wait on seeding; it happens right after their response is sent.
+function seedPumpsInBackground(dbPumps) {
+  if (!dbPumps || dbPumps.length === 0) return;
+  setImmediate(() => seedPumpsSync(dbPumps));
 }
 
 // ── AGENT AUTO-REGISTER + AUTO-SEED ──────────────────────────────────────────
 // Fires when an enrollment agent searches an area. Every Google/OSM pump found
 // (not yet in DB) is auto-registered AND immediately seeded — no manual report
-// needed per pump. One agent search on a highway/city lights up every pump on it.
+// needed per pump. Runs SYNCHRONOUSLY (sql.js is sync anyway) so the very
+// same search response already carries the seeded fuel data — no second
+// search / refresh needed by the agent.
+// Returns a Map: place_id → registered DB pump row (with category attached),
+// so the caller can swap these into the response as source:'db' pumps.
 function autoRegisterAndSeedFromGoogle(googlePumps) {
-  if (!googlePumps || googlePumps.length === 0) return;
-  setImmediate(() => {
-    try {
-      const registered = [];
-      for (const gp of googlePumps) {
-        if (!gp.place_id) continue;
-        let pump = dbGet(`SELECT * FROM petrol_pumps WHERE license_number=?`, [gp.place_id]);
-        if (!pump) {
-          dbRun(
-            `INSERT INTO petrol_pumps
-               (name, address, district, pin_code, lat, lng, oil_company,
-                is_verified, is_active, license_number, state, tehsil)
-             VALUES (?,?,?,?,?,?,?,0,1,?,?,?)`,
-            [gp.name || 'Community Pump', gp.address || '', gp.district || '',
-             gp.pin_code || '', gp.lat || 0, gp.lng || 0, gp.oil_company || 'Other',
-             gp.place_id, 'Maharashtra', gp.tehsil || '']
-          );
-          pump = dbGet(`SELECT * FROM petrol_pumps WHERE license_number=?`, [gp.place_id]);
-          cacheClear('gps:'); cacheClear('pin:');
-          console.log(`[AUTO-REG] Agent search auto-registered: ${pump.name} | lat:${pump.lat},${pump.lng}`);
-        }
-        if (pump) registered.push({ ...pump, category: gp.category || 'fuel' });
+  const registeredMap = new Map();
+  if (!googlePumps || googlePumps.length === 0) return registeredMap;
+  try {
+    const registered = [];
+    for (const gp of googlePumps) {
+      if (!gp.place_id) continue;
+      let pump = dbGet(`SELECT * FROM petrol_pumps WHERE license_number=?`, [gp.place_id]);
+      if (!pump) {
+        dbRun(
+          `INSERT INTO petrol_pumps
+             (name, address, district, pin_code, lat, lng, oil_company,
+              is_verified, is_active, license_number, state, tehsil)
+           VALUES (?,?,?,?,?,?,?,0,1,?,?,?)`,
+          [gp.name || 'Community Pump', gp.address || '', gp.district || '',
+           gp.pin_code || '', gp.lat || 0, gp.lng || 0, gp.oil_company || 'Other',
+           gp.place_id, 'Maharashtra', gp.tehsil || '']
+        );
+        pump = dbGet(`SELECT * FROM petrol_pumps WHERE license_number=?`, [gp.place_id]);
+        cacheClear('gps:'); cacheClear('pin:');
+        console.log(`[AUTO-REG] Agent search auto-registered: ${pump.name} | lat:${pump.lat},${pump.lng}`);
       }
-      if (registered.length > 0) seedPumpsInBackground(registered);
-    } catch(e) {
-      console.error('[AUTO-REG] Error:', e.message);
+      if (pump) {
+        const withCategory = { ...pump, category: gp.category || 'fuel' };
+        registered.push(withCategory);
+        registeredMap.set(gp.place_id, withCategory);
+      }
     }
-  });
+    if (registered.length > 0) {
+      seedPumpsSync(registered);
+      console.log(`[AUTO-REG] ${registered.length} pumps registered + seeded synchronously`);
+    }
+  } catch(e) {
+    console.error('[AUTO-REG] Error:', e.message);
+  }
+  return registeredMap;
 }
 
 async function buildLocationsResult(pin, lat, lng, cacheKey, cacheHours) {
@@ -3809,18 +3828,27 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
 
       // Google pumps (discovers pumps not yet in DB)
       let googlePumps = [];
+      let registeredMap = new Map();
       try {
         googlePumps = await fetchGooglePlacesPumps(pLat, pLng, 8);
         // Deduplicate: remove Google pumps that already exist in DB (by name similarity)
         const dbNames = new Set(dbPumps.map(p => p.name.toLowerCase().replace(/\s+/g,'')));
         googlePumps = googlePumps.filter(p => !dbNames.has(p.name.toLowerCase().replace(/\s+/g,'')));
-        // Eureka — agent search auto-registers + auto-seeds every pump found here
-        autoRegisterAndSeedFromGoogle(googlePumps);
+        // Eureka — agent search auto-registers + auto-seeds every pump found here,
+        // synchronously, so THIS SAME response already carries seeded fuel data.
+        registeredMap = autoRegisterAndSeedFromGoogle(googlePumps);
       } catch(e){ console.error('[AGENT GOOGLE]', e.message); }
+
+      // Any Google pump that got auto-registered this request becomes a
+      // real DB pump (numeric id) in the response — so its just-seeded
+      // fuel data is picked up by the fuelMap lookup below immediately.
+      const remainingGoogle = googlePumps.filter(p => !registeredMap.has(p.place_id));
+      const nowDbPumps = [...registeredMap.values()];
 
       allPumps = [
         ...dbPumps.map(p => ({ ...p, source:'db' })),
-        ...googlePumps.map(p => ({ ...p, source:'google', has_owner:false }))
+        ...nowDbPumps.map(p => ({ ...p, source:'db' })),
+        ...remainingGoogle.map(p => ({ ...p, source:'google', has_owner:false }))
       ];
 
     } else if(district) {
@@ -3874,7 +3902,7 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
     if(dbIds.length > 0) {
       const ph = dbIds.map(() => '?').join(',');
       const rows = dbAll(
-        `SELECT r.pump_id, r.cng, r.petrol, r.diesel, r.ev
+        `SELECT r.pump_id, r.cng, r.petrol, r.diesel, r.ev, r.created_at
          FROM fuel_reports r
          WHERE r.pump_id IN (${ph})
            AND r.expires_at > datetime('now')
@@ -3884,7 +3912,7 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
            )`,
         dbIds
       );
-      rows.forEach(r => { fuelMap[r.pump_id] = { cng:r.cng, petrol:r.petrol, diesel:r.diesel, ev:r.ev }; });
+      rows.forEach(r => { fuelMap[r.pump_id] = { cng:r.cng, petrol:r.petrol, diesel:r.diesel, ev:r.ev, updated_at:r.created_at }; });
     }
     const pumpsWithFuel = safePumps.map(p => ({ ...p, fuel: fuelMap[p.id] || null }));
 
