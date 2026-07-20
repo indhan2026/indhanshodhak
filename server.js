@@ -292,6 +292,13 @@ async function initDB() {
     `ALTER TABLE users ADD COLUMN user_code TEXT`,
     `ALTER TABLE users ADD COLUMN fuel_type TEXT DEFAULT 'petrol'`,
     `ALTER TABLE fuel_reports ADD COLUMN report_source TEXT DEFAULT 'user'`,
+    `CREATE TABLE IF NOT EXISTS pending_seeds (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      pump_id    INTEGER NOT NULL,
+      category   TEXT DEFAULT 'fuel',
+      run_at     TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`,
     `ALTER TABLE petrol_pumps ADD COLUMN staff_password TEXT`,
     `CREATE TABLE IF NOT EXISTS pump_staff (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -962,12 +969,72 @@ app.get('/api/pumps/search', (req,res) => {
 // Core synchronous seeding logic — usable both immediately (agent route,
 // so the SAME response reflects seeded data) and deferred (public search
 // route, where we don't want to delay the user's response).
+// Actually writes ONE seeded fuel_report row for ONE pump — the carry-forward
+// / owner-guard / 72hr-decay decision logic, unchanged from before. Called
+// either instantly (first pump of a search) or later by the queue poller
+// (rest of the pumps, at their randomly-assigned time).
+function insertSeedReport(pump) {
+  const expiryHrs = parseInt(getSetting('report_expiry_user')) || 4;
+  const decayHrs  = parseInt(getSetting('seed_decay_hours'))   || 72;
+  const now       = new Date();
+
+  const last = dbGet(
+    `SELECT report_source, petrol, diesel, cng, ev, created_at
+     FROM fuel_reports WHERE pump_id=? ORDER BY created_at DESC LIMIT 1`,
+    [pump.id]
+  );
+
+  let petrol=0, diesel=0, cng=0, ev=0;
+
+  if (last && last.report_source === 'owner') {
+    // Owner's last known state — carry forward indefinitely
+    // (owner data persists until owner changes it)
+    petrol = last.petrol; diesel = last.diesel;
+    cng    = last.cng;    ev     = last.ev;
+  } else if (last && last.report_source === 'user') {
+    const hrsSince = (now - new Date(last.created_at)) / 3600000;
+    if (hrsSince <= decayHrs) {
+      // Within 72hrs — carry human correction forward exactly
+      petrol = last.petrol; diesel = last.diesel;
+      cng    = last.cng;    ev     = last.ev;
+    } else {
+      // Beyond 72hrs — nuisance data expired, reset to category default
+      if      (pump.category === 'ev')  { ev=1; }
+      else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
+      else                              { petrol=1; diesel=1; }
+    }
+  } else {
+    // No previous report — seed fresh category-smart default
+    if      (pump.category === 'ev')  { ev=1; }
+    else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
+    else                              { petrol=1; diesel=1; }
+  }
+
+  // Random 0–120 min offset so pumps don't all expire at same moment
+  const offsetMins = Math.floor(Math.random() * 121); // 0–120 min stagger
+
+  dbRun(
+    `INSERT INTO fuel_reports
+       (pump_id, reported_by, reporter_role, report_source,
+        petrol, diesel, cng, ev, queue_length, expires_at)
+     VALUES (?, 0, 'user', 'user', ?, ?, ?, ?, 'none',
+             datetime('now', '+${expiryHrs} hours', '+${offsetMins} minutes'))`,
+    [pump.id, petrol, diesel, cng, ev]
+  );
+}
+
+// Decision layer — runs once per search. For every pump needing data:
+// the first one seeds INSTANTLY (guarantees at least one genuine "just now"
+// pump), an occasional extra one also seeds instantly (~10% chance, mimics
+// a couple of people already reporting), and the rest are queued at a
+// random 5–120 min future time — so a 20-pump area lights up gradually
+// over ~2hrs instead of all at once. Queue survives server restarts
+// (stored in DB, drained by runPendingSeedsDue on a timer).
 function seedPumpsSync(dbPumps) {
   if (!dbPumps || dbPumps.length === 0) return;
   try {
-    const expiryHrs = parseInt(getSetting('report_expiry_user')) || 4;
-    const decayHrs  = parseInt(getSetting('seed_decay_hours'))   || 72;
-    const now       = new Date();
+    let immediateDone = false;
+    let immediateCount = 0, queuedCount = 0;
 
     for (const pump of dbPumps) {
       if (typeof pump.id !== 'number') continue; // skip Google/MMI pumps
@@ -981,52 +1048,27 @@ function seedPumpsSync(dbPumps) {
       );
       if (active) continue;
 
-      // Check last report for carry-forward / owner guard
-      const last = dbGet(
-        `SELECT report_source, petrol, diesel, cng, ev, created_at
-         FROM fuel_reports WHERE pump_id=? ORDER BY created_at DESC LIMIT 1`,
-        [pump.id]
-      );
+      // Skip if already queued for a delayed seed from an earlier search
+      const alreadyQueued = dbGet(`SELECT id FROM pending_seeds WHERE pump_id=?`, [pump.id]);
+      if (alreadyQueued) continue;
 
-      let petrol=0, diesel=0, cng=0, ev=0;
+      const seedNow = !immediateDone || Math.random() < 0.10;
 
-      if (last && last.report_source === 'owner') {
-        // Owner's last known state — carry forward indefinitely
-        // (owner data persists until owner changes it)
-        petrol = last.petrol; diesel = last.diesel;
-        cng    = last.cng;    ev     = last.ev;
-      } else if (last && last.report_source === 'user') {
-        const hrsSince = (now - new Date(last.created_at)) / 3600000;
-        if (hrsSince <= decayHrs) {
-          // Within 72hrs — carry human correction forward exactly
-          petrol = last.petrol; diesel = last.diesel;
-          cng    = last.cng;    ev     = last.ev;
-        } else {
-          // Beyond 72hrs — nuisance data expired, reset to category default
-          if      (pump.category === 'ev')  { ev=1; }
-          else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
-          else                              { petrol=1; diesel=1; }
-        }
+      if (seedNow) {
+        insertSeedReport(pump);
+        immediateDone = true;
+        immediateCount++;
       } else {
-        // No previous report — seed fresh category-smart default
-        if      (pump.category === 'ev')  { ev=1; }
-        else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
-        else                              { petrol=1; diesel=1; }
+        const delayMins = 5 + Math.floor(Math.random() * 116); // 5–120 min later
+        dbRun(
+          `INSERT INTO pending_seeds (pump_id, category, run_at)
+           VALUES (?, ?, datetime('now', '+${delayMins} minutes'))`,
+          [pump.id, pump.category || 'fuel']
+        );
+        queuedCount++;
       }
-
-      // Random 0–120 min offset so pumps don't all expire at same moment
-      const offsetMins = Math.floor(Math.random() * 121); // 0–120 min stagger
-
-      dbRun(
-        `INSERT INTO fuel_reports
-           (pump_id, reported_by, reporter_role, report_source,
-            petrol, diesel, cng, ev, queue_length, expires_at)
-         VALUES (?, 0, 'user', 'user', ?, ?, ?, ?, 'none',
-                 datetime('now', '+${expiryHrs} hours', '+${offsetMins} minutes'))`,
-        [pump.id, petrol, diesel, cng, ev]
-      );
     }
-    console.log(`[SEEDER] Seeded ${dbPumps.filter(p=>typeof p.id==='number').length} pumps checked`);
+    console.log(`[SEEDER] ${immediateCount} seeded now, ${queuedCount} queued (5-120min spread)`);
   } catch(e) {
     console.error('[SEEDER] Error:', e.message);
   }
@@ -1037,6 +1079,29 @@ function seedPumpsSync(dbPumps) {
 function seedPumpsInBackground(dbPumps) {
   if (!dbPumps || dbPumps.length === 0) return;
   setImmediate(() => seedPumpsSync(dbPumps));
+}
+
+// Drains the pending_seeds queue — called on a timer (every 2 min).
+// Anything whose run_at has arrived gets seeded for real now, using the
+// exact same carry-forward/owner-guard logic as an instant seed.
+// Persistent in DB, so a Render restart never loses a queued pump.
+function runPendingSeedsDue() {
+  try {
+    const due = dbAll(`SELECT * FROM pending_seeds WHERE run_at <= datetime('now')`);
+    if (due.length === 0) return;
+    for (const row of due) {
+      // Someone may have already reported this pump for real while it waited — skip re-seed then
+      const active = dbGet(
+        `SELECT id FROM fuel_reports WHERE pump_id=? AND expires_at > datetime('now') ORDER BY created_at DESC LIMIT 1`,
+        [row.pump_id]
+      );
+      if (!active) insertSeedReport({ id: row.pump_id, category: row.category });
+      dbRun(`DELETE FROM pending_seeds WHERE id=?`, [row.id]);
+    }
+    console.log(`[SEEDER-QUEUE] Processed ${due.length} delayed seeds`);
+  } catch(e) {
+    console.error('[SEEDER-QUEUE] Error:', e.message);
+  }
 }
 
 // ── AGENT AUTO-REGISTER + AUTO-SEED ──────────────────────────────────────────
@@ -5638,6 +5703,13 @@ initDB().then(() => {
   // ── Session cleanup ────────────────────────────────────────────────────
   try { dbRun(`DELETE FROM sessions WHERE expires_at < datetime('now')`); } catch(e){}
   setInterval(()=>{ try{dbRun(`DELETE FROM sessions WHERE expires_at<datetime('now')`)}catch(e){} }, 6*60*60*1000);
+
+  // ── Eureka seed queue poller — drains delayed pump seeds every 2 min ────
+  // Runs once shortly after boot (picks up anything queued before a restart)
+  // then repeats every 2 minutes for the life of the process.
+  setTimeout(runPendingSeedsDue, 10000);
+  setInterval(runPendingSeedsDue, 2*60*1000);
+  // ─────────────────────────────────────────────────────────────
 
   // ── 90-day data retention — keeps DB size flat forever ───────
   setInterval(() => {
