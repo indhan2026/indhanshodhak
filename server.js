@@ -2806,6 +2806,70 @@ app.get('/pump_signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_si
 // ── MR Field Agent Management ─────────────────────────────────────────────
 
 // GET all MR agents (admin only)
+// ── ONE-TIME CLEANUP — fix pumps stuck at (0,0) from before the geocode fix ──
+// Manually triggered by admin, not automatic. Finds every active pump with
+// missing/zero coordinates, geocodes it from its PIN code, and updates it —
+// so these old records finally become searchable/seedable like everything
+// registered after the fix.
+app.post('/api/admin/fix-stuck-pump-coordinates', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const stuck = dbAll(
+      `SELECT id, name, pin_code, district, state FROM petrol_pumps
+       WHERE is_active=1 AND (lat IS NULL OR lat=0 OR lng IS NULL OR lng=0)`
+    );
+    if (stuck.length === 0) {
+      return res.json({ success: true, total: 0, fixed: 0, skipped: 0, message: 'No stuck pumps found — nothing to fix.' });
+    }
+
+    const gKey = process.env.GOOGLE_PLACES_KEY;
+    if (!gKey || gKey.length < 10) {
+      return res.status(500).json({ error: 'Google Places API key not configured' });
+    }
+
+    let fixed = 0, skipped = 0;
+    const skippedList = [];
+
+    for (const pump of stuck) {
+      const queryText = pump.pin_code
+        ? `${pump.pin_code}, India`
+        : `${pump.name}, ${pump.district || ''}, ${pump.state || 'Maharashtra'}, India`;
+      try {
+        const geoResp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type':     'application/json',
+            'X-Goog-Api-Key':   gKey,
+            'X-Goog-FieldMask': 'places.location',
+          },
+          body: JSON.stringify({ textQuery: queryText, maxResultCount: 1, regionCode: 'IN' }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const geoData = await geoResp.json();
+        const loc = geoData.places?.[0]?.location;
+        if (loc) {
+          dbRun(`UPDATE petrol_pumps SET lat=?, lng=? WHERE id=?`, [loc.latitude, loc.longitude, pump.id]);
+          fixed++;
+          console.log(`[CLEANUP] Fixed pump ${pump.id} (${pump.name}) → lat:${loc.latitude} lng:${loc.longitude}`);
+        } else {
+          skipped++;
+          skippedList.push({ id: pump.id, name: pump.name, reason: 'No geocode result' });
+        }
+      } catch(e) {
+        skipped++;
+        skippedList.push({ id: pump.id, name: pump.name, reason: e.message });
+      }
+      // Gentle pacing so we don't hammer the geocoding API
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    cacheClear('gps:'); cacheClear('pin:');
+    console.log(`[CLEANUP] Done — ${fixed} fixed, ${skipped} skipped out of ${stuck.length} stuck pumps`);
+    res.json({ success: true, total: stuck.length, fixed, skipped, skippedList });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/admin/mr-agents', requireAuth(['super_admin']), (req, res) => {
   try {
     const agents = dbAll(`SELECT * FROM mr_agents ORDER BY assigned_date DESC`);

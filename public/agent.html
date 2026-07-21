@@ -28,7 +28,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cat-chip{padding:9px 16px;border-radius:20px;font-size:13px;font-weight:600;border:2px solid #ddd;background:white;color:#666;cursor:pointer}
 .cat-chip.active{background:#e65100;border-color:#e65100;color:white}
 #agent-map{height:280px;width:100%;border-radius:12px;margin-bottom:12px}
-.pump-list{max-height:400px;overflow-y:auto}
+.pump-list{max-height:75vh;overflow-y:auto}
 .pump-item{border:1.5px solid #eee;border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;transition:.15s}
 .pump-item:hover{border-color:#e65100;background:#fff8f0}
 .pump-item.verified{border-color:#1a6b2e}
@@ -250,6 +250,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           onchange="handleAgentFile(this,'e-fn-aadhaar')">
       </label>
       <div class="file-name" id="e-fn-aadhaar">No file chosen</div>
+    </div>
+
+    <div style="background:#fff8e1;border:1.5px dashed #e65100;border-radius:10px;padding:10px 12px;margin-top:14px">
+      <label class="form-label" style="color:#e65100">🛵 MR Referral Code (optional)</label>
+      <div style="font-size:11px;color:#888;margin-bottom:6px">If an IndhanShodhak field agent gave you a code, enter it here.</div>
+      <input class="form-input" type="text" id="e-referral-code" placeholder="e.g. MR001"
+        autocomplete="on" name="mr_referral_code" style="text-transform:uppercase"
+        oninput="this.value=this.value.toUpperCase()">
     </div>
 
     <button class="submit-btn" id="enroll-submit-btn" onclick="submitEnrollment()" style="margin-top:10px">
@@ -552,6 +560,7 @@ function openEnrollModal(idx){
   document.getElementById('e-owner-mobile').value='';
   document.getElementById('e-owner-email').value='';
   document.getElementById('e-license').value='';
+  document.getElementById('e-referral-code').value='';
   document.getElementById('e-doc-license').value='';
   document.getElementById('e-doc-aadhaar').value='';
   document.getElementById('e-fn-license').textContent='No file chosen';
@@ -615,6 +624,7 @@ async function submitEnrollment(){
   fd.append('lat', document.getElementById('e-pump-lat').value);
   fd.append('lng', document.getElementById('e-pump-lng').value);
   fd.append('id_proof_type', idType);
+  fd.append('referral_code', document.getElementById('e-referral-code').value.trim());
   fd.append('license', licFile);
   fd.append('aadhaar', aadFile);
 
