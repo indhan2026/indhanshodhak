@@ -1082,7 +1082,7 @@ function seedPumpsSync(dbPumps) {
         immediateDone = true;
         immediateCount++;
       } else {
-        const delayMins = 5 + Math.floor(Math.random() * 116); // 5–120 min later
+        const delayMins = Math.floor(Math.random() * 81); // 0–80 min later
         dbRun(
           `INSERT INTO pending_seeds (pump_id, category, run_at)
            VALUES (?, ?, datetime('now', '+${delayMins} minutes'))`,
@@ -1198,7 +1198,7 @@ async function buildLocationsResult(pin, lat, lng, cacheKey, cacheHours) {
     if(areaPins.length > 0) {
       const ph = areaPins.map(() => '?').join(',');
       nullLatVerified = dbAll(
-        `SELECT id,name,oil_company,address,district,pin_code,lat,lng,is_verified,license_number,category,ev_operator,ev_connector_type,ev_power_kw,ev_connector_count,ev_has_parking FROM petrol_pumps WHERE is_active=1 AND is_verified=1 AND (lat IS NULL OR lat=0) AND pin_code IN (${ph})`,
+        `SELECT id,name,oil_company,address,district,pin_code,lat,lng,is_verified,license_number,category,ev_operator,ev_connector_type,ev_power_kw,ev_connector_count,ev_has_parking FROM petrol_pumps WHERE is_active=1 AND (lat IS NULL OR lat=0) AND pin_code IN (${ph})`,
         areaPins
       );
     }
@@ -1294,17 +1294,21 @@ function withFreshVerified(pumps) {
   const dbPumpIds = (pumps||[])
     .filter(p => String(p.id).match(/^\d+$/))
     .map(p => p.id);
-  let freshVerified = {};
+  let freshData = {};
   if(dbPumpIds.length > 0) {
     const placeholders = dbPumpIds.map(() => '?').join(',');
-    dbAll(`SELECT id, is_verified FROM petrol_pumps WHERE id IN (${placeholders})`, dbPumpIds)
-      .forEach(r => { freshVerified[r.id] = r.is_verified; });
+    dbAll(`SELECT id, is_verified, category FROM petrol_pumps WHERE id IN (${placeholders})`, dbPumpIds)
+      .forEach(r => { freshData[r.id] = { is_verified: r.is_verified, category: r.category }; });
   }
-  return (pumps||[]).map(p =>
-    String(p.id).match(/^\d+$/)
-      ? { ...p, is_verified: freshVerified[p.id] !== undefined ? freshVerified[p.id] : p.is_verified }
-      : p
-  );
+  return (pumps||[]).map(p => {
+    if(!String(p.id).match(/^\d+$/)) return p;
+    const fresh = freshData[p.id];
+    return {
+      ...p,
+      is_verified: fresh?.is_verified !== undefined ? fresh.is_verified : p.is_verified,
+      category:    fresh?.category || p.category || detectCategory(p.name),
+    };
+  });
 }
 
 app.get('/api/pumps/locations', async (req, res) => {
@@ -4071,15 +4075,45 @@ app.post('/api/agent/register-pump',
         pump = dbGet(`SELECT id FROM petrol_pumps WHERE id=?`, [parseInt(pump_id)]);
       }
       if(!pump) {
-        const pLat = parseFloat(lat) || 0;
-        const pLng = parseFloat(lng) || 0;
+        let pLat = parseFloat(lat) || 0;
+        let pLng = parseFloat(lng) || 0;
+        // GPS wasn't captured at enrollment — geocode the PIN so this pump
+        // never silently lands at (0,0) and becomes invisible to every
+        // GPS-radius search forever (a pump agent never intended to hide).
+        if((!pLat || !pLng) && pin_code) {
+          const gKey = process.env.GOOGLE_PLACES_KEY;
+          if(gKey && gKey.length > 10) {
+            try {
+              const geoResp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                method: 'POST',
+                headers: {
+                  'Content-Type':     'application/json',
+                  'X-Goog-Api-Key':   gKey,
+                  'X-Goog-FieldMask': 'places.location',
+                },
+                body: JSON.stringify({ textQuery: `${pin_code}, India`, maxResultCount: 1, regionCode: 'IN' }),
+                signal: AbortSignal.timeout(8000),
+              });
+              const geoData = await geoResp.json();
+              const loc = geoData.places?.[0]?.location;
+              if(loc) {
+                pLat = loc.latitude;
+                pLng = loc.longitude;
+                console.log(`[REGISTER-PUMP GEOCODE] PIN ${pin_code} → lat:${pLat} lng:${pLng}`);
+              }
+            } catch(e) {
+              console.error('[REGISTER-PUMP GEOCODE] Error:', e.message);
+            }
+          }
+        }
         dbRun(`INSERT INTO petrol_pumps
                (name, oil_company, pin_code, address, tehsil, district, state,
-                license_number, is_active, owner_user_id, lat, lng)
-               VALUES (?,?,?,?,?,?,?,?,1,?,?,?)`,
+                license_number, is_active, owner_user_id, lat, lng, category)
+               VALUES (?,?,?,?,?,?,?,?,1,?,?,?,?)`,
           [pump_name||'Pump', oil_company||'Other', pin_code||'', address||'',
            tehsil||'', district||'', state||'Maharashtra',
-           license_number.toUpperCase(), ownerUser.id, pLat, pLng]);
+           license_number.toUpperCase(), ownerUser.id, pLat, pLng,
+           detectCategory(pump_name)]);
         pump = dbGet(`SELECT id FROM petrol_pumps WHERE license_number=?`,
           [license_number.toUpperCase()]);
       }
