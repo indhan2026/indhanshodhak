@@ -292,6 +292,12 @@ async function initDB() {
     `ALTER TABLE users ADD COLUMN user_code TEXT`,
     `ALTER TABLE users ADD COLUMN fuel_type TEXT DEFAULT 'petrol'`,
     `ALTER TABLE fuel_reports ADD COLUMN report_source TEXT DEFAULT 'user'`,
+    `ALTER TABLE petrol_pumps ADD COLUMN category TEXT`,
+    `ALTER TABLE petrol_pumps ADD COLUMN ev_operator TEXT`,
+    `ALTER TABLE petrol_pumps ADD COLUMN ev_connector_type TEXT`,
+    `ALTER TABLE petrol_pumps ADD COLUMN ev_power_kw REAL DEFAULT 0`,
+    `ALTER TABLE petrol_pumps ADD COLUMN ev_connector_count INTEGER DEFAULT 0`,
+    `ALTER TABLE petrol_pumps ADD COLUMN ev_has_parking INTEGER DEFAULT 0`,
     `CREATE TABLE IF NOT EXISTS pending_seeds (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       pump_id    INTEGER NOT NULL,
@@ -966,6 +972,23 @@ app.get('/api/pumps/search', (req,res) => {
 // Carry-forward: respects last human correction within 72hrs.
 // Owner reports: never overridden — persist until owner changes.
 // Random offset: staggered expiry — looks organic, not robotic.
+// ── SHARED CATEGORY DETECTION ────────────────────────────────────────────────
+// Single source of truth for CNG/EV/fuel tagging, used everywhere a pump's
+// category needs to be known — Google fetch, DB fallback (old pumps that
+// predate the `category` column), agent dashboard, public search, seeder.
+// Google's own `types` array (isGoogleEV) is authoritative when available;
+// name-keyword matching is the fallback for DB-only pumps.
+const EV_NAME_KEYWORDS = /CHARGING\s*STATION|EV\s*CHARG|ELECTRIC\s*VEHICLE|\b(ATHER|CHARGEZONE|STATIQ|KAZAM|EVRE|GLIDA|FORTUM|ZEON|EESL|JIO-?BP\s*PULSE)\b/i;
+const CNG_NAME_KEYWORDS = /\bCNG\b|NATURAL\s*GAS|\b(GAIL|IGL|MGL)\b|(ADANI|MAHANAGAR|BENGAL|GUJARAT|SABARMATI|GREEN|TORRENT|VADODARA|UNISON)\s+GAS/i;
+
+function detectCategory(name, isGoogleEV) {
+  if (isGoogleEV) return 'ev';
+  const n = name || '';
+  if (EV_NAME_KEYWORDS.test(n))  return 'ev';
+  if (CNG_NAME_KEYWORDS.test(n)) return 'cng';
+  return 'fuel';
+}
+
 // Core synchronous seeding logic — usable both immediately (agent route,
 // so the SAME response reflects seeded data) and deferred (public search
 // route, where we don't want to delay the user's response).
@@ -1124,18 +1147,23 @@ function autoRegisterAndSeedFromGoogle(googlePumps) {
         dbRun(
           `INSERT INTO petrol_pumps
              (name, address, district, pin_code, lat, lng, oil_company,
-              is_verified, is_active, license_number, state, tehsil)
-           VALUES (?,?,?,?,?,?,?,0,1,?,?,?)`,
+              is_verified, is_active, license_number, state, tehsil,
+              category, ev_operator, ev_connector_type, ev_power_kw,
+              ev_connector_count, ev_has_parking)
+           VALUES (?,?,?,?,?,?,?,0,1,?,?,?,?,?,?,?,?,?)`,
           [gp.name || 'Community Pump', gp.address || '', gp.district || '',
            gp.pin_code || '', gp.lat || 0, gp.lng || 0, gp.oil_company || 'Other',
-           gp.place_id, 'Maharashtra', gp.tehsil || '']
+           gp.place_id, 'Maharashtra', gp.tehsil || '',
+           gp.category || detectCategory(gp.name),
+           gp.ev_operator || null, gp.ev_connector_type || null,
+           gp.ev_power_kw || 0, gp.ev_connector_count || 0, gp.ev_has_parking ? 1 : 0]
         );
         pump = dbGet(`SELECT * FROM petrol_pumps WHERE license_number=?`, [gp.place_id]);
         cacheClear('gps:'); cacheClear('pin:');
         console.log(`[AUTO-REG] Agent search auto-registered: ${pump.name} | lat:${pump.lat},${pump.lng}`);
       }
       if (pump) {
-        const withCategory = { ...pump, category: gp.category || 'fuel' };
+        const withCategory = { ...pump, category: pump.category || gp.category || detectCategory(pump.name) };
         registered.push(withCategory);
         registeredMap.set(gp.place_id, withCategory);
       }
@@ -1155,13 +1183,13 @@ async function buildLocationsResult(pin, lat, lng, cacheKey, cacheHours) {
   let dbPumps = [];
   if(pin) {
     dbPumps = dbAll(
-      'SELECT id,name,oil_company,address,district,pin_code,lat,lng,is_verified,license_number FROM petrol_pumps WHERE pin_code=? AND is_active=1 ORDER BY is_verified DESC',
+      'SELECT id,name,oil_company,address,district,pin_code,lat,lng,is_verified,license_number,category,ev_operator,ev_connector_type,ev_power_kw,ev_connector_count,ev_has_parking FROM petrol_pumps WHERE pin_code=? AND is_active=1 ORDER BY is_verified DESC',
       [pin]
     );
   } else if(lat && lng) {
     const R = 0.15; // ~15km radius
     const gpsMatches = dbAll(
-      'SELECT id,name,oil_company,address,district,pin_code,lat,lng,is_verified,license_number FROM petrol_pumps WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ? AND is_active=1 ORDER BY is_verified DESC',
+      'SELECT id,name,oil_company,address,district,pin_code,lat,lng,is_verified,license_number,category,ev_operator,ev_connector_type,ev_power_kw,ev_connector_count,ev_has_parking FROM petrol_pumps WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ? AND is_active=1 ORDER BY is_verified DESC',
       [+lat-R, +lat+R, +lng-R, +lng+R]
     );
     // Also include verified pumps with null/0 lat/lng — match by PIN of nearby pumps
@@ -1170,7 +1198,7 @@ async function buildLocationsResult(pin, lat, lng, cacheKey, cacheHours) {
     if(areaPins.length > 0) {
       const ph = areaPins.map(() => '?').join(',');
       nullLatVerified = dbAll(
-        `SELECT id,name,oil_company,address,district,pin_code,lat,lng,is_verified,license_number FROM petrol_pumps WHERE is_active=1 AND is_verified=1 AND (lat IS NULL OR lat=0) AND pin_code IN (${ph})`,
+        `SELECT id,name,oil_company,address,district,pin_code,lat,lng,is_verified,license_number,category,ev_operator,ev_connector_type,ev_power_kw,ev_connector_count,ev_has_parking FROM petrol_pumps WHERE is_active=1 AND is_verified=1 AND (lat IS NULL OR lat=0) AND pin_code IN (${ph})`,
         areaPins
       );
     }
@@ -1230,13 +1258,10 @@ async function buildLocationsResult(pin, lat, lng, cacheKey, cacheHours) {
     ...dbPumps.map(p => ({ ...p, source: 'db' })),
     ...mmiPumps.map(p => ({ ...p, source: 'mmi' })),
   ].map(p => {
-    // Ensure EVERY pump has a category — DB-registered pumps never went through
-    // fetchGooglePlacesPumps' category detection, so they'd otherwise be invisible
-    // to the CNG/EV filter pills even when they clearly are CNG stations.
-    if(p.category) return p; // already tagged (came from Google tier with EV/CNG detection)
-    const nameUpper = (p.name || '').toUpperCase();
-    const isCNG = nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS');
-    return { ...p, category: isCNG ? 'cng' : 'fuel' };
+    // Prefer the stored category (now persisted at registration time).
+    // Only old pumps that predate the category column fall back to guessing.
+    if(p.category) return p;
+    return { ...p, category: detectCategory(p.name) };
   });
 
   const result = {
@@ -3890,7 +3915,7 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
 
       // DB pumps in area
       const dbPumps = dbAll(
-        `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,owner_user_id
+        `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,owner_user_id,category,ev_operator,ev_connector_type,ev_power_kw,ev_connector_count,ev_has_parking
          FROM petrol_pumps WHERE is_active=1 AND lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?
          ORDER BY is_verified DESC, name`,
         [pLat-R, pLat+R, pLng-R, pLng+R]
@@ -3900,11 +3925,7 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
       // not just newly-discovered Google pumps (autoRegisterAndSeedFromGoogle
       // below only ever touches NEW pumps it just inserted).
       seedPumpsInBackground(
-        dbPumps.map(p => {
-          const nameUpper = (p.name || '').toUpperCase();
-          const isCNG = nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS');
-          return { ...p, category: p.category || (isCNG ? 'cng' : 'fuel') };
-        })
+        dbPumps.map(p => ({ ...p, category: p.category || detectCategory(p.name) }))
       );
 
       // Google pumps (discovers pumps not yet in DB)
@@ -3934,7 +3955,7 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
 
     } else if(district) {
       // District/tehsil filter — DB only (for filtering already-known pumps)
-      let sql = `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,owner_user_id
+      let sql = `SELECT id,name,oil_company,address,tehsil,district,pin_code,lat,lng,is_verified,owner_user_id,category,ev_operator,ev_connector_type,ev_power_kw,ev_connector_count,ev_has_parking
                  FROM petrol_pumps WHERE is_active=1 AND district=?`;
       const params = [district];
       if(tehsil) { sql += ` AND tehsil=?`; params.push(tehsil); }
@@ -3943,11 +3964,7 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
 
       // Eureka — district/tehsil filtered pumps need refreshing too
       seedPumpsInBackground(
-        allPumps.map(p => {
-          const nameUpper = (p.name || '').toUpperCase();
-          const isCNG = nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS');
-          return { ...p, category: p.category || (isCNG ? 'cng' : 'fuel') };
-        })
+        allPumps.map(p => ({ ...p, category: p.category || detectCategory(p.name) }))
       );
 
     } else {
@@ -3959,10 +3976,8 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
     // to the agent dashboard's CNG/EV filter chips even when clearly CNG/EV stations.
     // (Same pattern as /api/pumps/locations.)
     allPumps = allPumps.map(p => {
-      if(p.category) return p; // already tagged (came from Google tier with EV/CNG detection)
-      const nameUpper = (p.name || '').toUpperCase();
-      const isCNG = nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS');
-      return { ...p, category: isCNG ? 'cng' : 'fuel' };
+      if(p.category) return p; // already tagged (persisted at registration, or Google-detected this request)
+      return { ...p, category: detectCategory(p.name) };
     });
 
     // Strip sensitive owner info
@@ -3981,6 +3996,11 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
       source: p.source || 'db',
       category: p.category || 'fuel',
       place_id: p.place_id || null,  // Google Place ID — needed for submit-external
+      ev_operator:        p.ev_operator || '',
+      ev_connector_type:  p.ev_connector_type || '',
+      ev_power_kw:        p.ev_power_kw || 0,
+      ev_connector_count: p.ev_connector_count || 0,
+      ev_has_parking:     !!p.ev_has_parking,
     }));
 
     // Attach latest non-expired fuel report per DB pump so pills
@@ -4552,9 +4572,7 @@ async function fetchGooglePlacesPumps(lat, lng, radiusKm = 8) {
     const city = cityComp?.longText || '';
 
     const isEV = (p.types || []).includes('electric_vehicle_charging_station');
-    const nameUpper = name.toUpperCase();
-    const isCNG = !isEV && (nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS'));
-    const category = isEV ? 'ev' : (isCNG ? 'cng' : 'fuel');
+    const category = detectCategory(name, isEV);
 
     let evConnectorType = '', evPowerKw = 0, evConnectorCount = 0, evOperator = '';
     let hasParking = false;
