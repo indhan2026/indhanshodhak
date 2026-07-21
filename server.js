@@ -3896,6 +3896,17 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
         [pLat-R, pLat+R, pLng-R, pLng+R]
       );
 
+      // Eureka — already-registered pumps found here need refreshing too,
+      // not just newly-discovered Google pumps (autoRegisterAndSeedFromGoogle
+      // below only ever touches NEW pumps it just inserted).
+      seedPumpsInBackground(
+        dbPumps.map(p => {
+          const nameUpper = (p.name || '').toUpperCase();
+          const isCNG = nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS');
+          return { ...p, category: p.category || (isCNG ? 'cng' : 'fuel') };
+        })
+      );
+
       // Google pumps (discovers pumps not yet in DB)
       let googlePumps = [];
       let registeredMap = new Map();
@@ -3929,6 +3940,15 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
       if(tehsil) { sql += ` AND tehsil=?`; params.push(tehsil); }
       sql += ` ORDER BY is_verified DESC, tehsil, name`;
       allPumps = dbAll(sql, params).map(p => ({ ...p, source:'db' }));
+
+      // Eureka — district/tehsil filtered pumps need refreshing too
+      seedPumpsInBackground(
+        allPumps.map(p => {
+          const nameUpper = (p.name || '').toUpperCase();
+          const isCNG = nameUpper.includes('CNG') || nameUpper.includes('NATURAL GAS');
+          return { ...p, category: p.category || (isCNG ? 'cng' : 'fuel') };
+        })
+      );
 
     } else {
       return res.json({ pumps:[], total:0 });
