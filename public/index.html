@@ -1440,13 +1440,30 @@ function renderPumps(pumpsRaw, isPremium, price){
         </button>
       </div>`;
     }
-    // EV Charging Station — completely different card, no fuel/queue/report concept
+    // EV Charging Station — keeps operator/connector/power/parking/rating,
+    // PLUS the same availability pill + timestamp + Report flow as fuel pumps
+    // (an EV charger can be "down"/occupied just like a pump can be dry —
+    // this reuses the exact same reporting engine, tagged 'ev' only).
     if(p.category === 'ev'){
       const pId = p.place_id || p.id || 0;
       const r = window._ratingsCache?.[pId] || {average:0, count:0};
       const filled = Math.round(r.average);
       const starsHtml = [1,2,3,4,5].map(n =>
         `<span class="star${n<=filled?' filled':''}" onclick="rateStation('${pId}',${n},this)">★</span>`).join('');
+      const f    = p.fuel || {};
+      const open = f.ev;
+      const rType= f.reporter === 'pump_owner' ? '✅ Owner' : '👤 Community';
+      const tAgo = (() => {
+        if(!f.updated_at) return 'No recent data';
+        const mins = Math.floor((Date.now()-new Date(f.updated_at.replace(' ','T')+'Z'))/60000);
+        if(mins < 1)  return 'Just now';
+        if(mins < 60) return mins + ' min ago';
+        const hrs = Math.floor(mins/60);
+        const rem = mins % 60;
+        return rem > 0 ? hrs+'h '+rem+'min ago' : hrs+'h ago';
+      })();
+      const pName = (p.name||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      const pAddr = (p.address||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
       return `<div class="ev-card" data-place-id="${pId}">
         <div class="ev-badge">⚡ EV Charging Station</div>
         <div class="ev-name">${p.name||'EV Charging Station'}</div>
@@ -1458,13 +1475,29 @@ function renderPumps(pumpsRaw, isPremium, price){
           ${p.ev_connector_count ? `<div class="ev-spec">🔢 ${p.ev_connector_count} Chargers</div>` : ''}
           ${p.ev_has_parking ? `<div class="ev-spec">🅿️ Parking Available</div>` : ''}
         </div>
+        <div class="pump-status" style="color:${open?'#2e7d32':'#888'};margin-top:6px">${open?'● CHARGER AVAILABLE':'⚫ NOT AVAILABLE'}</div>
+        <div class="tags" style="cursor:pointer" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')" title="Tap to update">
+          <div class="tag ${f.ev?'tag-yes':'tag-no'}" data-fuel="ev">${f.ev?'✓':'✗'} EV Charging</div>
+        </div>
+        <div class="tags queue-tags" style="margin-top:-4px" onclick="event.stopPropagation()">
+          <div class="tag" style="cursor:pointer;background:${f.queue==='short'?'#e8f5e9':'#f5f5f5'};color:${f.queue==='short'?'#1b5e20':'#999'};border:1px solid ${f.queue==='short'?'#a5d6a7':'#ddd'}"
+            onclick="quickQueueUpdate(${pId},'short',0,0,0,${f.ev?1:0},this)">👥 Short Queue</div>
+          <div class="tag" style="cursor:pointer;background:${f.queue==='long'?'#ffebee':'#f5f5f5'};color:${f.queue==='long'?'#b71c1c':'#999'};border:1px solid ${f.queue==='long'?'#ef9a9a':'#ddd'}"
+            onclick="quickQueueUpdate(${pId},'long',0,0,0,${f.ev?1:0},this)">👥 Long Queue</div>
+        </div>
         <div class="ev-footer">
           <div class="star-rating" data-place-id="${pId}">
             ${starsHtml}
             <span class="rating-text">${r.count>0 ? r.average+' ('+r.count+' ratings)' : 'No ratings yet — be the first'}</span>
           </div>
-          <button class="report-btn" style="color:#1565c0;border-color:#1565c0"
-            onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat||0},${p.lng||0}','_blank')">🧭 Directions</button>
+        </div>
+        <div class="pump-footer">
+          <div class="pump-time">${rType} · ${tAgo}</div>
+          <div style="display:flex;gap:6px">
+            <button class="report-btn" style="color:#1565c0;border-color:#1565c0"
+              onclick="event.stopPropagation();window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat||0},${p.lng||0}','_blank')">🧭 Directions</button>
+            <button class="report-btn" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')" >📝 Report ↗</button>
+          </div>
         </div>
       </div>`;
     }
