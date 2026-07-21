@@ -1305,6 +1305,11 @@ app.get('/api/pumps/locations', async (req, res) => {
     const refreshedPumps = withFreshVerified(staleCheck.data.pumps);
     res.json({ ...staleCheck.data, pumps: refreshedPumps, from_cache: true });
 
+    // Eureka seeder — must fire on EVERY search, not just cache misses.
+    // The pump LIST is cached for up to a year (locations rarely change),
+    // but fuel data needs to keep refreshing regardless of list-cache state.
+    seedPumpsInBackground(refreshedPumps.filter(p => typeof p.id === 'number'));
+
     if(staleCheck.isStale) {
       // Past 9 months — silently rebuild in the background so the NEXT
       // request (anyone's) gets fresh DB+Google data. This user already
