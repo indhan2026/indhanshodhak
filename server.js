@@ -422,6 +422,26 @@ async function initDB() {
       claimed_at         TEXT DEFAULT (datetime('now')),
       paid_at            TEXT
     )`,
+    // ── EV station extra details (agent/owner verified, overrides sparse Google data) ──
+    // Separate table so fuel/CNG pump flow is 100% unaffected.
+    // pump_id is UNIQUE — one row per EV station, upserted on each update.
+    `CREATE TABLE IF NOT EXISTS ev_details (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      pump_id          INTEGER UNIQUE NOT NULL,
+      charger_types    TEXT DEFAULT '[]',
+      network_operator TEXT DEFAULT '',
+      num_ports        INTEGER DEFAULT 0,
+      speed_type       TEXT DEFAULT '',
+      timing           TEXT DEFAULT '24x7',
+      timing_hours     TEXT DEFAULT '',
+      working_status   TEXT DEFAULT 'functional',
+      parking          TEXT DEFAULT '',
+      food_nearby      INTEGER DEFAULT 0,
+      food_name        TEXT DEFAULT '',
+      food_distance    TEXT DEFAULT '',
+      updated_by       TEXT DEFAULT '',
+      updated_at       TEXT DEFAULT (datetime('now'))
+    )`,
   ];
   safeAlter.forEach(sql => {
     try { db.run(sql); db.export && fs.writeFileSync(DB_PATH, Buffer.from(db.export())); }
@@ -2783,6 +2803,69 @@ app.post('/api/pump-owner/register',
     }
   }
 );
+
+// ── EV Details — save (called from pump signup + agent enrollment) ──────────
+// No auth required on POST so pump_signup.html (public page) can call it directly.
+// Uses INSERT OR REPLACE so repeat saves just update the row cleanly.
+app.post('/api/ev-details/save', (req, res) => {
+  try {
+    const { pump_id, charger_types, network_operator, num_ports,
+            speed_type, timing, timing_hours, working_status,
+            parking, food_nearby, food_name, food_distance, updated_by } = req.body;
+    if(!pump_id) return res.status(400).json({ error: 'pump_id required' });
+    dbRun(`INSERT OR REPLACE INTO ev_details
+           (pump_id, charger_types, network_operator, num_ports,
+            speed_type, timing, timing_hours, working_status,
+            parking, food_nearby, food_name, food_distance,
+            updated_by, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))`,
+      [ pump_id,
+        JSON.stringify(charger_types || []),
+        network_operator || '',
+        parseInt(num_ports) || 0,
+        speed_type || '',
+        timing || '24x7',
+        timing_hours || '',
+        working_status || 'functional',
+        parking || '',
+        food_nearby ? 1 : 0,
+        food_name || '',
+        food_distance || '',
+        updated_by || 'owner'
+      ]);
+    console.log(`[EV DETAILS] Saved for pump_id:${pump_id} by ${updated_by||'owner'}`);
+    res.json({ success: true });
+  } catch(e) {
+    console.error('[EV DETAILS save error]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── EV Details — fetch for a single pump (used by index.html EV card) ──────
+app.get('/api/ev-details/:pump_id', (req, res) => {
+  try {
+    const row = dbGet(`SELECT * FROM ev_details WHERE pump_id=?`, [req.params.pump_id]);
+    if(!row) return res.json({ found: false });
+    res.json({
+      found: true,
+      charger_types:    JSON.parse(row.charger_types || '[]'),
+      network_operator: row.network_operator,
+      num_ports:        row.num_ports,
+      speed_type:       row.speed_type,
+      timing:           row.timing,
+      timing_hours:     row.timing_hours,
+      working_status:   row.working_status,
+      parking:          row.parking,
+      food_nearby:      !!row.food_nearby,
+      food_name:        row.food_name,
+      food_distance:    row.food_distance,
+      updated_by:       row.updated_by,
+      updated_at:       row.updated_at,
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ── Nearby Competitor Pumps — for urgency card on lapsed pump owner ──
 app.get('/api/pump-owner/nearby-competitors', requireAuth(['pump_owner','super_admin']), (req, res) => {
