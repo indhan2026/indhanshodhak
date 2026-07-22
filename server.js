@@ -1091,7 +1091,7 @@ function seedPumpsSync(dbPumps) {
         queuedCount++;
       }
     }
-    console.log(`[SEEDER] ${immediateCount} seeded now, ${queuedCount} queued (5-120min spread)`);
+    console.log(`[SEEDER] ${immediateCount} seeded now, ${queuedCount} queued (0-80min spread)`);
   } catch(e) {
     console.error('[SEEDER] Error:', e.message);
   }
@@ -1124,6 +1124,46 @@ function runPendingSeedsDue() {
     console.log(`[SEEDER-QUEUE] Processed ${due.length} delayed seeds`);
   } catch(e) {
     console.error('[SEEDER-QUEUE] Error:', e.message);
+  }
+}
+
+// ── 24×7 BACKGROUND SCANNER — the "no search needed" completion ─────────────
+// Everything above only ever reacts to a search. This is the piece that
+// works even during total silence — runs every 30 min forever, scans the
+// WHOLE pump table in one efficient query (not one query per pump), finds
+// anything whose fuel data has gone stale or was never seeded, and queues
+// it with the same 0-80min random stagger. The existing 2-min poller then
+// drains it exactly as it already does for search-triggered queues — same
+// carry-forward, same owner-guard, same 72hr-decay, zero duplicated logic.
+function scanAllPumpsForStaleData() {
+  try {
+    const stale = dbAll(
+      `SELECT p.id, p.name, p.category
+       FROM petrol_pumps p
+       WHERE p.is_active = 1
+         AND NOT EXISTS (
+           SELECT 1 FROM fuel_reports r
+           WHERE r.pump_id = p.id AND r.expires_at > datetime('now')
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM pending_seeds ps WHERE ps.pump_id = p.id
+         )`
+    );
+    if (stale.length === 0) {
+      console.log('[SCANNER] Full sweep — 0 stale pumps found, all fresh');
+      return;
+    }
+    for (const p of stale) {
+      const delayMins = Math.floor(Math.random() * 81); // 0–80 min, same stagger as search-triggered queue
+      dbRun(
+        `INSERT INTO pending_seeds (pump_id, category, run_at)
+         VALUES (?, ?, datetime('now', '+${delayMins} minutes'))`,
+        [p.id, p.category || detectCategory(p.name)]
+      );
+    }
+    console.log(`[SCANNER] Full sweep — ${stale.length} stale pumps found, queued for 0-80min staggered reseed`);
+  } catch(e) {
+    console.error('[SCANNER] Error:', e.message);
   }
 }
 
@@ -5850,6 +5890,15 @@ initDB().then(() => {
   // then repeats every 2 minutes for the life of the process.
   setTimeout(runPendingSeedsDue, 10000);
   setInterval(runPendingSeedsDue, 2*60*1000);
+  // ─────────────────────────────────────────────────────────────
+
+  // ── 24×7 full-database scanner — works even with ZERO searches ──────────
+  // Runs once ~20s after boot, then every 30 minutes forever. Finds every
+  // stale/never-seeded pump in the whole table (not just searched areas)
+  // and queues it. Combined with the 2-min poller above, no pump should
+  // ever sit stale for more than roughly 30-110 minutes, even overnight.
+  setTimeout(scanAllPumpsForStaleData, 20000);
+  setInterval(scanAllPumpsForStaleData, 30*60*1000);
   // ─────────────────────────────────────────────────────────────
 
   // ── 90-day data retention — keeps DB size flat forever ───────
