@@ -78,23 +78,64 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .back-link a{color:#e65100;font-size:13px;font-weight:600;text-decoration:none}
 .coords-badge{font-size:11px;color:#1b5e20;background:#e8f5e9;
   padding:4px 8px;border-radius:6px;display:inline-block;margin-bottom:8px}
+
+/* Station type toggle */
+.type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border:2px solid #e65100;border-radius:14px;overflow:hidden;margin-bottom:20px}
+.type-btn{padding:13px;text-align:center;font-size:14px;font-weight:700;
+  cursor:pointer;border:none;background:#fff3e0;color:#e65100;transition:all .2s}
+.type-btn.active{background:#e65100;color:white}
+
+/* EV section */
+.ev-section{display:none}
+.ev-section.visible{display:block}
+.fuel-section{display:block}
+.fuel-section.hidden{display:none}
+.ev-info-box{background:#e8f5e9;border:1.5px solid #1a6b2e;border-radius:10px;
+  padding:12px;margin-bottom:16px;font-size:12px;color:#1b5e20;line-height:1.7}
+.checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.checkbox-item{display:flex;align-items:center;gap:6px;font-size:13px;color:#333;
+  background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:8px;padding:8px 10px;
+  cursor:pointer;transition:all .2s}
+.checkbox-item input[type=checkbox]{width:16px;height:16px;accent-color:#1a6b2e}
+.checkbox-item:has(input:checked){background:#e8f5e9;border-color:#1a6b2e;color:#1b5e20}
+.radio-group{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.radio-item{display:flex;align-items:center;gap:5px;font-size:13px;color:#333;
+  background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:8px;padding:8px 12px;
+  cursor:pointer;transition:all .2s}
+.radio-item input[type=radio]{accent-color:#1a6b2e}
+.radio-item:has(input:checked){background:#e8f5e9;border-color:#1a6b2e;color:#1b5e20}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="top-bar">
-    <div class="logo">⛽</div>
-    <div class="title">Register Your Petrol Pump</div>
+    <div class="logo" id="topLogo">⛽</div>
+    <div class="title" id="topTitle">Register Your Petrol Pump</div>
     <div class="sub">IndhanShodhak · Document Verification Required</div>
   </div>
   <div class="body">
 
-    <div class="info-box">
+    <!-- STATION TYPE TOGGLE -->
+    <div class="type-toggle">
+      <button class="type-btn active" id="btnFuel" onclick="switchType('fuel')">⛽ CNG / Petrol / Diesel</button>
+      <button class="type-btn" id="btnEV" onclick="switchType('ev')">⚡ EV Charging Station</button>
+    </div>
+
+    <div class="info-box" id="fuelInfoBox">
       📋 <b>How it works:</b><br>
       1️⃣ Search your pump on map OR enter manually<br>
       2️⃣ Upload documents · Verifier reviews in 48hrs<br>
       3️⃣ Approval → Login ID + Password sent to email<br>
       4️⃣ Login → Update fuel stock → Green tick on map!
+    </div>
+
+    <div class="ev-info-box ev-section" id="evInfoBox">
+      ⚡ <b>EV Charging Station Registration:</b><br>
+      1️⃣ Find your station on map<br>
+      2️⃣ Fill charger details + upload ID proof<br>
+      3️⃣ Verified within 48hrs → appear on IndhanShodhak map<br>
+      4️⃣ Login anytime to update port availability
     </div>
 
     <div class="err" id="errMsg"></div>
@@ -170,8 +211,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       </div>
     </div>
 
-    <!-- SECTION 2: Pump Details -->
-    <div class="section">
+    <!-- SECTION 2: Pump Details (FUEL only) -->
+    <div class="section fuel-section" id="fuelDetailsSection">
       <div class="section-title">⛽ Pump Details</div>
       <label class="form-label">Pump Name *</label>
       <input class="form-input" type="text" id="pumpName" placeholder="e.g. HP Petrol Pump, Newasa">
@@ -211,11 +252,118 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       </div>
     </div>
 
+    <!-- SECTION 2-EV: EV Station Details (EV only) -->
+    <div class="section ev-section" id="evDetailsSection">
+      <div class="section-title">⚡ EV Station Details</div>
+
+      <label class="form-label">Station Name *</label>
+      <input class="form-input" type="text" id="evStationName" placeholder="e.g. Tata Power EV Station, Nashik">
+
+      <div class="form-row">
+        <div>
+          <label class="form-label">PIN Code *</label>
+          <input class="form-input" type="tel" id="evPinCode" placeholder="6-digit PIN"
+            maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div>
+          <label class="form-label">District *</label>
+          <input class="form-input" type="text" id="evDistrict" placeholder="e.g. Pune">
+        </div>
+      </div>
+      <label class="form-label">Full Address *</label>
+      <input class="form-input" type="text" id="evAddress" placeholder="Street, Area, City">
+      <div class="form-row">
+        <div>
+          <label class="form-label">State *</label>
+          <input class="form-input" type="text" id="evState" value="Maharashtra">
+        </div>
+        <div>
+          <label class="form-label">No. of Charging Ports *</label>
+          <input class="form-input" type="number" id="evNumPorts" placeholder="e.g. 2" min="1" max="50">
+        </div>
+      </div>
+
+      <label class="form-label">Charger Types Available *</label>
+      <div class="checkbox-grid">
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="CCS2"> CCS2 (DC Fast)</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="CHAdeMO"> CHAdeMO</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="Type 2 AC"> Type 2 (AC)</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="Bharat AC-001"> Bharat AC-001</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="GB/T"> GB/T (Chinese EV)</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="CCS2+Type2"> CCS2 + Type 2</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="Bharat DC-001"> Bharat DC-001</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="Other"> Other</label>
+      </div>
+
+      <label class="form-label">Charging Speed</label>
+      <div class="radio-group">
+        <label class="radio-item"><input type="radio" name="evSpeed" value="slow_ac"> 🐢 Slow AC</label>
+        <label class="radio-item"><input type="radio" name="evSpeed" value="fast_dc"> ⚡ Fast DC</label>
+        <label class="radio-item"><input type="radio" name="evSpeed" value="both" checked> ✅ Both</label>
+      </div>
+
+      <label class="form-label">Network / Operator</label>
+      <select class="form-input" id="evOperator">
+        <option value="">Select operator...</option>
+        <optgroup label="Oil Company Networks">
+          <option>Tata Power EZ Charge</option>
+          <option>BPCL Pulse</option>
+          <option>HPCL</option>
+          <option>Indian Oil (IOCL)</option>
+          <option>Jio-bp Pulse</option>
+        </optgroup>
+        <optgroup label="Independent Networks">
+          <option>Ather Grid</option>
+          <option>ChargeZone</option>
+          <option>Statiq</option>
+          <option>KAZAM</option>
+          <option>EVRE</option>
+          <option>Glida</option>
+          <option>Fortum (Everon)</option>
+          <option>Zeon Charging</option>
+          <option>EESL</option>
+          <option>MG Motor ZS</option>
+          <option>Exicom</option>
+          <option>BOLT.Earth</option>
+          <option>Volttic</option>
+          <option>ElectricPe</option>
+          <option>Independent / No Network</option>
+          <option>Other</option>
+        </optgroup>
+      </select>
+
+      <label class="form-label">Timing</label>
+      <div class="radio-group">
+        <label class="radio-item"><input type="radio" name="evTiming" value="24x7" checked> 🕐 24x7</label>
+        <label class="radio-item"><input type="radio" name="evTiming" value="limited"> ⏰ Limited Hours</label>
+      </div>
+      <input class="form-input" type="text" id="evTimingHours" placeholder="e.g. 6AM–10PM"
+        style="display:none" oninput="">
+
+      <label class="form-label">Parking While Charging</label>
+      <div class="radio-group">
+        <label class="radio-item"><input type="radio" name="evParking" value="free" checked> 🅿️ Free</label>
+        <label class="radio-item"><input type="radio" name="evParking" value="paid"> 💰 Paid</label>
+        <label class="radio-item"><input type="radio" name="evParking" value="none"> ❌ None</label>
+      </div>
+
+      <label class="form-label">Food Nearby?</label>
+      <div class="radio-group" style="margin-bottom:8px">
+        <label class="radio-item"><input type="radio" name="evFood" value="no" checked onclick="toggleFoodFields(false)"> ❌ No</label>
+        <label class="radio-item"><input type="radio" name="evFood" value="yes" onclick="toggleFoodFields(true)"> 🍽️ Yes</label>
+      </div>
+      <div id="evFoodFields" style="display:none">
+        <input class="form-input" type="text" id="evFoodName" placeholder="e.g. Hotel Sai Darbar">
+        <input class="form-input" type="text" id="evFoodDistance" placeholder="Distance e.g. 50m / 200m">
+      </div>
+    </div>
+
     <!-- SECTION 3: Documents -->
     <div class="section">
       <div class="section-title">📄 Documents (JPG · PNG · PDF accepted)</div>
 
-      <div class="doc-card" id="wrap-license">
+      <!-- Fuel: license doc (hidden for EV) -->
+      <div class="doc-card fuel-section" id="wrap-license">
         <div class="doc-top">
           <span class="doc-icon">📄</span>
           <div>
@@ -278,6 +426,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 <script>
 let selectedPump = null;
+let currentType  = 'fuel'; // 'fuel' or 'ev'
+
+function switchType(type) {
+  currentType = type;
+  const isFuel = type === 'fuel';
+  // Toggle buttons
+  document.getElementById('btnFuel').classList.toggle('active', isFuel);
+  document.getElementById('btnEV').classList.toggle('active', !isFuel);
+  // Toggle sections
+  document.querySelectorAll('.fuel-section').forEach(el => el.classList.toggle('hidden', !isFuel));
+  document.querySelectorAll('.ev-section').forEach(el => el.classList.toggle('visible', !isFuel));
+  // Top bar
+  document.getElementById('topLogo').textContent = isFuel ? '⛽' : '⚡';
+  document.getElementById('topTitle').textContent = isFuel ? 'Register Your Petrol Pump' : 'Register EV Charging Station';
+  // Info boxes
+  document.getElementById('fuelInfoBox').style.display = isFuel ? '' : 'none';
+}
+
+function toggleFoodFields(show) {
+  document.getElementById('evFoodFields').style.display = show ? '' : 'none';
+}
+
+// Show/hide timing hours input when "Limited" selected
+document.addEventListener('change', function(e) {
+  if(e.target.name === 'evTiming') {
+    document.getElementById('evTimingHours').style.display =
+      e.target.value === 'limited' ? '' : 'none';
+  }
+});
 let signupMap = null;
 let pinDropMarker = null;
 let pinDropMode = false;
@@ -601,9 +778,130 @@ async function submitApplication(){
   const okEl  = document.getElementById('okMsg');
   errEl.style.display = 'none'; okEl.style.display = 'none';
 
-  const name      = document.getElementById('name').value.trim();
-  const mobile    = document.getElementById('mobile').value.trim();
-  const email     = document.getElementById('email').value.trim();
+  const show = (msg) => { errEl.textContent=msg; errEl.style.display='block';
+    errEl.scrollIntoView({behavior:'smooth'}); };
+
+  const name   = document.getElementById('name').value.trim();
+  const mobile = document.getElementById('mobile').value.trim();
+  const email  = document.getElementById('email').value.trim();
+  const lat    = document.getElementById('pumpLat').value;
+  const lng    = document.getElementById('pumpLng').value;
+
+  if(!name)               return show('Enter owner full name');
+  if(mobile.length!==10)  return show('Enter valid 10-digit mobile');
+  if(!email||!email.includes('@')) return show('Enter valid email address');
+
+  const idProofFile = window._compressedFiles['doc-idproof'] || document.getElementById('doc-idproof').files[0];
+  const idProofType = document.getElementById('idProofType').value;
+  if(!idProofFile) return show('Upload ID Proof document');
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '⏳ Submitting...';
+
+  // ── EV path ──────────────────────────────────────────────────────────────
+  if(currentType === 'ev') {
+    const stationName = document.getElementById('evStationName').value.trim();
+    const pinCode     = document.getElementById('evPinCode').value.trim();
+    const address     = document.getElementById('evAddress').value.trim();
+    const district    = document.getElementById('evDistrict').value.trim();
+    const state       = document.getElementById('evState').value.trim();
+    const numPorts    = document.getElementById('evNumPorts').value.trim();
+    const operator    = document.getElementById('evOperator').value;
+    const speedEl     = document.querySelector('input[name="evSpeed"]:checked');
+    const timingEl    = document.querySelector('input[name="evTiming"]:checked');
+    const parkingEl   = document.querySelector('input[name="evParking"]:checked');
+    const foodEl      = document.querySelector('input[name="evFood"]:checked');
+    const chargerTypes = [...document.querySelectorAll('input[name="evChargerType"]:checked')]
+                           .map(c => c.value);
+
+    if(!stationName)        return show('Enter EV station name') || (btn.disabled=false);
+    if(pinCode.length!==6)  return show('Enter valid 6-digit PIN') || (btn.disabled=false);
+    if(!address)            return show('Enter station address') || (btn.disabled=false);
+    if(!district)           return show('Enter district') || (btn.disabled=false);
+    if(chargerTypes.length===0) return show('Select at least one charger type') || (btn.disabled=false);
+    if(!numPorts||numPorts<1)   return show('Enter number of charging ports') || (btn.disabled=false);
+
+    // Use license_number field as a unique ID for EV stations (EV- prefix)
+    const evLicenseId = `EV-${mobile}-${Date.now()}`;
+
+    const fd = new FormData();
+    fd.append('owner_name',    name);
+    fd.append('mobile',        mobile);
+    fd.append('email',         email);
+    fd.append('pump_name',     stationName);
+    fd.append('oil_company',   operator || 'EV Station');
+    fd.append('pin_code',      pinCode);
+    fd.append('address',       address);
+    fd.append('district',      district);
+    fd.append('state',         state);
+    fd.append('license_number', evLicenseId);
+    fd.append('station_type',  'ev');
+    fd.append('lat',           lat);
+    fd.append('lng',           lng);
+    fd.append('id_proof',      idProofFile);
+    fd.append('id_proof_type', idProofType);
+    // EV details as JSON
+    fd.append('ev_charger_types',    JSON.stringify(chargerTypes));
+    fd.append('ev_network_operator', operator);
+    fd.append('ev_num_ports',        numPorts);
+    fd.append('ev_speed_type',       speedEl?.value || 'both');
+    fd.append('ev_timing',           timingEl?.value || '24x7');
+    fd.append('ev_timing_hours',     document.getElementById('evTimingHours').value);
+    fd.append('ev_parking',          parkingEl?.value || 'free');
+    fd.append('ev_food_nearby',      foodEl?.value === 'yes' ? '1' : '0');
+    fd.append('ev_food_name',        document.getElementById('evFoodName').value);
+    fd.append('ev_food_distance',    document.getElementById('evFoodDistance').value);
+    const refCode = document.getElementById('referralCode')?.value?.trim() || '';
+    if(refCode) fd.append('referral_code', refCode);
+    // EV stations don't have petroleum license — send a blank placeholder
+    fd.append('license', idProofFile); // reuse ID proof as doc_license placeholder
+
+    try {
+      const r = await fetch('/api/pump-owner/register', { method:'POST', body:fd });
+      const d = await r.json();
+      if(d.success){
+        // Also save EV details
+        if(d.pump_id) {
+          await fetch('/api/ev-details/save', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              pump_id: d.pump_id,
+              charger_types: chargerTypes,
+              network_operator: operator,
+              num_ports: parseInt(numPorts),
+              speed_type: speedEl?.value || 'both',
+              timing: timingEl?.value || '24x7',
+              timing_hours: document.getElementById('evTimingHours').value,
+              working_status: 'functional',
+              parking: parkingEl?.value || 'free',
+              food_nearby: foodEl?.value === 'yes',
+              food_name: document.getElementById('evFoodName').value,
+              food_distance: document.getElementById('evFoodDistance').value,
+              updated_by: 'owner'
+            })
+          });
+        }
+        okEl.innerHTML = `✅ <b>EV Station Registered!</b><br><br>
+          📋 App ID: <b>${d.app_id||'—'}</b><br>
+          ⏳ Verification within <b>48 hours</b><br>
+          📧 Login details to: <b>${email}</b><br><br>
+          ${lat!=='0' ? '📡 <b>GPS location saved!</b> Station appears on map after approval.<br>' : ''}
+          → <a href="/login" style="color:#1a6b2e">Back to Login</a>`;
+        okEl.style.display = 'block';
+        btn.textContent = '✅ Submitted!';
+      } else {
+        show('❌ '+(d.error||'Submission failed. Try again.'));
+        btn.disabled=false; btn.textContent='📤 Submit for Verification';
+      }
+    } catch(e){
+      show('❌ Network error. Try again.');
+      btn.disabled=false; btn.textContent='📤 Submit for Verification';
+    }
+    return;
+  }
+
+  // ── FUEL path (existing logic unchanged) ─────────────────────────────────
   const pumpName  = document.getElementById('pumpName').value.trim();
   const oilCo     = document.getElementById('oilCompany').value;
   const pinCode   = document.getElementById('pinCode').value.trim();
@@ -611,28 +909,16 @@ async function submitApplication(){
   const district  = document.getElementById('district').value.trim();
   const state     = document.getElementById('state').value.trim();
   const licenseNo = document.getElementById('licenseNo').value.trim();
-  const lat       = document.getElementById('pumpLat').value;
-  const lng       = document.getElementById('pumpLng').value;
 
-  const show = (msg) => { errEl.textContent=msg; errEl.style.display='block';
-    errEl.scrollIntoView({behavior:'smooth'}); };
+  if(!pumpName)  return show('Enter pump name') || (btn.disabled=false);
+  if(!oilCo)    return show('Select oil company') || (btn.disabled=false);
+  if(pinCode.length!==6) return show('Enter valid 6-digit PIN') || (btn.disabled=false);
+  if(!address)   return show('Enter pump address') || (btn.disabled=false);
+  if(!district)  return show('Enter district name') || (btn.disabled=false);
+  if(!licenseNo) return show('Enter pump license number') || (btn.disabled=false);
 
-  if(!name)      return show('Enter owner full name');
-  if(mobile.length!==10) return show('Enter valid 10-digit mobile');
-  if(!email||!email.includes('@')) return show('Enter valid email address');
-  if(!pumpName)  return show('Enter pump name');
-  if(!oilCo)    return show('Select oil company');
-  if(pinCode.length!==6) return show('Enter valid 6-digit PIN');
-  if(!address)   return show('Enter pump address');
-  if(!district)  return show('Enter district name');
-  if(!licenseNo) return show('Enter pump license number');
-
-  const licFile      = window._compressedFiles['doc-license'] || document.getElementById('doc-license').files[0];
-  const idProofFile  = window._compressedFiles['doc-idproof'] || document.getElementById('doc-idproof').files[0];
-  const idProofType  = document.getElementById('idProofType').value;
-
-  if(!licFile)     return show('Upload Pump License Certificate');
-  if(!idProofFile) return show('Upload ID Proof document');
+  const licFile = window._compressedFiles['doc-license'] || document.getElementById('doc-license').files[0];
+  if(!licFile)  return show('Upload Pump License Certificate') || (btn.disabled=false);
 
   const fd = new FormData();
   fd.append('owner_name',    name);
@@ -652,9 +938,6 @@ async function submitApplication(){
   fd.append('license',       licFile);
   fd.append('id_proof',      idProofFile);
   fd.append('id_proof_type', idProofType);
-
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true; btn.textContent = '⏳ Submitting...';
 
   try {
     const r = await fetch('/api/pump-owner/register', { method:'POST', body:fd });
