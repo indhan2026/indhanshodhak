@@ -55,6 +55,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stat-label{font-size:10px;color:#888;margin-top:2px}
 .doc-upload{background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:10px;padding:10px;margin-bottom:8px}
 
+/* Matching pump_signup.html for uniformity */
+.section-title{font-size:13px;font-weight:700;color:#e65100;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;
+  padding-bottom:6px;border-bottom:2px solid #fff3e0}
+.type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border:2px solid #e65100;border-radius:14px;overflow:hidden;margin-bottom:16px}
+.type-btn{padding:13px;text-align:center;font-size:14px;font-weight:700;
+  cursor:pointer;border:none;background:#fff3e0;color:#e65100;transition:all .2s}
+.type-btn.active{background:#e65100;color:white}
+.enroll-section{margin-bottom:18px}
+
 /* EV section in enrollment modal */
 .ev-proof-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;border:2px solid #1565c0;border-radius:10px;overflow:hidden;margin:10px 0}
 .ev-proof-btn{padding:10px;text-align:center;font-size:12px;font-weight:700;cursor:pointer;border:none;background:#e3f2fd;color:#1565c0;transition:all .2s}
@@ -179,7 +190,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="modal-overlay" id="enrollModal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeEnrollModal()">✕</button>
-    <div class="card-title" style="color:#e65100;font-size:14px;margin-bottom:14px" id="enrollModalTitle">🛵 Register Pump on Behalf of Owner</div>
+    <div class="card-title" style="color:#e65100;font-size:15px;margin-bottom:14px" id="enrollModalTitle">🛵 Pump Sign Up</div>
     <div id="enroll-pump-info" style="background:#fff3e0;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px"></div>
     <div id="enroll-err" class="err"></div>
     <div id="enroll-ok" class="ok-msg"></div>
@@ -189,31 +200,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <input type="hidden" id="e-pump-lng" value="0">
     <input type="hidden" id="e-station-type" value="fuel">
 
-    <!-- Station type auto-detected — shown as info only -->
-    <div id="e-ev-badge" style="display:none;background:#e3f2fd;border:1.5px solid #1565c0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#1565c0;font-weight:700">
-      ⚡ EV Charging Station — EV details section active
+    <!-- STATION TYPE TOGGLE — same as pump_signup.html -->
+    <div class="type-toggle">
+      <button class="type-btn active" id="eBtnFuel" onclick="switchEnrollType('fuel')">⛽ CNG / Petrol / Diesel</button>
+      <button class="type-btn" id="eBtnEV" onclick="switchEnrollType('ev')">⚡ EV Charging Station</button>
     </div>
 
-    <label class="form-label">Owner Full Name *</label>
-    <input class="form-input" type="text" id="e-owner-name" placeholder="Pump owner's full name">
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div>
-        <label class="form-label">Owner Mobile *</label>
-        <input class="form-input" type="tel" id="e-owner-mobile" maxlength="10" placeholder="10-digit mobile"
-          oninput="this.value=this.value.replace(/\D/g,'')">
-      </div>
-      <div>
-        <label class="form-label">Owner Email *</label>
-        <input class="form-input" type="email" id="e-owner-email" placeholder="owner@email.com">
+    <div class="enroll-section">
+      <div class="section-title">👤 Owner Details</div>
+      <label class="form-label">Owner Full Name *</label>
+      <input class="form-input" type="text" id="e-owner-name" placeholder="Pump owner's full name">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label class="form-label">Owner Mobile *</label>
+          <input class="form-input" type="tel" id="e-owner-mobile" maxlength="10" placeholder="10-digit mobile"
+            oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div>
+          <label class="form-label">Owner Email *</label>
+          <input class="form-input" type="email" id="e-owner-email" placeholder="owner@email.com">
+        </div>
       </div>
     </div>
-
-    <label class="form-label">Pump Name</label>
-    <input class="form-input" type="text" id="e-pump-name" placeholder="e.g. HP Petrol Pump Newasa">
 
     <!-- FUEL fields -->
-    <div class="ev-fuel-section" id="e-fuel-fields">
+    <div class="enroll-section ev-fuel-section" id="e-fuel-fields">
+      <div class="section-title">⛽ Pump Details</div>
+      <label class="form-label">Pump Name</label>
+      <input class="form-input" type="text" id="e-pump-name" placeholder="e.g. HP Petrol Pump Newasa">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
           <label class="form-label">Oil Company</label>
@@ -229,10 +243,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             oninput="this.value=this.value.replace(/\D/g,'')">
         </div>
       </div>
+      <label class="form-label">Address</label>
+      <input class="form-input" type="text" id="e-address" placeholder="Full address">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label class="form-label">District</label>
+          <input class="form-input" type="text" id="e-district">
+        </div>
+        <div>
+          <label class="form-label">Tehsil/Taluka</label>
+          <input class="form-input" type="text" id="e-tehsil">
+        </div>
+      </div>
+      <label class="form-label">License Number *</label>
+      <input class="form-input" type="text" id="e-license" placeholder="e.g. MH-HP-2019-00123"
+        oninput="this.value=this.value.toUpperCase()">
     </div>
 
-    <!-- EV PIN (always visible) -->
-    <div class="ev-modal-section" id="e-ev-pin-row">
+    <!-- EV DETAILS section -->
+    <div class="enroll-section ev-modal-section" id="e-ev-details">
+      <div class="section-title">⚡ EV Station Details</div>
+      <label class="form-label">Station Name</label>
+      <input class="form-input" type="text" id="e-pump-name-ev" placeholder="e.g. Tata Power EV Station">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
           <label class="form-label">PIN Code</label>
@@ -244,32 +276,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <input class="form-input" type="number" id="e-ev-ports" placeholder="e.g. 2" min="1" max="50">
         </div>
       </div>
-    </div>
-
-    <label class="form-label">Address</label>
-    <input class="form-input" type="text" id="e-address" placeholder="Full address">
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div>
-        <label class="form-label">District</label>
-        <input class="form-input" type="text" id="e-district">
+      <label class="form-label">Address</label>
+      <input class="form-input" type="text" id="e-address-ev" placeholder="Full address">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label class="form-label">District</label>
+          <input class="form-input" type="text" id="e-district-ev">
+        </div>
+        <div>
+          <label class="form-label">Tehsil/Taluka</label>
+          <input class="form-input" type="text" id="e-tehsil-ev">
+        </div>
       </div>
-      <div>
-        <label class="form-label">Tehsil/Taluka</label>
-        <input class="form-input" type="text" id="e-tehsil">
-      </div>
-    </div>
-
-    <!-- FUEL license -->
-    <div class="ev-fuel-section" id="e-license-row">
-      <label class="form-label">License Number *</label>
-      <input class="form-input" type="text" id="e-license" placeholder="e.g. MH-HP-2019-00123"
-        oninput="this.value=this.value.toUpperCase()">
-    </div>
-
-    <!-- EV DETAILS section -->
-    <div class="ev-modal-section" id="e-ev-details">
-      <div style="font-size:12px;font-weight:700;color:#1565c0;margin:12px 0 8px">⚡ EV Charger Details</div>
 
       <label class="form-label">Charger Types *</label>
       <div class="checkbox-grid-sm">
@@ -344,76 +362,78 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- Documents -->
-    <div style="font-size:12px;font-weight:700;color:#e65100;margin:12px 0 8px">📄 Documents</div>
+    <div class="enroll-section">
+      <div class="section-title">📄 Documents</div>
 
-    <!-- FUEL: license doc -->
-    <div class="doc-upload ev-fuel-section" id="e-wrap-license">
-      <div class="doc-label">Pump License Certificate *</div>
-      <label class="choose-btn">Choose File
-        <input type="file" accept="image/jpeg" style="display:none" id="e-doc-license"
-          onchange="handleAgentFile(this,'e-fn-license')">
-      </label>
-      <div class="file-name" id="e-fn-license">No file chosen</div>
-    </div>
+      <!-- FUEL: license doc -->
+      <div class="doc-upload ev-fuel-section" id="e-wrap-license">
+        <div class="doc-label">Pump License Certificate *</div>
+        <label class="choose-btn">Choose File
+          <input type="file" accept="image/jpeg" style="display:none" id="e-doc-license"
+            onchange="handleAgentFile(this,'e-fn-license')">
+        </label>
+        <div class="file-name" id="e-fn-license">No file chosen</div>
+      </div>
 
-    <!-- EV: GPS selfie OR electricity bill -->
-    <div class="ev-modal-section" id="e-ev-proof-section">
-      <div style="font-size:12px;color:#1565c0;margin-bottom:8px;font-weight:600">
-        📍 Location Proof — Upload <b>ANY ONE</b>:
-      </div>
-      <div class="ev-proof-toggle">
-        <button class="ev-proof-btn active" id="eProofBtnSelfie" onclick="switchEVProof('selfie')">📸 GPS Selfie at Station</button>
-        <button class="ev-proof-btn" id="eProofBtnBill" onclick="switchEVProof('bill')">📄 Electricity Bill</button>
-      </div>
-      <div id="e-selfie-section">
-        <div style="font-size:11px;color:#555;margin-bottom:6px">📍 Take selfie standing at the charging station — GPS location auto-captured</div>
-        <div class="doc-upload">
-          <label class="choose-btn">Choose Selfie
-            <input type="file" accept="image/jpeg,image/jpg" style="display:none" id="e-doc-selfie"
-              onchange="handleAgentFile(this,'e-fn-selfie')">
-          </label>
-          <div class="file-name" id="e-fn-selfie">No file chosen</div>
+      <!-- EV: GPS selfie OR electricity bill -->
+      <div class="ev-modal-section" id="e-ev-proof-section">
+        <div style="font-size:12px;color:#1565c0;margin-bottom:8px;font-weight:600">
+          📍 Location Proof — Upload <b>ANY ONE</b>:
+        </div>
+        <div class="ev-proof-toggle">
+          <button class="ev-proof-btn active" id="eProofBtnSelfie" onclick="switchEVProof('selfie')">📸 GPS Selfie at Station</button>
+          <button class="ev-proof-btn" id="eProofBtnBill" onclick="switchEVProof('bill')">📄 Electricity Bill</button>
+        </div>
+        <div id="e-selfie-section">
+          <div style="font-size:11px;color:#555;margin-bottom:6px">📍 Take selfie standing at the charging station — GPS location auto-captured</div>
+          <div class="doc-upload">
+            <label class="choose-btn">Choose Selfie
+              <input type="file" accept="image/jpeg,image/jpg" style="display:none" id="e-doc-selfie"
+                onchange="handleAgentFile(this,'e-fn-selfie')">
+            </label>
+            <div class="file-name" id="e-fn-selfie">No file chosen</div>
+          </div>
+        </div>
+        <div id="e-bill-section" style="display:none">
+          <div style="font-size:11px;color:#555;margin-bottom:6px">📄 Upload electricity bill of this EV station location — AI will verify address match</div>
+          <div class="doc-upload">
+            <label class="choose-btn">Choose Bill
+              <input type="file" accept="image/jpeg,image/jpg" style="display:none" id="e-doc-bill"
+                onchange="handleAgentFile(this,'e-fn-bill')">
+            </label>
+            <div class="file-name" id="e-fn-bill">No file chosen</div>
+          </div>
         </div>
       </div>
-      <div id="e-bill-section" style="display:none">
-        <div style="font-size:11px;color:#555;margin-bottom:6px">📄 Upload electricity bill of this EV station location — AI will verify address match</div>
-        <div class="doc-upload">
-          <label class="choose-btn">Choose Bill
-            <input type="file" accept="image/jpeg,image/jpg" style="display:none" id="e-doc-bill"
-              onchange="handleAgentFile(this,'e-fn-bill')">
-          </label>
-          <div class="file-name" id="e-fn-bill">No file chosen</div>
+
+      <!-- Owner ID proof (always) -->
+      <div class="doc-upload">
+        <div class="doc-label">Owner ID Proof *</div>
+        <div style="margin-bottom:6px">
+          <select id="e-id-type" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fafafa">
+            <option value="Aadhaar Card">Aadhaar Card</option>
+            <option value="Driving Licence">Driving Licence</option>
+            <option value="Voter ID">Voter ID</option>
+            <option value="PAN Card">PAN Card</option>
+          </select>
         </div>
+        <label class="choose-btn">Choose File
+          <input type="file" accept="image/jpeg" style="display:none" id="e-doc-aadhaar"
+            onchange="handleAgentFile(this,'e-fn-aadhaar')">
+        </label>
+        <div class="file-name" id="e-fn-aadhaar">No file chosen</div>
       </div>
     </div>
 
-    <!-- Owner ID proof (always) -->
-    <div class="doc-upload">
-      <div class="doc-label">Owner ID Proof *</div>
-      <div style="margin-bottom:6px">
-        <select id="e-id-type" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fafafa">
-          <option value="Aadhaar Card">Aadhaar Card</option>
-          <option value="Driving Licence">Driving Licence</option>
-          <option value="Voter ID">Voter ID</option>
-          <option value="PAN Card">PAN Card</option>
-        </select>
-      </div>
-      <label class="choose-btn">Choose File
-        <input type="file" accept="image/jpeg" style="display:none" id="e-doc-aadhaar"
-          onchange="handleAgentFile(this,'e-fn-aadhaar')">
-      </label>
-      <div class="file-name" id="e-fn-aadhaar">No file chosen</div>
-    </div>
-
-    <div style="background:#fff8e1;border:1.5px dashed #e65100;border-radius:10px;padding:10px 12px;margin-top:14px">
-      <label class="form-label" style="color:#e65100">🛵 MR Referral Code (optional)</label>
-      <div style="font-size:11px;color:#888;margin-bottom:6px">If an IndhanShodhak field agent gave you a code, enter it here.</div>
-      <input class="form-input" type="text" id="e-referral-code" placeholder="e.g. MR001"
-        autocomplete="on" name="mr_referral_code" style="text-transform:uppercase"
-        oninput="this.value=this.value.toUpperCase()">
+    <div class="enroll-section" style="background:#fff8e1;border:1.5px dashed #e65100;border-radius:10px;padding:14px">
+      <div class="section-title" style="color:#e65100;border-bottom:none;margin-bottom:8px">🛵 MR Referral Code</div>
+      <div style="font-size:11px;color:#888;margin-bottom:6px">Leave blank — your own agent code is applied automatically.</div>
+      <input class="form-input" type="text" id="e-referral-code" placeholder="Auto-applied on submit" readonly
+        style="text-transform:uppercase;background:#f0f0f0;color:#aaa">
     </div>
 
     <button class="submit-btn" id="enroll-submit-btn" onclick="submitEnrollment()" style="margin-top:10px">
+
       📤 Submit for Verification
     </button>
   </div>
@@ -679,6 +699,15 @@ function renderPumpResults(pumps){
 }
 
 // ── ENROLLMENT MODAL ───────────────────────────────────────────
+function switchEnrollType(type){
+  const isEV = type === 'ev';
+  document.getElementById('e-station-type').value = isEV ? 'ev' : 'fuel';
+  document.getElementById('eBtnFuel').classList.toggle('active', !isEV);
+  document.getElementById('eBtnEV').classList.toggle('active', isEV);
+  document.querySelectorAll('.ev-fuel-section').forEach(el => el.classList.toggle('hidden', isEV));
+  document.querySelectorAll('.ev-modal-section').forEach(el => el.classList.toggle('visible', isEV));
+}
+
 function openEnrollModal(idx){
   const p = _agentPumps[idx];
   if(!p) return;
@@ -686,16 +715,8 @@ function openEnrollModal(idx){
   document.getElementById('enrollModal').style.display='block';
   document.getElementById('enroll-err').style.display='none';
   document.getElementById('enroll-ok').style.display='none';
-  document.getElementById('e-station-type').value = isEV ? 'ev' : 'fuel';
 
-  // Title + badge
-  document.getElementById('enrollModalTitle').textContent =
-    isEV ? '⚡ Register EV Station on Behalf of Owner' : '🛵 Register Pump on Behalf of Owner';
-  document.getElementById('e-ev-badge').style.display = isEV ? '' : 'none';
-
-  // Toggle sections
-  document.querySelectorAll('.ev-fuel-section').forEach(el => el.classList.toggle('hidden', isEV));
-  document.querySelectorAll('.ev-modal-section').forEach(el => el.classList.toggle('visible', isEV));
+  switchEnrollType(isEV ? 'ev' : 'fuel');
 
   document.getElementById('enroll-pump-info').innerHTML =
     `${isEV?'⚡':'⛽'} <b>${p.name}</b><br>📍 ${p.address||''}<br>📌 GPS: ${p.lat?.toFixed(4)||'—'}, ${p.lng?.toFixed(4)||'—'}`;
@@ -703,15 +724,20 @@ function openEnrollModal(idx){
   document.getElementById('e-pump-id').value = p.id||'';
   document.getElementById('e-pump-lat').value = p.lat||0;
   document.getElementById('e-pump-lng').value = p.lng||0;
-  document.getElementById('e-pump-name').value = p.name||'';
-  document.getElementById('e-address').value = p.address||'';
-  document.getElementById('e-district').value = p.district||'';
-  document.getElementById('e-tehsil').value = p.tehsil||'';
-  document.getElementById('e-pin').value = p.pin_code||'';
-  if(document.getElementById('e-pin-ev')) document.getElementById('e-pin-ev').value = p.pin_code||'';
+
+  // Fill BOTH fuel and EV field sets — only the visible one matters at submit time
+  document.getElementById('e-pump-name').value    = p.name||'';
+  document.getElementById('e-address').value      = p.address||'';
+  document.getElementById('e-district').value     = p.district||'';
+  document.getElementById('e-tehsil').value       = p.tehsil||'';
+  document.getElementById('e-pin').value          = p.pin_code||'';
+  document.getElementById('e-pump-name-ev').value = p.name||'';
+  document.getElementById('e-address-ev').value   = p.address||'';
+  document.getElementById('e-district-ev').value  = p.district||'';
+  document.getElementById('e-tehsil-ev').value    = p.tehsil||'';
+  document.getElementById('e-pin-ev').value       = p.pin_code||'';
 
   if(isEV) {
-    // Auto-detect EV operator from name
     const nm = (p.name||'').toUpperCase();
     const op = document.getElementById('e-ev-operator');
     if(nm.includes('TATA POWER')||nm.includes('EZ CHARGE')) op.value='Tata Power EZ Charge';
@@ -735,7 +761,7 @@ function openEnrollModal(idx){
   }
 
   // Clear owner + doc fields
-  ['e-owner-name','e-owner-mobile','e-owner-email','e-license','e-referral-code'].forEach(id => {
+  ['e-owner-name','e-owner-mobile','e-owner-email','e-license'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value='';
   });
   ['e-doc-license','e-doc-aadhaar','e-doc-selfie','e-doc-bill'].forEach(id => {
@@ -745,6 +771,10 @@ function openEnrollModal(idx){
     const el = document.getElementById(id);
     if(el){ el.textContent='No file chosen'; el.className='file-name'; }
   });
+
+  // Referral code left blank — server auto-applies agent's own MR code as fallback
+  document.getElementById('e-referral-code').value = '';
+
   document.getElementById('enroll-submit-btn').disabled=false;
   document.getElementById('enroll-submit-btn').textContent='📤 Submit for Verification';
 }
@@ -752,6 +782,7 @@ function openEnrollModal(idx){
 function closeEnrollModal(){
   document.getElementById('enrollModal').style.display='none';
 }
+
 
 function handleAgentFile(input, nameId){
   const el = document.getElementById(nameId);
@@ -839,11 +870,11 @@ async function submitEnrollment(){
   fd.append('owner_mobile',  ownerMobile);
   fd.append('owner_email',   ownerEmail);
   fd.append('pump_id',       document.getElementById('e-pump-id').value);
-  fd.append('pump_name',     document.getElementById('e-pump-name').value);
-  fd.append('pin_code',      isEV ? (document.getElementById('e-pin-ev')?.value||document.getElementById('e-pin').value) : document.getElementById('e-pin').value);
-  fd.append('address',       document.getElementById('e-address').value);
-  fd.append('district',      document.getElementById('e-district').value);
-  fd.append('tehsil',        document.getElementById('e-tehsil').value);
+  fd.append('pump_name',     isEV ? document.getElementById('e-pump-name-ev').value : document.getElementById('e-pump-name').value);
+  fd.append('pin_code',      isEV ? document.getElementById('e-pin-ev').value : document.getElementById('e-pin').value);
+  fd.append('address',       isEV ? document.getElementById('e-address-ev').value : document.getElementById('e-address').value);
+  fd.append('district',      isEV ? document.getElementById('e-district-ev').value : document.getElementById('e-district').value);
+  fd.append('tehsil',        isEV ? document.getElementById('e-tehsil-ev').value : document.getElementById('e-tehsil').value);
   fd.append('state',         'Maharashtra');
   fd.append('lat',           document.getElementById('e-pump-lat').value);
   fd.append('lng',           document.getElementById('e-pump-lng').value);
