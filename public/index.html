@@ -62,12 +62,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cng-badge{display:inline-flex;align-items:center;gap:3px;background:#e65100;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:7px;letter-spacing:.3px}
 .pump-card.cng-verified{border-color:#e65100;border-width:1.5px}
 .ev-card{background:white;margin:0 0 8px;border-radius:14px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1.5px solid #90caf9}
-.ev-badge{display:inline-flex;align-items:center;gap:3px;background:#1565c0;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:7px}
+.ev-badge{display:inline-flex;align-items:center;gap:3px;background:#1565c0;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.ev-badge-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap}
+.ev-verified-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#1a6b2e;font-weight:700;background:#e8f5e9;padding:2px 8px;border-radius:10px;border:1px solid #a5d6a7}
 .ev-name{font-size:13px;font-weight:600;color:#222}
 .ev-operator{font-size:11px;color:#1565c0;font-weight:600;margin-top:1px}
 .ev-addr{font-size:11px;color:#888;margin:4px 0 8px}
 .ev-specs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .ev-spec{font-size:11px;padding:4px 10px;border-radius:10px;font-weight:600;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;display:inline-flex;align-items:center;gap:4px}
+.ev-spec-green{font-size:11px;padding:4px 10px;border-radius:10px;font-weight:600;background:#e8f5e9;color:#1a6b2e;border:1px solid #a5d6a7;display:inline-flex;align-items:center;gap:4px}
+.ev-spec-orange{font-size:11px;padding:4px 10px;border-radius:10px;font-weight:600;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;display:inline-flex;align-items:center;gap:4px}
+.ev-status-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.ev-status-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.ev-status-functional{background:#e8f5e9;color:#1a6b2e}
+.ev-status-partial{background:#fff3e0;color:#e65100}
+.ev-status-out{background:#ffebee;color:#c62828}
+.ev-timing-tag{font-size:11px;color:#555;display:inline-flex;align-items:center;gap:4px}
+.ev-food{font-size:11px;color:#555;background:#fafafa;border:1px solid #eee;border-radius:8px;padding:5px 10px;display:inline-flex;align-items:center;gap:5px;margin-bottom:8px}
+.ev-unverified{background:#f9f9f9;border:1.5px dashed #ccc;border-radius:10px;padding:10px 12px;font-size:11px;color:#888;margin-bottom:8px;text-align:center;line-height:1.7}
 .ev-footer{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #f0f0f0;flex-wrap:wrap;gap:6px}
 .star-rating{display:flex;align-items:center;gap:2px}
 .star{font-size:16px;color:#ddd;cursor:pointer;user-select:none}
@@ -1465,18 +1477,43 @@ function renderPumps(pumpsRaw, isPremium, price){
       const pName = (p.name||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
       const pAddr = (p.address||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
       return `<div class="ev-card" data-place-id="${pId}">
-        <div class="ev-badge">⚡ EV Charging Station</div>
-        <div class="ev-name">${p.name||'EV Charging Station'}</div>
-        ${p.ev_operator ? `<div class="ev-operator">🏢 Operator: ${p.ev_operator}</div>` : ''}
-        <div class="ev-addr">📍 ${p.address||''} ${p.district?'· '+p.district:''}</div>
-        <div class="ev-specs">
-          ${p.ev_connector_type ? `<div class="ev-spec">🔌 ${p.ev_connector_type}</div>` : ''}
-          ${p.ev_power_kw ? `<div class="ev-spec">⚡ ${p.ev_power_kw} kW</div>` : ''}
-          ${p.ev_connector_count ? `<div class="ev-spec">🔢 ${p.ev_connector_count} Chargers</div>` : ''}
-          ${p.ev_has_parking ? `<div class="ev-spec">🅿️ Parking Available</div>` : ''}
+        <div class="ev-badge-row">
+          <span class="ev-badge">⚡ EV Charging Station</span>
+          ${p.is_verified ? `<span class="ev-verified-tag">✅ Verified</span>` : ''}
         </div>
+        <div class="ev-name">${p.name||'EV Charging Station'}</div>
+        ${(p.evd_network_operator||p.ev_operator) ? `<div class="ev-operator">🏢 ${p.evd_network_operator||p.ev_operator}</div>` : ''}
+        <div class="ev-addr">📍 ${p.address||''} ${p.district?'· '+p.district:''}</div>
+
+        ${p.evd_enrolled ? `
+        <div class="ev-specs">
+          ${(p.evd_charger_types||[]).map(t=>`<span class="ev-spec">🔌 ${t}</span>`).join('')}
+          ${p.evd_speed_type==='fast_dc' ? `<span class="ev-spec">⚡ Fast DC</span>` : p.evd_speed_type==='slow_ac' ? `<span class="ev-spec">🐢 Slow AC</span>` : p.evd_speed_type==='both' ? `<span class="ev-spec">⚡ AC + DC</span>` : ''}
+          ${p.evd_num_ports ? `<span class="ev-spec">🔢 ${p.evd_num_ports} Port${p.evd_num_ports>1?'s':''}</span>` : ''}
+          ${p.evd_parking==='free' ? `<span class="ev-spec-green">🅿️ Free Parking</span>` : p.evd_parking==='paid' ? `<span class="ev-spec-orange">💰 Paid Parking</span>` : ''}
+        </div>
+        <div class="ev-status-row">
+          ${p.evd_working_status==='functional' ? `<span class="ev-status-badge ev-status-functional">✅ Functional</span>` :
+            p.evd_working_status==='partial'    ? `<span class="ev-status-badge ev-status-partial">⚠️ Partially Working</span>` :
+            p.evd_working_status==='out_of_order' ? `<span class="ev-status-badge ev-status-out">❌ Out of Order</span>` : ''}
+          ${p.evd_timing==='24x7' ? `<span class="ev-timing-tag">🕐 24x7</span>` :
+            p.evd_timing==='limited' && p.evd_timing_hours ? `<span class="ev-timing-tag">⏰ ${p.evd_timing_hours}</span>` : ''}
+        </div>
+        ${p.evd_food_nearby && p.evd_food_name ? `<div class="ev-food">🍽️ Food nearby: ${p.evd_food_name}${p.evd_food_distance?' · '+p.evd_food_distance:''}</div>` : ''}
+        ` : (p.ev_connector_type||p.ev_power_kw||p.ev_connector_count) ? `
+        <div class="ev-specs">
+          ${p.ev_connector_type ? `<span class="ev-spec">🔌 ${p.ev_connector_type}</span>` : ''}
+          ${p.ev_power_kw ? `<span class="ev-spec">⚡ ${p.ev_power_kw} kW</span>` : ''}
+          ${p.ev_connector_count ? `<span class="ev-spec">🔢 ${p.ev_connector_count} Charger${p.ev_connector_count>1?'s':''}</span>` : ''}
+          ${p.ev_has_parking ? `<span class="ev-spec-green">🅿️ Parking Available</span>` : ''}
+        </div>
+        <div class="ev-unverified">⚠️ Charger type · timing · working status not yet confirmed<br><span style="color:#1565c0;font-weight:600">Help us verify — tap Report to add details</span></div>
+        ` : `
+        <div class="ev-unverified" style="margin-top:4px">⚠️ <b>No charger details available yet</b><br><span style="color:#1565c0;font-weight:600">Be the first to report — tap below</span></div>
+        `}
+
         <div class="pump-status" style="color:${open?'#2e7d32':'#888'};margin-top:6px">${open?'● CHARGER AVAILABLE':'⚫ NOT AVAILABLE'}</div>
-        <div class="tags" style="cursor:pointer" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')" title="Tap to update">
+        <div class="tags" style="cursor:pointer" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')">
           <div class="tag ${f.ev?'tag-yes':'tag-no'}" data-fuel="ev">${f.ev?'✓':'✗'} EV Charging</div>
         </div>
         <div class="tags queue-tags" style="margin-top:-4px" onclick="event.stopPropagation()">
@@ -1496,7 +1533,7 @@ function renderPumps(pumpsRaw, isPremium, price){
           <div style="display:flex;gap:6px">
             <button class="report-btn" style="color:#1565c0;border-color:#1565c0"
               onclick="event.stopPropagation();window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat||0},${p.lng||0}','_blank')">🧭 Directions</button>
-            <button class="report-btn" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')" >📝 Report ↗</button>
+            <button class="report-btn" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')">📝 Report ↗</button>
           </div>
         </div>
       </div>`;

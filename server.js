@@ -1315,7 +1315,33 @@ async function buildLocationsResult(pin, lat, lng, cacheKey, cacheHours) {
   }
 
   const allPumps = [
-    ...dbPumps.map(p => ({ ...p, source: 'db' })),
+    ...dbPumps.map(p => {
+      // For EV stations, merge ev_details (agent/owner enrolled data) into the pump object.
+      // This enriches DB pumps with charger_types, network_operator, timing, working_status,
+      // food_nearby etc — data only available after agent/owner enrollment, not from Google.
+      if((p.category || detectCategory(p.name)) === 'ev') {
+        const evRow = dbGet(`SELECT * FROM ev_details WHERE pump_id=?`, [p.id]);
+        if(evRow) {
+          return {
+            ...p,
+            source: 'db',
+            evd_charger_types:    JSON.parse(evRow.charger_types || '[]'),
+            evd_network_operator: evRow.network_operator || '',
+            evd_num_ports:        evRow.num_ports || 0,
+            evd_speed_type:       evRow.speed_type || '',
+            evd_timing:           evRow.timing || '',
+            evd_timing_hours:     evRow.timing_hours || '',
+            evd_working_status:   evRow.working_status || '',
+            evd_parking:          evRow.parking || '',
+            evd_food_nearby:      !!evRow.food_nearby,
+            evd_food_name:        evRow.food_name || '',
+            evd_food_distance:    evRow.food_distance || '',
+            evd_enrolled:         true,
+          };
+        }
+      }
+      return { ...p, source: 'db' };
+    }),
     ...mmiPumps.map(p => ({ ...p, source: 'mmi' })),
   ].map(p => {
     // Prefer the stored category (now persisted at registration time).
