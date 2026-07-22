@@ -2845,7 +2845,7 @@ app.post('/api/pump-owner/register',
         [user.id]
       );
 
-      console.log(`[PUMP REGISTRATION] ${owner_name} | ${pump_name} | License: ${license_number} | ID type: ${idType}`);
+      console.log(`[PUMP REGISTRATION] ${owner_name} | ${pump_name} | License: ${license_number} | ID type: ${finalIdType}`);
       // Trigger AI verification
       if(appRow?.id) triggerAIVerification(appRow.id, 'pump', 'pump');
       res.json({
