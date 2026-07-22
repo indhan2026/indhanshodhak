@@ -406,8 +406,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
       </div>
 
-      <!-- Owner ID proof (always) -->
-      <div class="doc-upload">
+      <!-- Owner ID proof (fuel only — EV needs no owner ID, location proof is sufficient) -->
+      <div class="doc-upload ev-fuel-section" id="e-wrap-idproof">
         <div class="doc-label">Owner ID Proof *</div>
         <div style="margin-bottom:6px">
           <select id="e-id-type" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;background:#fafafa">
@@ -862,9 +862,6 @@ async function submitEnrollment(){
   if(ownerMobile.length!==10) return show('Enter valid 10-digit owner mobile');
   if(!ownerEmail||!ownerEmail.includes('@')) return show('Enter valid owner email');
 
-  const aadFile = document.getElementById('e-doc-aadhaar').files[0];
-  if(!aadFile) return show('Upload Owner ID Proof');
-
   const fd = new FormData();
   fd.append('owner_name',    ownerName);
   fd.append('owner_mobile',  ownerMobile);
@@ -878,9 +875,7 @@ async function submitEnrollment(){
   fd.append('state',         'Maharashtra');
   fd.append('lat',           document.getElementById('e-pump-lat').value);
   fd.append('lng',           document.getElementById('e-pump-lng').value);
-  fd.append('id_proof_type', document.getElementById('e-id-type').value);
   fd.append('referral_code', document.getElementById('e-referral-code')?.value?.trim()||'');
-  fd.append('aadhaar',       aadFile);
   fd.append('station_type',  isEV ? 'ev' : 'fuel');
 
   if(isEV){
@@ -902,15 +897,19 @@ async function submitEnrollment(){
     fd.append('ev_working_status',   document.querySelector('input[name="eEVStatus"]:checked')?.value||'functional');
     if(selfieFile) fd.append('ev_selfie', selfieFile);
     if(billFile)   fd.append('ev_bill',   billFile);
-    fd.append('license', aadFile);
+    // EV needs no owner ID proof, no license — location proof alone is sufficient
   } else {
     const license = document.getElementById('e-license').value.trim();
     if(!license) return show('Enter pump license number');
     const licFile = document.getElementById('e-doc-license').files[0];
     if(!licFile) return show('Upload Pump License Certificate');
+    const aadFile = document.getElementById('e-doc-aadhaar').files[0];
+    if(!aadFile) return show('Upload Owner ID Proof');
     fd.append('license_number', license);
     fd.append('oil_company',    document.getElementById('e-oil-co').value);
     fd.append('license',        licFile);
+    fd.append('aadhaar',        aadFile);
+    fd.append('id_proof_type',  document.getElementById('e-id-type').value);
   }
 
   const btn = document.getElementById('enroll-submit-btn');

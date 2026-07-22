@@ -1685,6 +1685,39 @@ Respond ONLY in this JSON format:
 Score: 85+=clear pump photo, 50-84=possibly at pump but unclear, 0-49=clearly not at a pump.`;
 }
 
+// ── EV Station Location Proof — GPS selfie OR electricity bill ─────────────
+// EV stations skip petroleum license + owner ID entirely; this single check
+// (either photo variant) is the only verification needed — confirms the
+// station is real and physically located where claimed.
+function buildEVLocationProofPrompt(proofType, stationAddress) {
+  if(proofType === 'ev_electricity_bill') {
+    return `You are verifying an electricity bill for an EV charging station on IndhanShodhak.
+Registered station address: "${stationAddress}"
+
+Look at this document and check:
+1. Is this clearly an electricity bill / utility bill document?
+2. What address appears on the bill?
+3. Does that address reasonably match the registered station address above? (approximate match is fine — area/locality/pincode matching is sufficient, exact wording not required)
+
+Respond ONLY in this JSON format:
+{"is_electricity_bill":true/false,"address_found":"...","address_match_pct":0-100,"score":0-100,"reason":"..."}
+
+Score: 85+=clear bill with matching address, 50-84=readable but partial address match, 0-49=not a bill or address clearly different.`;
+  }
+  return `You are verifying a GPS selfie taken at an EV charging station on IndhanShodhak.
+Registered station address: "${stationAddress}"
+
+Look at this photo and determine:
+1. Does this appear to be a genuine selfie/photo of a person at a location?
+2. Can you see any EV charging equipment, charging cables, charging station signage, or similar infrastructure nearby?
+3. Does it look like a genuine photo (not a stock image or screenshot)?
+
+Respond ONLY in this JSON format:
+{"is_genuine_selfie":true/false,"charging_equipment_visible":true/false,"score":0-100,"reason":"..."}
+
+Score: 85+=clear selfie with charging equipment visible, 50-84=genuine photo but equipment unclear, 0-49=not genuine or no relevant equipment visible.`;
+}
+
 function buildTierDocPrompt(category, registeredName) {
   const docGuide = {
     P1: 'Government ID card + Vehicle RC + NOC (No Objection Certificate)',
@@ -1732,16 +1765,18 @@ async function runVerificationJob(job) {
         reasons.push('License: ' + (parsed.reason||'checked'));
       }
 
-      // Check 2: ID Proof — Aadhaar (agent/claim-pump flows) or one of
-      // Aadhaar/DL/Voter ID/PAN chosen at public self-signup (id_proof_type set)
+      // Check 2 — for EV: GPS selfie / electricity bill location proof.
+      // For fuel: ID proof (Aadhaar/DL/Voter/PAN chosen at signup, or Aadhaar
+      // by default for agent/claim-pump flows).
       if(app.doc_aadhaar && fs.existsSync(app.doc_aadhaar)) {
-        const prompt = app.id_proof_type
-          ? buildIDProofPrompt(app.applicant_name, app.id_proof_type)
-          : buildAadhaarPrompt(app.applicant_name);
+        const isEVProof = app.id_proof_type === 'ev_gps_selfie' || app.id_proof_type === 'ev_electricity_bill';
+        const prompt = isEVProof
+          ? buildEVLocationProofPrompt(app.id_proof_type, app.applicant_name ? (dbGet(`SELECT address FROM petrol_pumps WHERE id=?`,[app.pump_id])?.address || '') : '')
+          : (app.id_proof_type ? buildIDProofPrompt(app.applicant_name, app.id_proof_type) : buildAadhaarPrompt(app.applicant_name));
         const raw = await callAI(prompt, app.doc_aadhaar);
         const parsed = safeParseJSON(raw);
         scores.push(parsed.score||0);
-        reasons.push('ID proof: ' + (parsed.reason||'checked'));
+        reasons.push((isEVProof ? 'Location proof: ' : 'ID proof: ') + (parsed.reason||'checked'));
       }
 
       // Check 3: Pump Selfie
@@ -2687,22 +2722,23 @@ app.get('/api/careers/posted-date', (req, res) => {
 
 app.post('/api/pump-owner/register',
   pumpRegUpload.fields([
-    {name:'license',  maxCount:1},
-    {name:'id_proof', maxCount:1},
+    {name:'license',   maxCount:1},
+    {name:'id_proof',  maxCount:1},
+    {name:'ev_selfie', maxCount:1},
+    {name:'ev_bill',   maxCount:1},
   ]),
   async (req, res) => {
     try {
       const { owner_name, mobile, email, pump_name, oil_company,
               pin_code, address, district, state, license_number,
-              lat, lng, referral_code, id_proof_type } = req.body;
+              lat, lng, referral_code, id_proof_type, station_type } = req.body;
+
+      const isEV = station_type === 'ev';
 
       if(!owner_name||!mobile||!email||!pump_name||!license_number||!pin_code)
         return res.status(400).json({ error:'All fields are required' });
       if(mobile.length !== 10)
         return res.status(400).json({ error:'Invalid mobile number' });
-
-      const validIdTypes = ['aadhaar','driving_licence','voter_id','pan_card'];
-      const idType = validIdTypes.includes(id_proof_type) ? id_proof_type : 'aadhaar';
 
       const existing = dbGet(
         `SELECT id FROM pump_applications WHERE license_number=? AND status='pending'`,
@@ -2712,11 +2748,30 @@ app.post('/api/pump-owner/register',
         return res.status(409).json({ error:'Application with this license number already pending' });
 
       const files = req.files || {};
-      const licPath     = files.license?.[0]?.path  || null;
-      const idProofPath = files.id_proof?.[0]?.path  || null;
+      const licPath      = files.license?.[0]?.path   || null;
+      const idProofPath  = files.id_proof?.[0]?.path  || null;
+      const evSelfiePath = files.ev_selfie?.[0]?.path || null;
+      const evBillPath   = files.ev_bill?.[0]?.path   || null;
 
-      if(!licPath)     return res.status(400).json({ error:'Pump license document required' });
-      if(!idProofPath) return res.status(400).json({ error:'ID proof document required (Aadhaar/Driving Licence/Voter ID/PAN)' });
+      // ── Document requirements — clean split, no overlap ──────────────────
+      // EV station: GPS Selfie OR Electricity Bill only. No license, no ID proof.
+      // Fuel pump:  License + Owner ID Proof (unchanged, existing behavior).
+      let finalLicPath, finalAadhaarPath, finalIdType;
+      if(isEV){
+        const locationProof = evSelfiePath || evBillPath;
+        if(!locationProof)
+          return res.status(400).json({ error:'GPS Selfie or Electricity Bill required for EV station' });
+        finalLicPath     = null;
+        finalAadhaarPath = locationProof;
+        finalIdType      = evSelfiePath ? 'ev_gps_selfie' : 'ev_electricity_bill';
+      } else {
+        if(!licPath)     return res.status(400).json({ error:'Pump license document required' });
+        if(!idProofPath) return res.status(400).json({ error:'ID proof document required (Aadhaar/Driving Licence/Voter ID/PAN)' });
+        const validIdTypes = ['aadhaar','driving_licence','voter_id','pan_card'];
+        finalLicPath     = licPath;
+        finalAadhaarPath = idProofPath;
+        finalIdType      = validIdTypes.includes(id_proof_type) ? id_proof_type : 'aadhaar';
+      }
 
       let user = dbGet(`SELECT id FROM users WHERE mobile=?`, [mobile]);
       if(!user){
@@ -2734,10 +2789,11 @@ app.post('/api/pump-owner/register',
         const tehsil  = req.body.tehsil || '';
         dbRun(`INSERT INTO petrol_pumps
                (name, oil_company, pin_code, address, tehsil, district, state,
-                license_number, is_active, owner_user_id, lat, lng)
-               VALUES (?,?,?,?,?,?,?,?,1,?,?,?)`,
+                license_number, is_active, owner_user_id, lat, lng, category)
+               VALUES (?,?,?,?,?,?,?,?,1,?,?,?,?)`,
           [pump_name, oil_company, pin_code, address, tehsil, district||'', state||'',
-           license_number.toUpperCase(), user.id, pumpLat, pumpLng]);
+           license_number.toUpperCase(), user.id, pumpLat, pumpLng,
+           isEV ? 'ev' : detectCategory(pump_name)]);
         pump = dbGet(`SELECT id FROM petrol_pumps WHERE license_number=?`,
           [license_number.toUpperCase()]);
         if(pumpLat !== 0)
@@ -2774,7 +2830,7 @@ app.post('/api/pump-owner/register',
               license_number, doc_license, doc_aadhaar, id_proof_type, referral_code, career_qr_referral)
              VALUES (?,?,?,?,?,?,?,?,?,?)`,
         [user.id, pump.id, owner_name, email,
-         license_number.toUpperCase(), licPath, idProofPath, idType, validatedRef, careerQrRef]);
+         license_number.toUpperCase(), finalLicPath, finalAadhaarPath, finalIdType, validatedRef, careerQrRef]);
 
       // Also tag the pump record with whichever referral matched
       if(validatedRef && !validatedRef.startsWith('UNRECOGNIZED')) {
@@ -4251,9 +4307,10 @@ app.post('/api/agent/register-pump',
       const evSelfiePath = files.ev_selfie?.[0]?.path || null;
       const evBillPath   = files.ev_bill?.[0]?.path   || null;
 
+      // ── Document requirements — clean split, no overlap ──────────────────
+      // EV station: GPS Selfie OR Electricity Bill only. No license, no owner ID.
+      // Fuel pump:  License + Owner ID Proof (unchanged, existing behavior).
       if(isEV){
-        if(!aadhaarPath)
-          return res.status(400).json({ error:'Owner ID Proof required' });
         if(!evSelfiePath && !evBillPath)
           return res.status(400).json({ error:'GPS Selfie or Electricity Bill required for EV station' });
       } else {
@@ -4325,17 +4382,20 @@ app.post('/api/agent/register-pump',
         [req.user.name, req.user.mobile]);
       const finalRef = referral_code || agentMR?.mr_code || '';
 
-      // For EV: use ev_selfie/ev_bill as location proof; license = aadhaar (ID proof)
-      const finalLicPath = isEV ? aadhaarPath : licPath;
-      const finalSelfie  = isEV ? (evSelfiePath || evBillPath) : (selfiePath || null);
+      // For EV: location proof (selfie/bill) goes in doc_aadhaar column with
+      // id_proof_type marking which variant, matching pump-owner/register logic.
+      // For fuel: unchanged — license + aadhaar as before.
+      const finalLicPath     = isEV ? null : licPath;
+      const finalAadhaarPath = isEV ? (evSelfiePath || evBillPath) : aadhaarPath;
+      const finalIdType      = isEV ? (evSelfiePath ? 'ev_gps_selfie' : 'ev_electricity_bill') : 'aadhaar';
 
       // Create pump application (same as regular signup, goes through AI verification)
       dbRun(`INSERT INTO pump_applications
              (user_id, pump_id, applicant_name, applicant_email,
-              license_number, doc_license, doc_aadhaar, doc_selfie, referral_code, status)
-             VALUES (?,?,?,?,?,?,?,?,?,'pending')`,
+              license_number, doc_license, doc_aadhaar, doc_selfie, id_proof_type, referral_code, status)
+             VALUES (?,?,?,?,?,?,?,?,?,?,'pending')`,
         [ownerUser.id, pump.id, owner_name, owner_email,
-         license_number.toUpperCase(), finalLicPath, aadhaarPath, finalSelfie, finalRef]);
+         license_number.toUpperCase(), finalLicPath, finalAadhaarPath, selfiePath, finalIdType, finalRef]);
 
       const appRow = dbGet(`SELECT id FROM pump_applications WHERE pump_id=? ORDER BY id DESC LIMIT 1`,
         [pump.id]);

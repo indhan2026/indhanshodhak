@@ -861,10 +861,6 @@ async function submitApplication(){
   if(mobile.length!==10)  return show('Enter valid 10-digit mobile');
   if(!email||!email.includes('@')) return show('Enter valid email address');
 
-  const idProofFile = window._compressedFiles['doc-idproof'] || document.getElementById('doc-idproof').files[0];
-  const idProofType = document.getElementById('idProofType').value;
-  if(!idProofFile) return show('Upload ID Proof document');
-
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = '⏳ Submitting...';
 
@@ -915,9 +911,6 @@ async function submitApplication(){
     fd.append('lng',           lng);
     if(selfieFile) fd.append('ev_selfie', selfieFile);
     if(billFile)   fd.append('ev_bill',   billFile);
-    const locationProofFile = selfieFile || billFile;
-    fd.append('id_proof',      locationProofFile);
-    fd.append('id_proof_type', selfieFile ? 'ev_gps_selfie' : 'ev_electricity_bill');
     // EV details as JSON
     fd.append('ev_charger_types',    JSON.stringify(chargerTypes));
     fd.append('ev_network_operator', operator);
@@ -931,8 +924,7 @@ async function submitApplication(){
     fd.append('ev_food_distance',    document.getElementById('evFoodDistance').value);
     const refCode = document.getElementById('referralCode')?.value?.trim() || '';
     if(refCode) fd.append('referral_code', refCode);
-    // EV stations don't have petroleum license — send a blank placeholder
-    fd.append('license', locationProofFile); // EV: use selfie/bill as license placeholder
+    // EV stations need no license, no owner ID — location proof (selfie/bill) is sufficient
 
     try {
       const r = await fetch('/api/pump-owner/register', { method:'POST', body:fd });
@@ -997,6 +989,10 @@ async function submitApplication(){
 
   const licFile = window._compressedFiles['doc-license'] || document.getElementById('doc-license').files[0];
   if(!licFile)  return show('Upload Pump License Certificate') || (btn.disabled=false);
+
+  const idProofFile = window._compressedFiles['doc-idproof'] || document.getElementById('doc-idproof').files[0];
+  const idProofType = document.getElementById('idProofType').value;
+  if(!idProofFile) return show('Upload ID Proof document') || (btn.disabled=false);
 
   const fd = new FormData();
   fd.append('owner_name',    name);
