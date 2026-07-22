@@ -331,10 +331,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <label class="rb-item"><input type="radio" name="eEVStatus" value="partial"> ⚠️ Partial</label>
         <label class="rb-item"><input type="radio" name="eEVStatus" value="out_of_order"> ❌ Out of Order</label>
       </div>
+
+      <label class="form-label">Food Nearby?</label>
+      <div class="radio-row" style="margin-bottom:6px">
+        <label class="rb-item"><input type="radio" name="eEVFood" value="no" checked onclick="document.getElementById('e-ev-food-fields').style.display='none'"> ❌ No</label>
+        <label class="rb-item"><input type="radio" name="eEVFood" value="yes" onclick="document.getElementById('e-ev-food-fields').style.display=''"> 🍽️ Yes</label>
+      </div>
+      <div id="e-ev-food-fields" style="display:none">
+        <input class="form-input" type="text" id="e-ev-food-name" placeholder="e.g. Hotel Sai Darbar">
+        <input class="form-input" type="text" id="e-ev-food-dist" placeholder="Distance e.g. 50m / 200m">
+      </div>
     </div>
 
     <!-- Documents -->
-    <div style="font-size:12px;font-weight:700;color:#e65100;margin:12px 0 8px">📄 Documents (JPG · Max 100KB)</div>
+    <div style="font-size:12px;font-weight:700;color:#e65100;margin:12px 0 8px">📄 Documents</div>
 
     <!-- FUEL: license doc -->
     <div class="doc-upload ev-fuel-section" id="e-wrap-license">
@@ -895,6 +905,9 @@ async function submitEnrollment(){
             timing_hours:     document.getElementById('e-ev-timing-hrs')?.value||'',
             working_status:   document.querySelector('input[name="eEVStatus"]:checked')?.value||'functional',
             parking:          document.querySelector('input[name="eEVParking"]:checked')?.value||'free',
+            food_nearby:      document.querySelector('input[name="eEVFood"]:checked')?.value === 'yes',
+            food_name:        document.getElementById('e-ev-food-name')?.value||'',
+            food_distance:    document.getElementById('e-ev-food-dist')?.value||'',
             updated_by:       'agent'
           })
         });

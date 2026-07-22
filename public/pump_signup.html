@@ -86,6 +86,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   cursor:pointer;border:none;background:#fff3e0;color:#e65100;transition:all .2s}
 .type-btn.active{background:#e65100;color:white}
 
+/* EV proof toggle */
+.ev-proof-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;border:2px solid #1565c0;border-radius:10px;overflow:hidden;margin-bottom:10px}
+.ev-proof-btn{padding:10px;text-align:center;font-size:12px;font-weight:700;cursor:pointer;border:none;background:#e3f2fd;color:#1565c0;transition:all .2s}
+.ev-proof-btn.active{background:#1565c0;color:white}
+
 /* EV section */
 .ev-section{display:none}
 .ev-section.visible{display:block}
@@ -379,7 +384,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         <div class="file-name" id="license-name">No file chosen</div>
       </div>
 
-      <div class="doc-card" id="wrap-idproof">
+      <!-- EV: GPS selfie OR electricity bill (replaces ID proof for EV path) -->
+      <div class="doc-card ev-section" id="wrap-ev-proof" style="border-color:#1565c0">
+        <div class="doc-top">
+          <span class="doc-icon">📍</span>
+          <div>
+            <div class="doc-name" style="color:#1565c0">Location Proof <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">Upload <b>ANY ONE</b> — GPS Selfie at station OR Electricity Bill</div>
+          </div>
+        </div>
+        <!-- Proof type toggle -->
+        <div class="ev-proof-toggle" style="margin:10px 0">
+          <button class="ev-proof-btn active" id="proofBtnSelfie" onclick="switchProofType('selfie')">📸 GPS Selfie at Station</button>
+          <button class="ev-proof-btn" id="proofBtnBill" onclick="switchProofType('bill')">📄 Electricity Bill</button>
+        </div>
+        <div id="selfie-proof-section">
+          <div style="font-size:11px;color:#555;margin-bottom:8px">📍 Take selfie standing at the charging station — GPS location auto-captured by your phone</div>
+          <label class="choose-btn">📸 Choose Selfie
+            <input type="file" id="doc-selfie" accept="image/jpeg,image/jpg" style="display:none"
+              onchange="handleFile(this,'wrap-ev-proof','ev-proof-name')">
+          </label>
+        </div>
+        <div id="bill-proof-section" style="display:none">
+          <div style="font-size:11px;color:#555;margin-bottom:8px">📄 Upload electricity bill of this EV station location — AI verifies address match</div>
+          <label class="choose-btn">📄 Choose Bill
+            <input type="file" id="doc-bill" accept="image/jpeg,image/jpg,image/png,application/pdf" style="display:none"
+              onchange="handleFile(this,'wrap-ev-proof','ev-proof-name')">
+          </label>
+        </div>
+        <div class="file-name" id="ev-proof-name">No file chosen</div>
+      </div>
+
+      <!-- Fuel: ID proof (hidden for EV) -->
+      <div class="doc-card fuel-section" id="wrap-idproof">
         <div class="doc-top">
           <span class="doc-icon">🪪</span>
           <div>
@@ -442,6 +479,17 @@ function switchType(type) {
   document.getElementById('topTitle').textContent = isFuel ? 'Register Your Petrol Pump' : 'Register EV Charging Station';
   // Info boxes
   document.getElementById('fuelInfoBox').style.display = isFuel ? '' : 'none';
+}
+
+function switchProofType(type){
+  document.getElementById('proofBtnSelfie').classList.toggle('active', type==='selfie');
+  document.getElementById('proofBtnBill').classList.toggle('active', type==='bill');
+  document.getElementById('selfie-proof-section').style.display = type==='selfie' ? '' : 'none';
+  document.getElementById('bill-proof-section').style.display   = type==='bill'   ? '' : 'none';
+  // Clear other proof file when switching
+  if(type==='selfie') { document.getElementById('doc-bill').value=''; }
+  else                { document.getElementById('doc-selfie').value=''; }
+  document.getElementById('ev-proof-name').textContent = 'No file chosen';
 }
 
 function toggleFoodFields(show) {
@@ -836,12 +884,17 @@ async function submitApplication(){
     const chargerTypes = [...document.querySelectorAll('input[name="evChargerType"]:checked')]
                            .map(c => c.value);
 
+    // Location proof — selfie OR bill
+    const selfieFile = document.getElementById('doc-selfie').files[0];
+    const billFile   = document.getElementById('doc-bill').files[0];
+
     if(!stationName)        return show('Enter EV station name') || (btn.disabled=false);
     if(pinCode.length!==6)  return show('Enter valid 6-digit PIN') || (btn.disabled=false);
     if(!address)            return show('Enter station address') || (btn.disabled=false);
     if(!district)           return show('Enter district') || (btn.disabled=false);
     if(chargerTypes.length===0) return show('Select at least one charger type') || (btn.disabled=false);
     if(!numPorts||numPorts<1)   return show('Enter number of charging ports') || (btn.disabled=false);
+    if(!selfieFile && !billFile) return show('Upload GPS Selfie at station OR Electricity Bill') || (btn.disabled=false);
 
     // Use license_number field as a unique ID for EV stations (EV- prefix)
     const evLicenseId = `EV-${mobile}-${Date.now()}`;
@@ -860,8 +913,11 @@ async function submitApplication(){
     fd.append('station_type',  'ev');
     fd.append('lat',           lat);
     fd.append('lng',           lng);
-    fd.append('id_proof',      idProofFile);
-    fd.append('id_proof_type', idProofType);
+    if(selfieFile) fd.append('ev_selfie', selfieFile);
+    if(billFile)   fd.append('ev_bill',   billFile);
+    const locationProofFile = selfieFile || billFile;
+    fd.append('id_proof',      locationProofFile);
+    fd.append('id_proof_type', selfieFile ? 'ev_gps_selfie' : 'ev_electricity_bill');
     // EV details as JSON
     fd.append('ev_charger_types',    JSON.stringify(chargerTypes));
     fd.append('ev_network_operator', operator);
@@ -876,7 +932,7 @@ async function submitApplication(){
     const refCode = document.getElementById('referralCode')?.value?.trim() || '';
     if(refCode) fd.append('referral_code', refCode);
     // EV stations don't have petroleum license — send a blank placeholder
-    fd.append('license', idProofFile); // reuse ID proof as doc_license placeholder
+    fd.append('license', locationProofFile); // EV: use selfie/bill as license placeholder
 
     try {
       const r = await fetch('/api/pump-owner/register', { method:'POST', body:fd });

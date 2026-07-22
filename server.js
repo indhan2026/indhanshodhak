@@ -4227,25 +4227,39 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
 app.post('/api/agent/register-pump',
   requireAuth(['enrollment_agent','super_admin']),
   pumpRegUpload.fields([
-    {name:'license', maxCount:1},
-    {name:'aadhaar', maxCount:1},
-    {name:'selfie',  maxCount:1},
+    {name:'license',   maxCount:1},
+    {name:'aadhaar',   maxCount:1},
+    {name:'selfie',    maxCount:1},
+    {name:'ev_selfie', maxCount:1},
+    {name:'ev_bill',   maxCount:1},
   ]),
   async (req, res) => {
     try {
       const { owner_name, owner_mobile, owner_email, pump_id, pump_name,
               oil_company, pin_code, address, district, tehsil, state,
-              license_number, lat, lng, referral_code } = req.body;
+              license_number, lat, lng, referral_code, station_type } = req.body;
+
+      const isEV = station_type === 'ev';
 
       if(!owner_name||!owner_mobile||!owner_email||!license_number)
         return res.status(400).json({ error:'Owner name, mobile, email and license number required' });
 
       const files = req.files || {};
-      const licPath     = files.license?.[0]?.path || null;
-      const aadhaarPath = files.aadhaar?.[0]?.path || null;
-      const selfiePath  = files.selfie?.[0]?.path  || null;
-      if(!licPath||!aadhaarPath||!selfiePath)
-        return res.status(400).json({ error:'All 3 documents required (License, Aadhaar, Selfie)' });
+      const licPath      = files.license?.[0]?.path   || null;
+      const aadhaarPath  = files.aadhaar?.[0]?.path   || null;
+      const selfiePath   = files.selfie?.[0]?.path    || null;
+      const evSelfiePath = files.ev_selfie?.[0]?.path || null;
+      const evBillPath   = files.ev_bill?.[0]?.path   || null;
+
+      if(isEV){
+        if(!aadhaarPath)
+          return res.status(400).json({ error:'Owner ID Proof required' });
+        if(!evSelfiePath && !evBillPath)
+          return res.status(400).json({ error:'GPS Selfie or Electricity Bill required for EV station' });
+      } else {
+        if(!licPath||!aadhaarPath)
+          return res.status(400).json({ error:'License and ID Proof documents required' });
+      }
 
       // Create or find the pump owner's user account
       let ownerUser = dbGet(`SELECT id FROM users WHERE mobile=?`, [owner_mobile]);
@@ -4311,13 +4325,17 @@ app.post('/api/agent/register-pump',
         [req.user.name, req.user.mobile]);
       const finalRef = referral_code || agentMR?.mr_code || '';
 
+      // For EV: use ev_selfie/ev_bill as location proof; license = aadhaar (ID proof)
+      const finalLicPath = isEV ? aadhaarPath : licPath;
+      const finalSelfie  = isEV ? (evSelfiePath || evBillPath) : (selfiePath || null);
+
       // Create pump application (same as regular signup, goes through AI verification)
       dbRun(`INSERT INTO pump_applications
              (user_id, pump_id, applicant_name, applicant_email,
               license_number, doc_license, doc_aadhaar, doc_selfie, referral_code, status)
              VALUES (?,?,?,?,?,?,?,?,?,'pending')`,
         [ownerUser.id, pump.id, owner_name, owner_email,
-         license_number.toUpperCase(), licPath, aadhaarPath, selfiePath, finalRef]);
+         license_number.toUpperCase(), finalLicPath, aadhaarPath, finalSelfie, finalRef]);
 
       const appRow = dbGet(`SELECT id FROM pump_applications WHERE pump_id=? ORDER BY id DESC LIMIT 1`,
         [pump.id]);
