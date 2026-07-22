@@ -748,7 +748,53 @@ function handleAgentFile(input, nameId){
   if(!input.files||!input.files[0]){ el.textContent='No file chosen'; el.className='file-name'; return; }
   const f = input.files[0];
   if(!['image/jpeg','image/jpg'].includes(f.type)){ el.textContent='❌ JPG only'; el.style.color='#b71c1c'; input.value=''; return; }
-  if(f.size > 100*1024){ el.textContent=`❌ Too large (${Math.round(f.size/1024)}KB) — Max 100KB`; el.style.color='#b71c1c'; input.value=''; return; }
+  // EV proof docs (selfie/bill) allow up to 500KB; pump docs 100KB
+  const isEVProof = ['e-fn-selfie','e-fn-bill'].includes(nameId);
+  const maxKB = isEVProof ? 500 : 100;
+  if(f.size > maxKB*1024){
+    // Auto-compress via Canvas API
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const img = new Image();
+      img.onload = function(){
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        // Scale down if very large
+        const maxDim = isEVProof ? 1600 : 1200;
+        if(w > maxDim || h > maxDim){
+          if(w > h){ h = Math.round(h*maxDim/w); w = maxDim; }
+          else      { w = Math.round(w*maxDim/h); h = maxDim; }
+        }
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const targetKB = isEVProof ? 450 : 90;
+        let quality = 0.85;
+        const tryCompress = () => {
+          canvas.toBlob(blob => {
+            if(blob.size > targetKB*1024 && quality > 0.3){
+              quality -= 0.1; tryCompress(); return;
+            }
+            const compressed = new File([blob], f.name, {type:'image/jpeg'});
+            // Replace file in input via DataTransfer
+            try {
+              const dt = new DataTransfer();
+              dt.items.add(compressed);
+              input.files = dt.files;
+            } catch(e){}
+            window._compressedAgentFiles = window._compressedAgentFiles || {};
+            window._compressedAgentFiles[input.id] = compressed;
+            el.textContent = `✅ ${f.name} (${Math.round(blob.size/1024)}KB — compressed)`;
+            el.className = 'file-name ok';
+          }, 'image/jpeg', quality);
+        };
+        tryCompress();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(f);
+    el.textContent = '⏳ Compressing...';
+    return;
+  }
   el.textContent = `✅ ${f.name} (${Math.round(f.size/1024)}KB)`;
   el.className = 'file-name ok';
 }
@@ -799,8 +845,8 @@ async function submitEnrollment(){
   if(isEV){
     const chargerTypes = [...document.querySelectorAll('input[name="eEVCharger"]:checked')].map(c=>c.value);
     if(chargerTypes.length===0) return show('Select at least one charger type');
-    const selfieFile = document.getElementById('e-doc-selfie').files[0];
-    const billFile   = document.getElementById('e-doc-bill').files[0];
+    const selfieFile = (window._compressedAgentFiles?.['e-doc-selfie']) || document.getElementById('e-doc-selfie').files[0];
+    const billFile   = (window._compressedAgentFiles?.['e-doc-bill'])   || document.getElementById('e-doc-bill').files[0];
     if(!selfieFile && !billFile) return show('Upload GPS Selfie at station OR Electricity Bill — any one required');
     const evLicense = `EV-${ownerMobile}-${Date.now()}`;
     fd.append('license_number',      evLicense);
