@@ -648,29 +648,51 @@ function selectPump(idx){
   document.getElementById('coordsBadge').textContent =
     `📡 GPS: ${parseFloat(p.lat).toFixed(4)}, ${parseFloat(p.lng).toFixed(4)}`;
 
-  // Store lat/lng
+  // Store lat/lng (shared for both fuel and EV)
   document.getElementById('pumpLat').value = p.lat;
   document.getElementById('pumpLng').value = p.lng;
   document.getElementById('googlePlaceId').value = p.place_id || '';
 
-  // Auto-fill form fields
-  document.getElementById('pumpName').value  = p.name || '';
-  document.getElementById('address').value   = p.address || '';
-  document.getElementById('pinCode').value   = p.pin_code || '';
-  document.getElementById('district').value  = p.district || '';
+  if(currentType === 'ev') {
+    // Auto-fill EV fields
+    document.getElementById('evStationName').value = p.name || '';
+    document.getElementById('evAddress').value     = p.address || '';
+    document.getElementById('evPinCode').value     = p.pin_code || '';
+    document.getElementById('evDistrict').value    = p.district || '';
+    // Auto-detect network from name
+    const nm = p.name.toUpperCase();
+    const opSel = document.getElementById('evOperator');
+    if(nm.includes('TATA POWER') || nm.includes('EZ CHARGE'))       opSel.value = 'Tata Power EZ Charge';
+    else if(nm.includes('BPCL') || nm.includes('PULSE'))             opSel.value = 'BPCL Pulse';
+    else if(nm.includes('ATHER'))                                     opSel.value = 'Ather Grid';
+    else if(nm.includes('CHARGEZONE'))                                opSel.value = 'ChargeZone';
+    else if(nm.includes('STATIQ'))                                    opSel.value = 'Statiq';
+    else if(nm.includes('KAZAM'))                                     opSel.value = 'KAZAM';
+    else if(nm.includes('JIO') || nm.includes('JIO-BP'))             opSel.value = 'Jio-bp Pulse';
+    else if(nm.includes('HPCL') || nm.includes('HINDUSTAN'))         opSel.value = 'HPCL';
+    else if(nm.includes('INDIAN OIL') || nm.includes('IOC') || nm.includes('IOCL')) opSel.value = 'Indian Oil (IOCL)';
+    else if(nm.includes('BOLT'))                                      opSel.value = 'BOLT.Earth';
+    else if(nm.includes('MAHANAGAR') || nm.includes('MGL'))          opSel.value = 'Independent / No Network';
+    else opSel.value = '';
+  } else {
+    // Auto-fill FUEL fields (existing logic unchanged)
+    document.getElementById('pumpName').value  = p.name || '';
+    document.getElementById('address').value   = p.address || '';
+    document.getElementById('pinCode').value   = p.pin_code || '';
+    document.getElementById('district').value  = p.district || '';
 
-  // Detect oil company
-  const name = p.name.toUpperCase();
-  const sel = document.getElementById('oilCompany');
-  if(name.includes('HP') || name.includes('HINDUSTAN')) sel.value = 'HP';
-  else if(name.includes('BPCL') || name.includes('BHARAT')) sel.value = 'BPCL';
-  else if(name.includes('IOC') || name.includes('INDIAN OIL') || name.includes('INDANE')) sel.value = 'IOC';
-  else if(name.includes('SHELL')) sel.value = 'Shell';
-  else if(name.includes('RELIANCE')) sel.value = 'Reliance';
-  else if(name.includes('NAYARA') || name.includes('ESSAR')) sel.value = 'Nayara';
-  else sel.value = '';
+    const name = p.name.toUpperCase();
+    const sel = document.getElementById('oilCompany');
+    if(name.includes('HP') || name.includes('HINDUSTAN')) sel.value = 'HP';
+    else if(name.includes('BPCL') || name.includes('BHARAT')) sel.value = 'BPCL';
+    else if(name.includes('IOC') || name.includes('INDIAN OIL') || name.includes('INDANE')) sel.value = 'IOC';
+    else if(name.includes('SHELL')) sel.value = 'Shell';
+    else if(name.includes('RELIANCE')) sel.value = 'Reliance';
+    else if(name.includes('NAYARA') || name.includes('ESSAR')) sel.value = 'Nayara';
+    else sel.value = '';
+  }
 
-  // Pan map to selected pump
+  // Pan map to selected station
   if(signupMap && p.lat && p.lng) signupMap.setView([p.lat, p.lng], 15);
 }
 
