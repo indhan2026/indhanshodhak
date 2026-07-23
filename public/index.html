@@ -362,6 +362,76 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- EV Station Report Modal — separate from fuel report, EV-specific fields -->
+<div class="modal-bg" id="evReportModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('evReportModal')">✕</button>
+    <div class="modal-title" id="ev-report-station-name">EV Station Status</div>
+    <div class="modal-sub">Help EV drivers — update this station's real-time status</div>
+
+    <div class="fuel-opt">
+      <span>⚡ Charger Available</span>
+      <div class="tog-group" id="evr-available">
+        <button class="tog yes" onclick="setTog(this,'yes')">✓ Yes</button>
+        <button class="tog" onclick="setTog(this,'no')">✗ No</button>
+      </div>
+    </div>
+
+    <div class="fuel-opt">
+      <span>🔌 Ports Free</span>
+      <div class="tog-group" id="evr-ports">
+        <button class="tog" onclick="setTog(this,'yes')" data-val="all">All Free</button>
+        <button class="tog" onclick="setTog(this,'no')" data-val="some">Some Free</button>
+        <button class="tog" onclick="setTog(this,'no')" data-val="none" style="border-radius:0 10px 10px 0">None</button>
+      </div>
+    </div>
+
+    <div class="fuel-opt">
+      <span>🔧 Working Status</span>
+      <div class="tog-group" id="evr-status">
+        <button class="tog" onclick="setTog(this,'yes')" data-val="ok">✅ All OK</button>
+        <button class="tog" onclick="setTog(this,'no')" data-val="partial">⚠️ Partial</button>
+        <button class="tog" onclick="setTog(this,'no')" data-val="down" style="border-radius:0 10px 10px 0">❌ Down</button>
+      </div>
+    </div>
+
+    <div class="fuel-opt">
+      <span>⏱️ Wait Time</span>
+      <div class="tog-group" id="evr-wait">
+        <button class="tog yes" onclick="setTog(this,'yes')" data-val="none">No Wait</button>
+        <button class="tog" onclick="setTog(this,'no')" data-val="short">Short</button>
+        <button class="tog" onclick="setTog(this,'no')" data-val="long" style="border-radius:0 10px 10px 0">Long</button>
+      </div>
+    </div>
+
+    <div class="fuel-opt">
+      <span>🅿️ Parking</span>
+      <div class="tog-group" id="evr-parking">
+        <button class="tog" onclick="setTog(this,'yes')" data-val="free">Free</button>
+        <button class="tog" onclick="setTog(this,'no')" data-val="paid">Paid</button>
+        <button class="tog" onclick="setTog(this,'no')" data-val="none" style="border-radius:0 10px 10px 0">None</button>
+      </div>
+    </div>
+
+    <div class="fuel-opt">
+      <span>🍽️ Food Nearby</span>
+      <div class="tog-group" id="evr-food">
+        <button class="tog" onclick="setTog(this,'yes');document.getElementById('evr-food-name-row').style.display=''" data-val="yes">Yes</button>
+        <button class="tog yes" onclick="setTog(this,'no');document.getElementById('evr-food-name-row').style.display='none'" data-val="no">No</button>
+      </div>
+    </div>
+    <div id="evr-food-name-row" style="display:none;margin-bottom:10px">
+      <input id="evr-food-name" class="form-input" type="text" placeholder="e.g. Hotel Sai Darbar · 50m away" style="margin-bottom:0;font-size:13px;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;width:100%;background:#f9f9f9">
+    </div>
+
+    <div style="background:#e3f2fd;border-radius:10px;padding:10px;font-size:12px;color:#1565c0;margin-top:6px">
+      ⚡ Your update helps EV drivers find charging fast. Thank you!
+    </div>
+    <button class="submit-btn" style="background:#1565c0" onclick="submitEVReport()">📤 Submit EV Report — Notify Nearby Users</button>
+  </div>
+</div>
+
 <!-- Language Modal -->
 <div class="modal-bg" id="langModal">
   <div class="modal">
@@ -1036,7 +1106,7 @@ async function quickQueueUpdate(pumpId, queueVal, petrol, diesel, cng, ev, el){
   }
 }
 
-function openReport(name, pumpId, address, lat, lng, oilCo, district, state, pin) {
+function openReport(name, pumpId, address, lat, lng, oilCo, district, state, pin, category) {
   currentPumpId      = pumpId;
   currentPumpName    = name    || '';
   currentPumpAddress = address || '';
@@ -1047,7 +1117,32 @@ function openReport(name, pumpId, address, lat, lng, oilCo, district, state, pin
   currentPumpState   = state   || 'Maharashtra';
   currentPumpPin     = pin     || '';
 
-  // Update modal title with pump name + address
+  // Detect EV station — open dedicated EV report modal
+  const isEV = category === 'ev' || (oilCo||'').toLowerCase().includes('ev') ||
+               (name||'').toLowerCase().includes('charging') ||
+               (name||'').toLowerCase().includes('ev station');
+
+  if(isEV) {
+    document.getElementById('ev-report-station-name').innerHTML =
+      '<span style="font-size:15px;font-weight:700">' + (name||'EV Station') + '</span>' +
+      (address ? '<div style="font-size:11px;color:#888;font-weight:400;margin-top:2px">📍 ' + address + '</div>' : '');
+    // Reset EV toggles — default: available=yes, wait=none
+    document.querySelectorAll('#evReportModal .tog-group').forEach(grp => {
+      grp.querySelectorAll('.tog').forEach(b => b.classList.remove('yes','no'));
+    });
+    const evAvail = document.getElementById('evr-available');
+    if(evAvail) evAvail.querySelectorAll('.tog')[0].classList.add('yes');
+    const evWait = document.getElementById('evr-wait');
+    if(evWait) evWait.querySelectorAll('.tog')[0].classList.add('yes');
+    const evFood = document.getElementById('evr-food');
+    if(evFood) evFood.querySelectorAll('.tog')[1].classList.add('yes');
+    document.getElementById('evr-food-name-row').style.display = 'none';
+    if(document.getElementById('evr-food-name')) document.getElementById('evr-food-name').value = '';
+    openModal('evReportModal');
+    return;
+  }
+
+  // Fuel pump modal (unchanged)
   const nameEl = document.getElementById('report-pump-name');
   nameEl.innerHTML = '<span style="font-size:15px;font-weight:700">' + (name||'Report Fuel') + '</span>' +
     (address ? '<div style="font-size:11px;color:#888;font-weight:400;margin-top:2px">📍 ' + address + '</div>' : '');
@@ -1061,6 +1156,88 @@ function openReport(name, pumpId, address, lat, lng, oilCo, district, state, pin
   });
 
   openModal('reportModal');
+}
+
+async function submitEVReport() {
+  const pid   = String(currentPumpId || '');
+  const isExt = pid.startsWith('gpl_') || pid.startsWith('osm_') || pid.startsWith('mmi_');
+
+  const getTogVal = (groupId) => {
+    const grp = document.getElementById(groupId);
+    if(!grp) return null;
+    const yes = grp.querySelector('.tog.yes');
+    return yes ? (yes.dataset.val || (yes.textContent.includes('Yes') ? 'yes' : 'no')) : null;
+  };
+
+  const available     = getTogVal('evr-available');
+  const ports_free    = getTogVal('evr-ports');
+  const working_status= getTogVal('evr-status');
+  const wait_time     = getTogVal('evr-wait');
+  const parking       = getTogVal('evr-parking');
+  const food_val      = getTogVal('evr-food');
+  const food_name     = document.getElementById('evr-food-name')?.value?.trim() || '';
+  const ev_available  = available !== 'no';
+
+  const btn = document.querySelector('#evReportModal .submit-btn');
+  if(btn){ btn.textContent = '⏳ Submitting...'; btn.disabled = true; }
+
+  if(!TOKEN) {
+    closeModal('evReportModal');
+    if(btn){ btn.textContent = '📤 Submit EV Report — Notify Nearby Users'; btn.disabled = false; }
+    document.getElementById('notif-text').textContent = '⚠️ Please login to submit reports.';
+    document.getElementById('notif-text').style.color = '#c62828';
+    setTimeout(()=>{ document.getElementById('notif-text').style.color=''; }, 4000);
+    return;
+  }
+
+  const payload = {
+    ev: ev_available,
+    petrol: false, diesel: false, cng: false,
+    queue_length: wait_time === 'long' ? 'long' : wait_time === 'short' ? 'short' : 'none',
+    ev_ports_free: ports_free,
+    ev_working_status: working_status,
+    ev_wait_time: wait_time,
+    ev_parking: parking,
+    ev_food_nearby: food_val === 'yes',
+    ev_food_name: food_name,
+  };
+
+  try {
+    let resp;
+    if(pid && !isExt){
+      resp = await fetch('/api/reports/submit', {
+        method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+        body: JSON.stringify({ pump_id: parseInt(pid), ...payload })
+      });
+    } else if(pid && isExt){
+      resp = await fetch('/api/reports/submit-external', {
+        method:'POST', headers:{'x-auth-token':TOKEN,'Content-Type':'application/json'},
+        body: JSON.stringify({
+          external_id: pid, ...payload,
+          pump_name: currentPumpName, pump_address: currentPumpAddress,
+          pump_lat: currentPumpLat,   pump_lng: currentPumpLng,
+          pump_oil_company: currentPumpOil, pump_district: currentPumpDist,
+          pump_state: currentPumpState,     pump_pin: currentPumpPin,
+        })
+      });
+    }
+    closeModal('evReportModal');
+    if(btn){ btn.textContent = '📤 Submit EV Report — Notify Nearby Users'; btn.disabled = false; }
+    if(resp && resp.ok){
+      document.getElementById('notif-text').textContent = '✅ EV status updated! Nearby users notified.';
+      setTimeout(()=>{ document.getElementById('notif-text').textContent=''; }, 4000);
+    } else if(resp && resp.status === 401){
+      document.getElementById('notif-text').textContent = '⚠️ Session expired. Please reload and login again.';
+      document.getElementById('notif-text').style.color = '#c62828';
+      setTimeout(()=>{ document.getElementById('notif-text').style.color=''; }, 5000);
+    }
+  } catch(e){
+    closeModal('evReportModal');
+    if(btn){ btn.textContent = '📤 Submit EV Report — Notify Nearby Users'; btn.disabled = false; }
+    document.getElementById('notif-text').textContent = '❌ Report failed. Check connection and try again.';
+    document.getElementById('notif-text').style.color = '#c62828';
+    setTimeout(()=>{ document.getElementById('notif-text').style.color=''; }, 4000);
+  }
 }
 
 async function submitReport() {
@@ -1513,7 +1690,7 @@ function renderPumps(pumpsRaw, isPremium, price){
         `}
 
         <div class="pump-status" style="color:${open?'#2e7d32':'#888'};margin-top:6px">${open?'● CHARGER AVAILABLE':'⚫ NOT AVAILABLE'}</div>
-        <div class="tags" style="cursor:pointer" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')">
+        <div class="tags" style="cursor:pointer" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}','ev')">
           <div class="tag ${f.ev?'tag-yes':'tag-no'}" data-fuel="ev">${f.ev?'✓':'✗'} EV Charging</div>
         </div>
         <div class="tags queue-tags" style="margin-top:-4px" onclick="event.stopPropagation()">
@@ -1533,7 +1710,7 @@ function renderPumps(pumpsRaw, isPremium, price){
           <div style="display:flex;gap:6px">
             <button class="report-btn" style="color:#1565c0;border-color:#1565c0"
               onclick="event.stopPropagation();window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat||0},${p.lng||0}','_blank')">🧭 Directions</button>
-            <button class="report-btn" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}')">📝 Report ↗</button>
+            <button class="report-btn" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}','ev')">📝 Report ↗</button>
           </div>
         </div>
       </div>`;
