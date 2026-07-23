@@ -1689,7 +1689,17 @@ function renderPumps(pumpsRaw, isPremium, price){
         <div class="ev-unverified" style="margin-top:4px">⚠️ <b>No charger details available yet</b><br><span style="color:#1565c0;font-weight:600">Be the first to report — tap below</span></div>
         `}
 
-        <div class="pump-status" style="color:${open?'#2e7d32':'#888'};margin-top:6px">${open?'● CHARGER AVAILABLE':'⚫ NOT AVAILABLE'}</div>
+        ${(f.ev_working_status && f.ev_working_status !== 'unknown') ? `
+        <div class="ev-status-row" style="margin-top:6px">
+          ${f.ev_working_status==='ok' ? `<span class="ev-status-badge ev-status-functional">✅ All OK</span>` :
+            f.ev_working_status==='partial' ? `<span class="ev-status-badge ev-status-partial">⚠️ Partially Working</span>` :
+            f.ev_working_status==='down' ? `<span class="ev-status-badge ev-status-out">❌ Down</span>` : ''}
+          ${f.ev_ports_free && f.ev_ports_free!=='unknown' ? `<span class="ev-timing-tag">🔌 ${f.ev_ports_free==='all'?'All ports free':f.ev_ports_free==='some'?'Some ports free':'No ports free'}</span>` : ''}
+          ${f.ev_wait_time && f.ev_wait_time!=='unknown' ? `<span class="ev-timing-tag">⏱️ ${f.ev_wait_time==='none'?'No wait':f.ev_wait_time==='short'?'Short wait':'Long wait'}</span>` : ''}
+        </div>
+        ${f.ev_parking && f.ev_parking!=='unknown' ? `<div class="ev-timing-tag" style="margin-bottom:6px">🅿️ Parking: ${f.ev_parking==='free'?'Free':f.ev_parking==='paid'?'Paid':'None'}</div>` : ''}
+        ${f.ev_food_nearby && f.ev_food_name ? `<div class="ev-food">🍽️ ${f.ev_food_name}</div>` : ''}
+        ` : `<div class="pump-status" style="color:${open?'#2e7d32':'#888'};margin-top:6px">${open?'● CHARGER AVAILABLE':'⚫ NOT AVAILABLE'}</div>`}
         <div class="tags" style="cursor:pointer" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}','ev')">
           <div class="tag ${f.ev?'tag-yes':'tag-no'}" data-fuel="ev">${f.ev?'✓':'✗'} EV Charging</div>
         </div>

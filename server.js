@@ -292,6 +292,12 @@ async function initDB() {
     `ALTER TABLE users ADD COLUMN user_code TEXT`,
     `ALTER TABLE users ADD COLUMN fuel_type TEXT DEFAULT 'petrol'`,
     `ALTER TABLE fuel_reports ADD COLUMN report_source TEXT DEFAULT 'user'`,
+    `ALTER TABLE fuel_reports ADD COLUMN ev_ports_free TEXT DEFAULT 'unknown'`,
+    `ALTER TABLE fuel_reports ADD COLUMN ev_working_status TEXT DEFAULT 'unknown'`,
+    `ALTER TABLE fuel_reports ADD COLUMN ev_wait_time TEXT DEFAULT 'unknown'`,
+    `ALTER TABLE fuel_reports ADD COLUMN ev_parking TEXT DEFAULT 'unknown'`,
+    `ALTER TABLE fuel_reports ADD COLUMN ev_food_nearby INTEGER DEFAULT 0`,
+    `ALTER TABLE fuel_reports ADD COLUMN ev_food_name TEXT DEFAULT ''`,
     `ALTER TABLE petrol_pumps ADD COLUMN category TEXT`,
     `ALTER TABLE petrol_pumps ADD COLUMN ev_operator TEXT`,
     `ALTER TABLE petrol_pumps ADD COLUMN ev_connector_type TEXT`,
@@ -1463,15 +1469,21 @@ app.get('/api/pumps/fuel-data', (req, res) => {
     const report = latestReport(id);
     const pump   = dbGet('SELECT is_verified, scan_count_free FROM petrol_pumps WHERE id=?', [id]);
     fuelData[id] = {
-      petrol:      report?.petrol  || false,
-      diesel:      report?.diesel  || false,
-      cng:         report?.cng     || false,
-      ev:          report?.ev      || false,
-      queue:       report?.queue_length || 'none',
-      updated_at:  report?.created_at || null,
-      reporter:    report?.reporter_role || null,
-      is_verified: pump?.is_verified || false,
-      expires_at:  report?.expires_at || null,
+      petrol:           report?.petrol  || false,
+      diesel:           report?.diesel  || false,
+      cng:              report?.cng     || false,
+      ev:               report?.ev      || false,
+      queue:            report?.queue_length || 'none',
+      updated_at:       report?.created_at || null,
+      reporter:         report?.reporter_role || null,
+      is_verified:      pump?.is_verified || false,
+      expires_at:       report?.expires_at || null,
+      ev_ports_free:    report?.ev_ports_free    || null,
+      ev_working_status:report?.ev_working_status|| null,
+      ev_wait_time:     report?.ev_wait_time     || null,
+      ev_parking:       report?.ev_parking       || null,
+      ev_food_nearby:   report?.ev_food_nearby   ? true : false,
+      ev_food_name:     report?.ev_food_name     || '',
     };
   });
 
@@ -2169,7 +2181,9 @@ app.get('/api/points/history', requireAuth(), (req,res) => {
 });
 
 app.post('/api/reports/submit', requireAuth(), (req,res) => {
-  const { pump_id, petrol, diesel, cng, ev, queue_length, restock_note } = req.body;
+  const { pump_id, petrol, diesel, cng, ev, queue_length, restock_note,
+          ev_ports_free, ev_working_status, ev_wait_time, ev_parking,
+          ev_food_nearby, ev_food_name } = req.body;
   if (!pump_id) return res.status(400).json({ error:'pump_id required' });
   if (['govt_official','doc_verifier'].includes(req.user.role))
     return res.status(403).json({ error:'Your role cannot submit reports' });
@@ -2206,9 +2220,10 @@ app.post('/api/reports/submit', requireAuth(), (req,res) => {
   }
 
   const src4 = req.user.role === 'pump_owner' ? 'owner' : 'user';
-  dbRun(`INSERT INTO fuel_reports (pump_id,reported_by,reporter_role,report_source,petrol,diesel,cng,ev,queue_length,restock_note,expires_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now','+${hrs} hours'))`,
-    [pump_id,req.user.id,req.user.role,src4,petrol?1:0,diesel?1:0,cng?1:0,ev?1:0,queue_length||'none',restock_note||null]);
+  dbRun(`INSERT INTO fuel_reports (pump_id,reported_by,reporter_role,report_source,petrol,diesel,cng,ev,queue_length,restock_note,ev_ports_free,ev_working_status,ev_wait_time,ev_parking,ev_food_nearby,ev_food_name,expires_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now','+${hrs} hours'))`,
+    [pump_id,req.user.id,req.user.role,src4,petrol?1:0,diesel?1:0,cng?1:0,ev?1:0,queue_length||'none',restock_note||null,
+     ev_ports_free||'unknown',ev_working_status||'unknown',ev_wait_time||'unknown',ev_parking||'unknown',ev_food_nearby?1:0,ev_food_name||'']);
   // Award 1 point to community reporters (not pump owners)
   let pointsAwarded = null;
   if(req.user.role === 'user') {
@@ -2222,7 +2237,9 @@ app.post('/api/reports/submit', requireAuth(), (req,res) => {
 app.post('/api/reports/submit-external', requireAuth(), async (req,res) => {
   const { external_id, petrol, diesel, cng, ev, queue_length,
           pump_name, pump_address, pump_lat, pump_lng,
-          pump_district, pump_state, pump_oil_company, pump_pin } = req.body;
+          pump_district, pump_state, pump_oil_company, pump_pin,
+          ev_ports_free, ev_working_status, ev_wait_time, ev_parking,
+          ev_food_nearby, ev_food_name } = req.body;
   if (!external_id) return res.status(400).json({ error:'external_id required' });
   if (['govt_official','doc_verifier'].includes(req.user.role))
     return res.status(403).json({ error:'Your role cannot submit reports' });
@@ -2276,11 +2293,12 @@ app.post('/api/reports/submit-external', requireAuth(), async (req,res) => {
     if (!pump) return res.status(500).json({ error: 'Could not register pump' });
 
     const hrs = parseInt(getSetting('report_expiry_user') || '4');
-    dbRun(`INSERT INTO fuel_reports 
-           (pump_id, reported_by, reporter_role, report_source, petrol, diesel, cng, ev, queue_length, expires_at)
-           VALUES (?,?,?,'user',?,?,?,?,?,datetime('now','+${hrs} hours'))`,
+    dbRun(`INSERT INTO fuel_reports
+           (pump_id,reported_by,reporter_role,report_source,petrol,diesel,cng,ev,queue_length,ev_ports_free,ev_working_status,ev_wait_time,ev_parking,ev_food_nearby,ev_food_name,expires_at)
+           VALUES (?,?,?,'user',?,?,?,?,?,?,?,?,?,?,?,datetime('now','+${hrs} hours'))`,
       [pump.id, req.user.id, req.user.role,
-       petrol?1:0, diesel?1:0, cng?1:0, ev?1:0, queue_length||'none']);
+       petrol?1:0, diesel?1:0, cng?1:0, ev?1:0, queue_length||'none',
+       ev_ports_free||'unknown',ev_working_status||'unknown',ev_wait_time||'unknown',ev_parking||'unknown',ev_food_nearby?1:0,ev_food_name||'']);
 
     console.log(`[REPORT] External pump ${external_id} → DB id:${pump.id} report saved`);
     res.json({ success:true, message:'Report submitted! Thank you.' });
