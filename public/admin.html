@@ -1782,18 +1782,23 @@ function renderStatPumps(pumps) {
 
 function renderStatCards(data, accentColor) {
   if(!data||!data.length) return '<div style="color:#aaa;text-align:center;padding:16px">No records found for selected filters</div>';
-  return data.map((a,i) => `
+  return data.map((a,i) => {
+    // Compute verified counts per category from pump list
+    const cngV  = a.pumps.filter(p => p.category==='cng' && p.is_verified).length;
+    const evV   = a.pumps.filter(p => p.category==='ev'  && p.is_verified).length;
+    const fuelV = a.pumps.filter(p => p.category!=='cng' && p.category!=='ev' && p.is_verified).length;
+    return `
     <div style="background:white;border-radius:10px;padding:12px;margin-bottom:10px;border:1.5px solid #e0e0e0">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <div>
           <div style="font-size:13px;font-weight:700;color:#333">${a.mr_code||a.login_id||a.qr_code||'—'} · ${a.mr_name||a.name||a.applicant_name||'—'}</div>
           <div style="font-size:11px;color:#888">${(a.mr_phone||a.mobile||'—')}</div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <span style="font-size:12px;padding:4px 10px;background:#e8f5e9;color:#1a6b2e;border-radius:10px;font-weight:600">🍃 CNG: ${a.cng}</span>
-          <span style="font-size:12px;padding:4px 10px;background:#fff3e0;color:#e65100;border-radius:10px;font-weight:600">⛽ Fuel: ${a.fuel}</span>
-          <span style="font-size:12px;padding:4px 10px;background:#e3f2fd;color:#1565c0;border-radius:10px;font-weight:600">⚡ EV: ${a.ev}</span>
-          <span style="font-size:12px;padding:4px 10px;background:#f5f5f5;color:#333;border-radius:10px;font-weight:700">Total: ${a.total} (${a.verified} ✅)</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span style="font-size:12px;padding:4px 10px;background:#e8f5e9;color:#1a6b2e;border-radius:10px;font-weight:600" title="${cngV} verified of ${a.cng} total CNG">🍃 CNG: ${cngV}/${a.cng}</span>
+          <span style="font-size:12px;padding:4px 10px;background:#fff3e0;color:#e65100;border-radius:10px;font-weight:600" title="${fuelV} verified of ${a.fuel} total Fuel">⛽ Fuel: ${fuelV}/${a.fuel}</span>
+          <span style="font-size:12px;padding:4px 10px;background:#e3f2fd;color:#1565c0;border-radius:10px;font-weight:600" title="${evV} verified of ${a.ev} total EV">⚡ EV: ${evV}/${a.ev}</span>
+          <span style="font-size:12px;padding:4px 10px;background:#f5f5f5;color:#333;border-radius:10px;font-weight:700">Total: ${a.verified}/${a.total} ✅</span>
         </div>
       </div>
       ${a.total>0 ? `
@@ -1803,7 +1808,7 @@ function renderStatCards(data, accentColor) {
             ${renderStatPumps(a.pumps)}
           </div>
         </div>` : ''}
-    </div>`).join('');
+    </div>`; }).join('');
 }
 
 function togglePumps(id){ const el=document.getElementById(id); if(el) el.style.display=el.style.display==='none'?'':'none'; }
