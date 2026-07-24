@@ -3209,6 +3209,136 @@ app.get('/api/admin/mr-stats', requireAuth(['super_admin','doc_verifier']), (req
   }
 });
 
+// ── Employee Performance Stats — A: MR Field Agents (ground workers, no login) ─
+// Pumps credited via petrol_pumps.referral_code = mr_agents.mr_code
+app.get('/api/admin/stats/mr-agents', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const { from, to, search } = req.query;
+    const agents = dbAll(`SELECT id, mr_code, mr_name, mr_phone, status FROM mr_agents ORDER BY mr_code`);
+
+    const result = agents
+      .filter(a => !search || a.mr_name.toLowerCase().includes(search.toLowerCase()) || a.mr_code.toLowerCase().includes(search.toLowerCase()))
+      .map(a => {
+        const dateFilter = [];
+        const params = [a.mr_code];
+        if(from){ dateFilter.push('date(pp.created_at) >= ?'); params.push(from); }
+        if(to)  { dateFilter.push('date(pp.created_at) <= ?'); params.push(to); }
+        const dateWhere = dateFilter.length ? ' AND ' + dateFilter.join(' AND ') : '';
+
+        const pumps = dbAll(`
+          SELECT pp.name, pp.category, pp.oil_company, pp.address, pp.district,
+                 pp.is_verified, pp.created_at,
+                 u.mobile as owner_mobile, u.name as owner_name
+          FROM petrol_pumps pp
+          LEFT JOIN users u ON u.id = pp.owner_user_id
+          WHERE pp.referral_code = ? AND pp.owner_user_id IS NOT NULL ${dateWhere}
+          ORDER BY pp.created_at DESC
+        `, params);
+
+        const cng  = pumps.filter(p => p.category === 'cng').length;
+        const ev   = pumps.filter(p => p.category === 'ev').length;
+        const fuel = pumps.filter(p => p.category !== 'cng' && p.category !== 'ev').length;
+
+        return { ...a, pumps, cng, fuel, ev, total: pumps.length,
+                 verified: pumps.filter(p => p.is_verified).length };
+      })
+      .filter(a => a.total > 0 || !search);
+
+    res.json({ success: true, data: result });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Employee Performance Stats — B: Enrollment Agents (online workers, have login) ─
+// Pumps credited via pump_applications.referral_code = their mr_code
+app.get('/api/admin/stats/enrollment-agents', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const { from, to, search } = req.query;
+    const agents = dbAll(`
+      SELECT u.id, u.login_id, u.name, u.mobile, u.status,
+             m.mr_code, m.mr_phone
+      FROM users u
+      LEFT JOIN mr_agents m ON m.mr_name = u.name
+      WHERE u.role = 'enrollment_agent'
+      ORDER BY u.name
+    `);
+
+    const result = agents
+      .filter(a => !search || a.name.toLowerCase().includes(search.toLowerCase()) || (a.login_id||'').toLowerCase().includes(search.toLowerCase()))
+      .map(a => {
+        const dateFilter = [];
+        const params = [a.login_id];
+        if(from){ dateFilter.push('date(pa.applied_at) >= ?'); params.push(from); }
+        if(to)  { dateFilter.push('date(pa.applied_at) <= ?'); params.push(to); }
+        const dateWhere = dateFilter.length ? ' AND ' + dateFilter.join(' AND ') : '';
+
+        const pumps = dbAll(`
+          SELECT pp.name, pp.category, pp.oil_company, pp.address, pp.district,
+                 pp.is_verified, pa.applied_at as created_at, pa.status as app_status,
+                 u2.mobile as owner_mobile, u2.name as owner_name
+          FROM pump_applications pa
+          LEFT JOIN petrol_pumps pp ON pp.id = pa.pump_id
+          LEFT JOIN users u2 ON u2.id = pa.user_id
+          WHERE pa.referral_code = ? ${dateWhere}
+          ORDER BY pa.applied_at DESC
+        `, params);
+
+        const cng  = pumps.filter(p => p.category === 'cng').length;
+        const ev   = pumps.filter(p => p.category === 'ev').length;
+        const fuel = pumps.filter(p => p.category !== 'cng' && p.category !== 'ev').length;
+
+        return { ...a, pumps, cng, fuel, ev, total: pumps.length,
+                 verified: pumps.filter(p => p.is_verified).length };
+      })
+      .filter(a => a.total > 0 || !search);
+
+    res.json({ success: true, data: result });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Employee Performance Stats — C: Applicants (via QR code) ─────────────────
+// Pumps credited via petrol_pumps.career_qr_referral = job_applications.qr_code
+app.get('/api/admin/stats/applicants', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const { from, to, search } = req.query;
+    const applicants = dbAll(`
+      SELECT ja.id, ja.applicant_name, ja.mobile, ja.qr_code, ja.status,
+             ja.applied_at as joined_at
+      FROM job_applications ja
+      ORDER BY ja.applicant_name
+    `);
+
+    const result = applicants
+      .filter(a => !search || a.applicant_name.toLowerCase().includes(search.toLowerCase()) || (a.qr_code||'').toLowerCase().includes(search.toLowerCase()))
+      .map(a => {
+        const dateFilter = [];
+        const params = [a.qr_code];
+        if(from){ dateFilter.push('date(pp.created_at) >= ?'); params.push(from); }
+        if(to)  { dateFilter.push('date(pp.created_at) <= ?'); params.push(to); }
+        const dateWhere = dateFilter.length ? ' AND ' + dateFilter.join(' AND ') : '';
+
+        const pumps = dbAll(`
+          SELECT pp.name, pp.category, pp.oil_company, pp.address, pp.district,
+                 pp.is_verified, pp.created_at,
+                 u.mobile as owner_mobile, u.name as owner_name
+          FROM petrol_pumps pp
+          LEFT JOIN users u ON u.id = pp.owner_user_id
+          WHERE pp.career_qr_referral = ? ${dateWhere}
+          ORDER BY pp.created_at DESC
+        `, params);
+
+        const cng  = pumps.filter(p => p.category === 'cng').length;
+        const ev   = pumps.filter(p => p.category === 'ev').length;
+        const fuel = pumps.filter(p => p.category !== 'cng' && p.category !== 'ev').length;
+
+        return { ...a, pumps, cng, fuel, ev, total: pumps.length,
+                 verified: pumps.filter(p => p.is_verified).length };
+      })
+      .filter(a => a.total > 0 || !search);
+
+    res.json({ success: true, data: result });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/pump-owner/change-password', requireAuth(['pump_owner','super_admin']), (req, res) => {
   try {
     const { current_password, new_password } = req.body;

@@ -166,6 +166,7 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
   <div class="tab" onclick="showTab('settings',this)">⚙️ Settings</div>
   <div class="tab" onclick="showTab('careers',this)">🚀 Careers</div>
   <div class="tab" onclick="showTab('bonus',this)">💰 Bonus Claims</div>
+  <div class="tab" onclick="showTab('empstats',this)">👥 Employee Stats</div>
 </div>
 
 <!-- DASHBOARD — NO revenue here -->
@@ -1697,5 +1698,158 @@ async function fixStuckPumps(){
 
 init();
 </script>
+<!-- ══════════════════════════════════════════════════════
+     👥 EMPLOYEE STATS TAB
+     ══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-empstats">
+<div class="card" style="margin-bottom:0">
+  <div class="card-title">👥 Employee Performance Statistics</div>
+
+  <!-- ─── SECTION A: MR Field Agents ─────────────────────────────── -->
+  <div style="background:#fff3e0;border-radius:12px;padding:14px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;color:#e65100;margin-bottom:10px">
+      🛵 A. MR Field Agents — Ground Workers
+      <span style="font-size:11px;font-weight:400;color:#888;margin-left:6px">(Pump credited via MR referral code)</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end">
+      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">From</label>
+        <input type="date" id="mr-from" style="padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">To</label>
+        <input type="date" id="mr-to" style="padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <div style="flex:1;min-width:160px"><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">Search name / MR code</label>
+        <input type="text" id="mr-search" placeholder="e.g. Kishor or MR001" style="width:100%;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <button onclick="loadMRStats()" style="padding:8px 16px;background:#e65100;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🔍 Filter</button>
+    </div>
+    <div id="mr-stats-body" style="font-size:13px;color:#aaa;text-align:center;padding:16px">Click Filter to load</div>
+  </div>
+
+  <!-- ─── SECTION B: Enrollment Agents ────────────────────────────── -->
+  <div style="background:#e8f5e9;border-radius:12px;padding:14px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;color:#1a6b2e;margin-bottom:10px">
+      💻 B. Enrollment Agents — Online Workers
+      <span style="font-size:11px;font-weight:400;color:#888;margin-left:6px">(Pump credited via pump_applications referral)</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end">
+      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">From</label>
+        <input type="date" id="enroll-from" style="padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">To</label>
+        <input type="date" id="enroll-to" style="padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <div style="flex:1;min-width:160px"><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">Search name / login ID</label>
+        <input type="text" id="enroll-search" placeholder="e.g. Ramesh or ENROLL_AHN_01" style="width:100%;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <button onclick="loadEnrollStats()" style="padding:8px 16px;background:#1a6b2e;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🔍 Filter</button>
+    </div>
+    <div id="enroll-stats-body" style="font-size:13px;color:#aaa;text-align:center;padding:16px">Click Filter to load</div>
+  </div>
+
+  <!-- ─── SECTION C: Applicants ─────────────────────────────────── -->
+  <div style="background:#e3f2fd;border-radius:12px;padding:14px">
+    <div style="font-size:13px;font-weight:700;color:#1565c0;margin-bottom:10px">
+      📋 C. Applicants — QR Code Workers
+      <span style="font-size:11px;font-weight:400;color:#888;margin-left:6px">(Pump credited via career QR referral)</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end">
+      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">From</label>
+        <input type="date" id="appl-from" style="padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">To</label>
+        <input type="date" id="appl-to" style="padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <div style="flex:1;min-width:160px"><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">Search name / QR code</label>
+        <input type="text" id="appl-search" placeholder="e.g. Sandip or INDHAN:ABC" style="width:100%;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>
+      <button onclick="loadApplStats()" style="padding:8px 16px;background:#1565c0;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">🔍 Filter</button>
+    </div>
+    <div id="appl-stats-body" style="font-size:13px;color:#aaa;text-align:center;padding:16px">Click Filter to load</div>
+  </div>
+
+</div>
+</div>
+
+<script>
+function renderStatPumps(pumps) {
+  if(!pumps||!pumps.length) return '<div style="color:#aaa;font-size:12px;padding:8px 0">No pumps found</div>';
+  return pumps.map(p => `
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid #f0f0f0">
+      <span style="font-size:16px">${p.category==='cng'?'🍃':p.category==='ev'?'⚡':'⛽'}</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;color:#333">${p.name||'—'}</div>
+        <div style="font-size:11px;color:#888">${p.address||''} ${p.district?'· '+p.district:''}</div>
+        <div style="font-size:11px;margin-top:2px">
+          ${p.owner_mobile ? `<a href="tel:${p.owner_mobile}" style="color:#1a6b2e;font-weight:600;text-decoration:none">📞 ${p.owner_mobile}</a>` : '<span style="color:#aaa">No mobile</span>'}
+          ${p.owner_name ? ` · ${p.owner_name}` : ''}
+        </div>
+      </div>
+      <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;${p.is_verified?'background:#e8f5e9;color:#1a6b2e':'background:#fff3e0;color:#e65100'}">${p.is_verified?'✅ Verified':'⏳ Pending'}</span>
+    </div>`).join('');
+}
+
+function renderStatCards(data, accentColor) {
+  if(!data||!data.length) return '<div style="color:#aaa;text-align:center;padding:16px">No records found for selected filters</div>';
+  return data.map((a,i) => `
+    <div style="background:white;border-radius:10px;padding:12px;margin-bottom:10px;border:1.5px solid #e0e0e0">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#333">${a.mr_code||a.login_id||a.qr_code||'—'} · ${a.mr_name||a.name||a.applicant_name||'—'}</div>
+          <div style="font-size:11px;color:#888">${(a.mr_phone||a.mobile||'—')}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="font-size:12px;padding:4px 10px;background:#e8f5e9;color:#1a6b2e;border-radius:10px;font-weight:600">🍃 CNG: ${a.cng}</span>
+          <span style="font-size:12px;padding:4px 10px;background:#fff3e0;color:#e65100;border-radius:10px;font-weight:600">⛽ Fuel: ${a.fuel}</span>
+          <span style="font-size:12px;padding:4px 10px;background:#e3f2fd;color:#1565c0;border-radius:10px;font-weight:600">⚡ EV: ${a.ev}</span>
+          <span style="font-size:12px;padding:4px 10px;background:#f5f5f5;color:#333;border-radius:10px;font-weight:700">Total: ${a.total} (${a.verified} ✅)</span>
+        </div>
+      </div>
+      ${a.total>0 ? `
+        <div style="margin-top:8px">
+          <button onclick="togglePumps('pumps-${i}-${accentColor}')" style="font-size:11px;color:${accentColor};background:none;border:none;cursor:pointer;font-weight:600">▼ Show ${a.total} pump${a.total>1?'s':''}</button>
+          <div id="pumps-${i}-${accentColor}" style="display:none;margin-top:6px">
+            ${renderStatPumps(a.pumps)}
+          </div>
+        </div>` : ''}
+    </div>`).join('');
+}
+
+function togglePumps(id){ const el=document.getElementById(id); if(el) el.style.display=el.style.display==='none'?'':'none'; }
+
+async function loadMRStats(){
+  const body = document.getElementById('mr-stats-body');
+  body.innerHTML = '⏳ Loading...';
+  const params = new URLSearchParams({
+    from: document.getElementById('mr-from').value,
+    to:   document.getElementById('mr-to').value,
+    search: document.getElementById('mr-search').value,
+  });
+  try {
+    const d = await fetch('/api/admin/stats/mr-agents?'+params, {headers:{'x-auth-token':TOKEN}}).then(r=>r.json());
+    body.innerHTML = renderStatCards(d.data, '#e65100');
+  } catch(e){ body.innerHTML = '❌ Failed to load'; }
+}
+
+async function loadEnrollStats(){
+  const body = document.getElementById('enroll-stats-body');
+  body.innerHTML = '⏳ Loading...';
+  const params = new URLSearchParams({
+    from: document.getElementById('enroll-from').value,
+    to:   document.getElementById('enroll-to').value,
+    search: document.getElementById('enroll-search').value,
+  });
+  try {
+    const d = await fetch('/api/admin/stats/enrollment-agents?'+params, {headers:{'x-auth-token':TOKEN}}).then(r=>r.json());
+    body.innerHTML = renderStatCards(d.data, '#1a6b2e');
+  } catch(e){ body.innerHTML = '❌ Failed to load'; }
+}
+
+async function loadApplStats(){
+  const body = document.getElementById('appl-stats-body');
+  body.innerHTML = '⏳ Loading...';
+  const params = new URLSearchParams({
+    from: document.getElementById('appl-from').value,
+    to:   document.getElementById('appl-to').value,
+    search: document.getElementById('appl-search').value,
+  });
+  try {
+    const d = await fetch('/api/admin/stats/applicants?'+params, {headers:{'x-auth-token':TOKEN}}).then(r=>r.json());
+    body.innerHTML = renderStatCards(d.data, '#1565c0');
+  } catch(e){ body.innerHTML = '❌ Failed to load'; }
+}
+</script>
+
 </body>
 </html>
