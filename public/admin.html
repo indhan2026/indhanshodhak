@@ -730,6 +730,23 @@ input:checked + .tog-slider:before{transform:translateX(24px)}
         <input class="form-input" type="text" id="careers-salary-max" placeholder="e.g. 56,000">
       </div>
     </div>
+    <div style="margin-bottom:10px">
+      <label class="form-label">🏷️ Enrollment Bonus Amounts (per pump, paid regardless of hiring)</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">⛽ Fuel Pump (₹)</label>
+          <input class="form-input" type="number" id="bonus-fuel" placeholder="100" min="0">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">🍃 CNG Pump (₹)</label>
+          <input class="form-input" type="number" id="bonus-cng" placeholder="200" min="0">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">⚡ EV Station (₹)</label>
+          <input class="form-input" type="number" id="bonus-ev" placeholder="150" min="0">
+        </div>
+      </div>
+    </div>
     <button class="form-submit" onclick="saveCareersSettings()">💾 Save Careers Settings</button>
     <div id="careers-settings-msg" style="font-size:12px;margin-top:8px"></div>
   </div>
@@ -921,6 +938,9 @@ function loadSettings(){
     const cdEl=document.getElementById('careers-posted-date'); if(cdEl) cdEl.value=s.careers_posted_date||'';
     const cminEl=document.getElementById('careers-salary-min'); if(cminEl) cminEl.value=s.careers_salary_min||'25,000';
     const cmaxEl=document.getElementById('careers-salary-max'); if(cmaxEl) cmaxEl.value=s.careers_salary_max||'56,000';
+    const bfEl=document.getElementById('bonus-fuel'); if(bfEl) bfEl.value=s.bonus_fuel_amount||'100';
+    const bcEl=document.getElementById('bonus-cng');  if(bcEl) bcEl.value=s.bonus_cng_amount||'200';
+    const beEl=document.getElementById('bonus-ev');   if(beEl) beEl.value=s.bonus_ev_amount||'150';
     const frEl=document.getElementById('tog-false-report'); if(frEl) frEl.checked = s.false_report_warnings_enabled !== '0';
     const cbEl=document.getElementById('tog-crisis-banner'); if(cbEl) cbEl.checked = s.crisis_banner_enabled !== '0';
   });
@@ -1177,6 +1197,9 @@ function showTab(name,el){
       const cdEl=document.getElementById('careers-posted-date'); if(cdEl) cdEl.value=s.careers_posted_date||'';
       const cminEl=document.getElementById('careers-salary-min'); if(cminEl) cminEl.value=s.careers_salary_min||'25,000';
       const cmaxEl=document.getElementById('careers-salary-max'); if(cmaxEl) cmaxEl.value=s.careers_salary_max||'56,000';
+      const bfEl=document.getElementById('bonus-fuel'); if(bfEl) bfEl.value=s.bonus_fuel_amount||'100';
+      const bcEl=document.getElementById('bonus-cng');  if(bcEl) bcEl.value=s.bonus_cng_amount||'200';
+      const beEl=document.getElementById('bonus-ev');   if(beEl) beEl.value=s.bonus_ev_amount||'150';
       const frEl=document.getElementById('tog-false-report'); if(frEl) frEl.checked = s.false_report_warnings_enabled !== '0';
     });
   }
@@ -1297,15 +1320,21 @@ async function saveCareersSettings(){
   const postedDate = document.getElementById('careers-posted-date').value.trim();
   const salaryMin  = document.getElementById('careers-salary-min').value.trim();
   const salaryMax  = document.getElementById('careers-salary-max').value.trim();
+  const bonusFuel  = document.getElementById('bonus-fuel').value.trim();
+  const bonusCng   = document.getElementById('bonus-cng').value.trim();
+  const bonusEv    = document.getElementById('bonus-ev').value.trim();
   const msg = document.getElementById('careers-settings-msg');
   const d = await api('/api/admin/settings','POST',{
     careers_posted_date: postedDate,
     careers_salary_min:  salaryMin,
     careers_salary_max:  salaryMax,
+    bonus_fuel_amount:   bonusFuel,
+    bonus_cng_amount:    bonusCng,
+    bonus_ev_amount:     bonusEv,
   });
   if(d?.success){
     msg.style.color='#1a6b2e';
-    msg.textContent = `✅ Saved — Salary: ₹${salaryMin} – ₹${salaryMax}/month`;
+    msg.textContent = `✅ Saved — Salary: ₹${salaryMin}–₹${salaryMax}/month | Bonus: ⛽₹${bonusFuel} 🍃₹${bonusCng} ⚡₹${bonusEv}`;
   } else {
     msg.style.color='#b71c1c';
     msg.textContent = 'Error saving settings';

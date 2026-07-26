@@ -222,6 +222,7 @@ async function initDB() {
     ['tier_P3_litres','50'],   ['tier_P4_litres','30'], ['tier_P5_litres','10'],
     ['tier_P1_hrs','0'],       ['tier_P2_hrs','72'],
     ['tier_P3_hrs','48'],      ['tier_P4_hrs','72'],    ['tier_P5_hrs','72'],
+    ['bonus_fuel_amount','100'],     ['bonus_cng_amount','200'],    ['bonus_ev_amount','150'],
     ['report_expiry_user','4'],     ['report_expiry_owner','12'],
     ['rationing_mode','0'],          ['verification_mode','0'],
     ['sla_hours','48'],              ['admin_email', process.env.EMAIL_USER||''],
@@ -2566,17 +2567,24 @@ app.post('/api/applicant/claim-bonus', requireAuth(), (req, res) => {
   if(!application) return res.status(403).json({ error: 'No job application found for this QR code' });
 
   const verifiedPumps = dbAll(
-    `SELECT name, oil_company FROM petrol_pumps WHERE career_qr_referral=? AND is_verified=1`, [user.user_code]);
+    `SELECT name, oil_company, category FROM petrol_pumps WHERE career_qr_referral=? AND is_verified=1`, [user.user_code]);
   if(verifiedPumps.length < 3)
     return res.status(400).json({ error: `Need at least 3 admin-approved pumps to claim (you have ${verifiedPumps.length})` });
 
   const existing = dbGet(`SELECT id FROM bonus_claims WHERE qr_code=? AND status IN ('pending','paid')`, [user.user_code]);
   if(existing) return res.status(409).json({ error: 'A bonus claim already exists for this QR code' });
 
-  // ₹100 per fuel/petrol/diesel pump, ₹200 per CNG pump.
-  // CNG isn't a stored column, so detect from name/oil_company text.
+  // Bonus per pump type — rates from admin settings.
+  const fuelBonus = parseInt(getSetting('bonus_fuel_amount') || '100');
+  const cngBonus  = parseInt(getSetting('bonus_cng_amount')  || '200');
+  const evBonus   = parseInt(getSetting('bonus_ev_amount')   || '150');
   const isCNG = (p) => /cng/i.test((p.name||'') + ' ' + (p.oil_company||''));
-  const amount = verifiedPumps.reduce((sum, p) => sum + (isCNG(p) ? 200 : 100), 0);
+  const isEV  = (p) => p.category === 'ev';
+  const amount = verifiedPumps.reduce((sum, p) => {
+    if (isEV(p))  return sum + evBonus;
+    if (isCNG(p)) return sum + cngBonus;
+    return sum + fuelBonus;
+  }, 0);
 
   dbRun(`INSERT INTO bonus_claims (qr_code, applicant_name, upi_mobile, upi_name, pumps_at_claim, amount)
          VALUES (?,?,?,?,?,?)`,
@@ -2754,9 +2762,12 @@ app.post('/api/admin/careers/:id/status', requireAuth(['super_admin']), (req, re
 
 app.get('/api/careers/config', (req, res) => {
   res.json({
-    posted_date:  getSetting('careers_posted_date')  || null,
-    salary_min:   getSetting('careers_salary_min')   || '25,000',
-    salary_max:   getSetting('careers_salary_max')   || '56,000',
+    posted_date:   getSetting('careers_posted_date')  || null,
+    salary_min:    getSetting('careers_salary_min')   || '25,000',
+    salary_max:    getSetting('careers_salary_max')   || '56,000',
+    bonus_fuel:    getSetting('bonus_fuel_amount')    || '100',
+    bonus_cng:     getSetting('bonus_cng_amount')     || '200',
+    bonus_ev:      getSetting('bonus_ev_amount')      || '150',
   });
 });
 
@@ -4185,7 +4196,7 @@ app.get('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
 });
 
 app.post('/api/admin/settings', requireAuth(['super_admin']), (req,res) => {
-  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers','careers_posted_date','careers_salary_min','careers_salary_max','crisis_banner_enabled','false_report_warnings_enabled'];
+  const allowed=['subscription_price','trial_days','pump_subscription_price','pump_trial_days','dense_city_zones','report_expiry_user','report_expiry_owner','rationing_mode','verification_mode','sla_hours','admin_email','razorpay_key_id','razorpay_key_secret','govt_shared_id','govt_shared_pwd','govt_shared_pwd_plain','mapmyindia_token','gemini_api_key','anthropic_api_key','ai_provider','ai_approve_score','ai_reject_score','ai_workers','careers_posted_date','careers_salary_min','careers_salary_max','crisis_banner_enabled','false_report_warnings_enabled','bonus_fuel_amount','bonus_cng_amount','bonus_ev_amount'];
   const updated=[];
   for (const [k,v] of Object.entries(req.body)) {
     if (allowed.includes(k)) { dbRun(`INSERT OR REPLACE INTO settings(key,value)VALUES(?,?)`,[k,String(v)]); updated.push(k); }

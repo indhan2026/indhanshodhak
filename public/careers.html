@@ -459,15 +459,32 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
     <div id="selectionCriteria" style="background:#fff8f0;border:1.5px dashed #FF9933;border-radius:12px;padding:16px;margin-bottom:20px">
       <div style="font-size:12px;font-weight:700;color:#e65100;letter-spacing:0.5px;margin-bottom:10px">📋 नौकरी पाने के लिए पूर्व-शर्त · PRE-REQUISITE FOR ENROLLMENT</div>
       <p style="font-size:13px;color:#5a4632;line-height:1.75;margin:0 0 10px">
-        <b>हिंदी:</b> अपने QR कोड का उपयोग करके <b>कम से कम 3 नजदीकी पेट्रोल पंप</b> रजिस्टर करने में मदद करें — <b style="color:#138808">जिनमें से कम से कम 1 CNG पंप होना ज़रूरी है।</b> CNG data सबसे ज़्यादा valuable है और यह आपकी credibility दर्शाता है। इसके बाद, <b>अगले 10 दिनों तक</b> सही fuel data report करें। <b style="color:#c62828">गलत रिपोर्टिंग = भर्ती प्रक्रिया से बाहर।</b>
+        <b>हिंदी:</b> अपने QR कोड का उपयोग करके <b>कम से कम 3 नजदीकी पेट्रोल पंप</b> रजिस्टर करने में मदद करें — <b style="color:#138808">जिनमें से कम से कम 1 CNG पंप होना ज़रूरी है।</b> <b style="color:#0d47a1">EV चार्जिंग स्टेशन भी enroll करें (GPS सेल्फी या बिजली बिल से verify)।</b> CNG data सबसे ज़्यादा valuable है। इसके बाद, <b>अगले 10 दिनों तक</b> सही fuel data report करें। <b style="color:#c62828">गलत रिपोर्टिंग = भर्ती प्रक्रिया से बाहर।</b>
       </p>
       <div style="border-top:1px dashed #e5c9a8;margin:10px 0"></div>
       <p style="font-size:13px;color:#5a4632;line-height:1.7;margin:0 0 10px">
-        <b>English:</b> Help onboard <b>at least 3 nearby fuel pumps</b> — <b style="color:#138808">at least 1 must be a CNG station.</b> CNG availability data is the most critical for users and registering one shows real ground-level effort. Report accurate fuel data for 10 days. <b style="color:#c62828">False reporting = disqualification.</b>
+        <b>English:</b> Help onboard <b>at least 3 nearby fuel pumps</b> — <b style="color:#138808">at least 1 must be a CNG station.</b> <b style="color:#0d47a1">EV charging stations can also be enrolled (GPS selfie or electricity bill accepted).</b> CNG availability is the most critical data. Report accurate fuel data for 10 days. <b style="color:#c62828">False reporting = disqualification.</b>
       </p>
-      <p style="font-size:13px;color:#1a6b2e;line-height:1.6;margin:0 0 14px;font-weight:600">
-        ✅ हर पंप के लिए भुगतान मिलेगा (₹100, CNG के लिए ₹200) — चाहे नौकरी मिले या न मिले।<br>
-        ✅ You'll be paid for every pump (₹100, ₹200 for CNG) — regardless of final job selection.
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 0 14px">
+        <div style="background:#fff3e0;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:16px">⛽</div>
+          <div style="font-size:11px;color:#e65100;font-weight:600;margin:2px 0">Fuel Pump</div>
+          <div style="font-size:16px;font-weight:700;color:#e65100">₹<span id="amt-fuel">100</span></div>
+        </div>
+        <div style="background:#e8f5e9;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:16px">🍃</div>
+          <div style="font-size:11px;color:#1b5e20;font-weight:600;margin:2px 0">CNG Pump</div>
+          <div style="font-size:16px;font-weight:700;color:#1b5e20">₹<span id="amt-cng">200</span></div>
+        </div>
+        <div style="background:#e3f2fd;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:16px">⚡</div>
+          <div style="font-size:11px;color:#0d47a1;font-weight:600;margin:2px 0">EV Station</div>
+          <div style="font-size:16px;font-weight:700;color:#0d47a1">₹<span id="amt-ev">150</span></div>
+        </div>
+      </div>
+      <p style="font-size:12.5px;color:#1a6b2e;line-height:1.6;margin:0 0 14px;font-weight:600">
+        ✅ हर पंप के लिए भुगतान मिलेगा — चाहे नौकरी मिले या न मिले।<br>
+        ✅ You'll be paid for every pump — regardless of final job selection.
       </p>
       <a href="/pump-guide" target="_blank"
         style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0a1f38,#0f2d18);border:1.5px solid rgba(34,197,94,0.4);color:#22c55e;text-decoration:none;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:700;transition:all 0.2s">
@@ -503,11 +520,17 @@ footer .copy { font-size:10px; color:#5c7290; line-height:1.6; }
   });
 });
 
-// Fetch admin-configured salary range on load
+// Fetch admin-configured salary range and bonus amounts on load
 fetch('/api/careers/config').then(r=>r.json()).then(d=>{
   const el = document.getElementById('salaryDisplay');
   if(el && d.salary_min && d.salary_max)
     el.textContent = `₹${d.salary_min} – ₹${d.salary_max}`;
+  const fuelEl = document.getElementById('amt-fuel');
+  const cngEl  = document.getElementById('amt-cng');
+  const evEl   = document.getElementById('amt-ev');
+  if(fuelEl && d.bonus_fuel) fuelEl.textContent = d.bonus_fuel;
+  if(cngEl  && d.bonus_cng)  cngEl.textContent  = d.bonus_cng;
+  if(evEl   && d.bonus_ev)   evEl.textContent   = d.bonus_ev;
 }).catch(()=>{});
 
 async function submitApplication() {

@@ -92,9 +92,31 @@ body{font-family:"Poppins",sans-serif;background:var(--bg);color:var(--text);lin
 <div style="background:rgba(19,136,8,0.12);border:1.5px solid rgba(19,136,8,0.4);border-radius:14px;padding:16px;margin:16px 0 8px;text-align:center">
   <div style="font-size:14px;font-weight:800;color:#22c55e;margin-bottom:6px">🍃 CNG पंप को प्राथमिकता दें · PRIORITISE CNG STATIONS</div>
   <p style="font-size:12.5px;color:#f0f4f8;line-height:1.7;margin:0">
-    <b>हिंदी:</b> 3 में से कम से कम 1 CNG पंप रजिस्टर करना ज़रूरी है। CNG की उपलब्धता सबसे ज़्यादा बदलती रहती है — users इसी जानकारी के लिए app पर सबसे ज़्यादा depend करते हैं। <b style="color:#22c55e">CNG pump = ₹200 bonus</b><br><br>
-    <b>English:</b> At least 1 of your 3 pumps must be a CNG station. CNG availability changes most frequently — users rely on this data the most. <b style="color:#22c55e">CNG pump = ₹200 bonus</b>
+    <b>हिंदी:</b> 3 में से कम से कम 1 CNG पंप रजिस्टर करना ज़रूरी है। CNG की उपलब्धता सबसे ज़्यादा बदलती रहती है — users इसी जानकारी के लिए app पर सबसे ज़्यादा depend करते हैं। <b style="color:#22c55e">CNG pump = ₹<span class="cng-bonus-amt">200</span> bonus</b><br><br>
+    <b>English:</b> At least 1 of your 3 pumps must be a CNG station. CNG availability changes most frequently — users rely on this data the most. <b style="color:#22c55e">CNG pump = ₹<span class="cng-bonus-amt">200</span> bonus</b>
   </p>
+</div>
+
+<!-- EV STATION BOX -->
+<div style="background:rgba(13,71,161,0.12);border:1.5px solid rgba(13,71,161,0.4);border-radius:14px;padding:16px;margin:8px 0;text-align:center">
+  <div style="font-size:14px;font-weight:800;color:#60a5fa;margin-bottom:6px">⚡ EV चार्जिंग स्टेशन भी करें Enroll · EV CHARGING STATIONS WELCOME</div>
+  <p style="font-size:12.5px;color:#f0f4f8;line-height:1.7;margin:0 0 10px">
+    <b>हिंदी:</b> EV चार्जिंग स्टेशन को enroll करने के लिए <b>GPS सेल्फी</b> (चार्जिंग equipment दिखना ज़रूरी) <b>या</b> <b>बिजली बिल</b> (address match) में से कोई एक document काफी है। <b style="color:#60a5fa">EV station = ₹<span class="ev-bonus-amt">150</span> bonus</b><br><br>
+    <b>English:</b> To enroll an EV charging station, submit either a <b>GPS-tagged selfie</b> at the charging point <b>or</b> an <b>electricity bill</b> matching the station address. Either document is sufficient. <b style="color:#60a5fa">EV station = ₹<span class="ev-bonus-amt">150</span> bonus</b>
+  </p>
+  <div style="display:flex;gap:10px;justify-content:center">
+    <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(96,165,250,0.3);border-radius:8px;padding:8px 14px;text-align:center;min-width:100px">
+      <div style="font-size:18px">📸</div>
+      <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-top:3px">GPS Selfie</div>
+      <div style="font-size:10px;color:#94a3b8">Charger visible</div>
+    </div>
+    <div style="display:flex;align-items:center;color:#64748b;font-weight:700;font-size:13px">OR</div>
+    <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(96,165,250,0.3);border-radius:8px;padding:8px 14px;text-align:center;min-width:100px">
+      <div style="font-size:18px">🧾</div>
+      <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-top:3px">Electricity Bill</div>
+      <div style="font-size:10px;color:#94a3b8">Address match</div>
+    </div>
+  </div>
 </div>
 
 <!-- ── SECTION 1: REAL PROBLEM ── -->
@@ -342,7 +364,7 @@ body{font-family:"Poppins",sans-serif;background:var(--bg);color:var(--text);lin
       <div class="after-dot" style="background:rgba(255,153,51,0.15);border-color:var(--saffron);color:var(--saffron)">🎉</div>
       <div class="pain-text">
         <span class="hi" style="font-weight:700;display:block;margin-bottom:2px;color:var(--saffron)">यह pump आपके bonus और job eligibility में count होगा!</span>
-        <span class="en" style="color:var(--saffron)">This pump counts toward YOUR bonus (₹100, or ₹200 for CNG) and job eligibility.</span>
+        <span class="en" style="color:var(--saffron)">This pump counts toward YOUR bonus (⛽₹<span class="fuel-bonus-amt">100</span>, 🍃₹<span class="cng-bonus-amt">200</span> CNG, ⚡₹<span class="ev-bonus-amt">150</span> EV) and job eligibility.</span>
       </div>
     </div>
   </div>
@@ -356,5 +378,12 @@ body{font-family:"Poppins",sans-serif;background:var(--bg);color:var(--text);lin
 </div>
 
 </div>
+<script>
+fetch('/api/careers/config').then(r=>r.json()).then(d=>{
+  if(d.bonus_cng)  document.querySelectorAll('.cng-bonus-amt').forEach(el=>el.textContent=d.bonus_cng);
+  if(d.bonus_ev)   document.querySelectorAll('.ev-bonus-amt').forEach(el=>el.textContent=d.bonus_ev);
+  if(d.bonus_fuel) document.querySelectorAll('.fuel-bonus-amt').forEach(el=>el.textContent=d.bonus_fuel);
+}).catch(()=>{});
+</script>
 </body>
 </html>
