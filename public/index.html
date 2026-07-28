@@ -167,7 +167,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
   <div class="header-right">
     <button class="hbtn" onclick="openModal('langModal')" id="btn-lang">🌐 Lang</button>
-    <button class="hbtn" onclick="goToFuelId()" id="btn-myqr">🎫 My QR</button>
     <button class="hbtn" onclick="toggleLeaderboard()" id="btn-trophy" style="position:relative">
       🏆 <span id="trophy-pts" style="font-size:10px;background:#ffd700;color:#333;border-radius:8px;padding:1px 5px;margin-left:2px;font-weight:700;display:none">0</span>
     </button>
@@ -875,7 +874,6 @@ function applyLang(code) {
   setTxt('nav-report',    t.nav_report);
   setTxt('nav-profile',   t.nav_profile);
   setTxt('btn-lang',      t.btn_lang);
-  setTxt('btn-myqr',      t.btn_myqr);
   setTxt('f-all',         t.f_all);
   setTxt('f-cng',         t.f_cng);
   setTxt('f-ev',          '⚡ ' + (t.f_ev||'EV').replace('⚡ ',''));
