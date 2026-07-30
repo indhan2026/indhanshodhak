@@ -2776,12 +2776,7 @@ app.get('/api/careers/posted-date', (req, res) => {
 });
 
 app.post('/api/pump-owner/register',
-  pumpRegUpload.fields([
-    {name:'license',   maxCount:1},
-    {name:'id_proof',  maxCount:1},
-    {name:'ev_selfie', maxCount:1},
-    {name:'ev_bill',   maxCount:1},
-  ]),
+  pumpRegUpload.any(),
   async (req, res) => {
     try {
       const { owner_name, mobile, email, pump_name, oil_company,
@@ -2802,7 +2797,8 @@ app.post('/api/pump-owner/register',
       if(existing)
         return res.status(409).json({ error:'Application with this license number already pending' });
 
-      const files = req.files || {};
+      const files = {};
+      (req.files || []).forEach(f => { (files[f.fieldname] = files[f.fieldname] || []).push(f); });
       const licPath      = files.license?.[0]?.path   || null;
       const idProofPath  = files.id_proof?.[0]?.path  || null;
       const evSelfiePath = files.ev_selfie?.[0]?.path || null;
@@ -4467,13 +4463,7 @@ app.get('/api/agent/pumps', requireAuth(['enrollment_agent','super_admin']), asy
 // Agent: Register pump on behalf of owner
 app.post('/api/agent/register-pump',
   requireAuth(['enrollment_agent','super_admin']),
-  pumpRegUpload.fields([
-    {name:'license',   maxCount:1},
-    {name:'aadhaar',   maxCount:1},
-    {name:'selfie',    maxCount:1},
-    {name:'ev_selfie', maxCount:1},
-    {name:'ev_bill',   maxCount:1},
-  ]),
+  pumpRegUpload.any(),
   async (req, res) => {
     try {
       const { owner_name, owner_mobile, owner_email, pump_id, pump_name,
@@ -4485,7 +4475,8 @@ app.post('/api/agent/register-pump',
       if(!owner_name||!owner_mobile||!owner_email||!license_number)
         return res.status(400).json({ error:'Owner name, mobile, email and license number required' });
 
-      const files = req.files || {};
+      const files = {};
+      (req.files || []).forEach(f => { (files[f.fieldname] = files[f.fieldname] || []).push(f); });
       const licPath      = files.license?.[0]?.path   || null;
       const aadhaarPath  = files.aadhaar?.[0]?.path   || null;
       const selfiePath   = files.selfie?.[0]?.path    || null;
@@ -6370,6 +6361,21 @@ initDB().then(() => {
   }
 
   scheduleDailySummary();
+
+  // ── Global error handler — catches Multer + any other request errors ──
+  // Must be defined AFTER all routes. Prevents unhandled stack traces in
+  // Render logs and always returns a clean JSON error to the frontend.
+  app.use((err, req, res, next) => {
+    if (err && err.name === 'MulterError') {
+      console.error('[MULTER ERROR]', err.code, err.field || '', err.message);
+      return res.status(400).json({ error: `File upload error: ${err.message}` });
+    }
+    if (err) {
+      console.error('[SERVER ERROR]', err.message);
+      return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    }
+    next();
+  });
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`
