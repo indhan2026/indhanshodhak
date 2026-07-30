@@ -42,8 +42,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .chip{border:2px solid #ddd;border-radius:22px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:#f9f9f9;color:#555}
 .chip.active{background:#1a6b2e;color:white;border-color:#1a6b2e}
 /* Map */
-.map-wrap{height:220px;position:relative;overflow:hidden;border-radius:0;z-index:1}
-#leaflet-map{height:220px;width:100%;z-index:1}
+.map-wrap{height:260px;position:relative;overflow:hidden;border-radius:0;z-index:1}
+#leaflet-map{height:260px;width:100%;z-index:1}
 
 .road-h{position:absolute;left:0;right:0;height:5px;background:#bbb;top:50%;transform:translateY(-50%)}
 .road-v{position:absolute;top:0;bottom:0;width:5px;background:#bbb;left:40%}
@@ -191,11 +191,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div class="content-wrap">
   <div class="search-section" style="padding:10px 12px">
-    <div class="search-label" id="lbl-search" style="text-align:center;margin-bottom:8px;font-size:13px;color:#555" id="lbl-tagline">📍 Tap below to find pumps near you</div>
     <button class="gps-btn" onclick="useGPS()" id="btn-gps-main"
       style="width:100%;padding:14px;font-size:16px;font-weight:700;border-radius:14px;flex-direction:row;gap:8px;justify-content:center;background:linear-gradient(135deg,#1a6b2e,#2e7d32)">
       <span style="font-size:22px">📡</span>
       <span id="lbl-gps">Find Pumps Near Me</span>
+      <span style="font-size:12px;font-weight:400;opacity:.8;margin-left:4px">Tap Here →</span>
     </button>
     <input type="hidden" id="pinInput" value=""/>
   </div>
@@ -854,7 +854,6 @@ function applyLang(code) {
   // Apply all translations
   const setTxt = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
   setTxt('header-sub',    t.header_sub);
-  setTxt('lbl-search',    t.lbl_search);
   setTxt('lbl-gps',       t.lbl_gps);
   setTxt('pump-section-lbl', t.pump_section);
   // Crisis-aware fuelid card update
