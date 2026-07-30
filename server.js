@@ -12,6 +12,20 @@ const crypto     = require('crypto');
 const multer     = require('multer');
 const fs         = require('fs');
 const nodemailer = require('nodemailer');
+const webpush    = require('web-push');
+
+// ── Push Notifications (VAPID) ────────────────────────────────
+// Keys generated once via `npx web-push generate-vapid-keys`, stored as
+// Render env vars. If either is missing, push sending is skipped safely
+// (subscribe endpoint still works — only actual sending is gated).
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || '';
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails('mailto:noreply@indhanshodhak.in', VAPID_PUBLIC, VAPID_PRIVATE);
+  console.log('[PUSH] VAPID configured ✅');
+} else {
+  console.log('[PUSH] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — push sending disabled until added to env vars');
+}
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -448,6 +462,24 @@ async function initDB() {
       food_distance    TEXT DEFAULT '',
       updated_by       TEXT DEFAULT '',
       updated_at       TEXT DEFAULT (datetime('now'))
+    )`,
+    // ── Push notification subscriptions ──
+    // One row per browser/device subscription. user_id nullable — a device
+    // can subscribe before/without login (anonymous nearby-fuel alerts);
+    // gets linked to user_id once they log in, via endpoint upsert.
+    // fuel_prefs stored as JSON: {"cng":true,"petrol":true,"diesel":false,"ev":false}
+    `CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER,
+      endpoint     TEXT UNIQUE NOT NULL,
+      p256dh       TEXT NOT NULL,
+      auth         TEXT NOT NULL,
+      fuel_prefs   TEXT DEFAULT '{}',
+      radius_km    INTEGER DEFAULT 50,
+      lat          REAL,
+      lng          REAL,
+      created_at   TEXT DEFAULT (datetime('now')),
+      last_used_at TEXT DEFAULT (datetime('now'))
     )`,
   ];
   safeAlter.forEach(sql => {
@@ -3926,6 +3958,57 @@ app.post('/api/user/apply-tier',
     }
   }
 );
+
+// ============================================================
+//  PUSH NOTIFICATIONS
+// ============================================================
+
+// Frontend fetches this to know the public key for subscribing
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC });
+});
+
+// Save/update a browser's push subscription. Works logged-in or not —
+// user_id is attached if req.user exists (via optional auth), else null.
+app.post('/api/push/subscribe', (req, res) => {
+  try {
+    const { subscription, fuel_prefs, radius_km, lat, lng } = req.body;
+    if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth)
+      return res.status(400).json({ error: 'Invalid subscription object' });
+
+    const userId = req.user?.id || null;
+    const prefsJson = JSON.stringify(fuel_prefs || {});
+
+    dbRun(
+      `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, fuel_prefs, radius_km, lat, lng)
+       VALUES (?,?,?,?,?,?,?,?)
+       ON CONFLICT(endpoint) DO UPDATE SET
+         user_id=excluded.user_id, p256dh=excluded.p256dh, auth=excluded.auth,
+         fuel_prefs=excluded.fuel_prefs, radius_km=excluded.radius_km,
+         lat=excluded.lat, lng=excluded.lng, last_used_at=datetime('now')`,
+      [userId, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth,
+       prefsJson, radius_km || 50, lat || null, lng || null]
+    );
+    console.log(`[PUSH] Subscription saved${userId ? ' (user '+userId+')' : ' (anonymous)'}`);
+    res.json({ success: true });
+  } catch(e) {
+    console.error('[PUSH] Subscribe error:', e.message);
+    res.status(500).json({ error: 'Could not save subscription' });
+  }
+});
+
+// Remove a subscription (e.g. user disables notifications in-app)
+app.post('/api/push/unsubscribe', (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (!endpoint) return res.status(400).json({ error: 'endpoint required' });
+    dbRun(`DELETE FROM push_subscriptions WHERE endpoint=?`, [endpoint]);
+    res.json({ success: true });
+  } catch(e) {
+    console.error('[PUSH] Unsubscribe error:', e.message);
+    res.status(500).json({ error: 'Could not remove subscription' });
+  }
+});
 
 app.get('/api/verify/fuel-applications', requireAuth(['doc_verifier','super_admin']), (req,res) => {
   const { status='pending', category } = req.query;
