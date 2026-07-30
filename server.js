@@ -4010,6 +4010,66 @@ app.post('/api/push/unsubscribe', (req, res) => {
   }
 });
 
+// ── Send-side push helpers ─────────────────────────────────────────────
+// sendPushToRow: sends one notification to one subscription row.
+// Auto-cleanup: if the push service confirms the subscription is dead
+// (410 Gone / 404 Not Found), we delete it here so the table self-cleans
+// over time instead of accumulating lapsed/broken subscriptions forever.
+async function sendPushToRow(row, payload) {
+  const sub = {
+    endpoint: row.endpoint,
+    keys: { p256dh: row.p256dh, auth: row.auth }
+  };
+  try {
+    await webpush.sendNotification(sub, JSON.stringify(payload));
+    return true;
+  } catch(e) {
+    if (e.statusCode === 410 || e.statusCode === 404) {
+      dbRun(`DELETE FROM push_subscriptions WHERE endpoint=?`, [row.endpoint]);
+      console.log(`[PUSH] Dead subscription removed (${e.statusCode})`);
+    } else {
+      console.error('[PUSH] Send error:', e.statusCode || '', e.message);
+    }
+    return false;
+  }
+}
+
+// sendPushToAll: broadcasts to every current subscription. Used for the
+// test trigger below now; will be reused for "district crisis alert" later.
+async function sendPushToAll(payload) {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    console.log('[PUSH] Skipped send — VAPID keys not configured');
+    return { sent: 0, failed: 0, total: 0 };
+  }
+  const rows = dbAll(`SELECT * FROM push_subscriptions`);
+  let sent = 0, failed = 0;
+  for (const row of rows) {
+    const ok = await sendPushToRow(row, payload);
+    ok ? sent++ : failed++;
+  }
+  console.log(`[PUSH] Broadcast done — sent:${sent} failed/removed:${failed} total:${rows.length}`);
+  return { sent, failed, total: rows.length };
+}
+
+// Admin-only test trigger — confirms delivery actually works end-to-end
+// before wiring real fuel-update triggers (Step 6). Remove or restrict
+// further once the full system is live, if desired.
+app.post('/api/admin/push/test', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const { title, body } = req.body;
+    const result = await sendPushToAll({
+      title: title || '🔔 IndhanShodhak Test',
+      body: body || 'If you see this, push notifications are working!',
+      url: '/app',
+      tag: 'test-push'
+    });
+    res.json({ success: true, ...result });
+  } catch(e) {
+    console.error('[PUSH] Test trigger error:', e.message);
+    res.status(500).json({ error: 'Test push failed: ' + e.message });
+  }
+});
+
 app.get('/api/verify/fuel-applications', requireAuth(['doc_verifier','super_admin']), (req,res) => {
   const { status='pending', category } = req.query;
   let sql = `SELECT a.*, u.mobile, q.score as ai_score, q.verdict as ai_verdict, q.status as ai_status, q.reason as ai_reason
