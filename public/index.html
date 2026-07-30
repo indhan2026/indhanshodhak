@@ -189,6 +189,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <span id="notif-text"></span>
 </div>
 
+<!-- Push notification opt-in banner — shown once if permission not yet asked -->
+<div class="trial-banner" id="pushBanner" style="background:#1a6b2e">
+  <span>🔔 Get alerted when fuel is available near you</span>
+  <button class="trial-btn" onclick="subscribeToPush()">Enable</button>
+</div>
+
 <div class="content-wrap">
   <div class="search-section" style="padding:10px 12px">
     <button class="gps-btn" onclick="useGPS()" id="btn-gps-main"
@@ -2128,6 +2134,86 @@ async function autoLoadPumps(){
   }
 }
 document.addEventListener('DOMContentLoaded', autoLoadPumps);
+
+// ── Push Notifications: register service worker + subscribe flow ──────────
+// (sw.js already existed but was never registered anywhere — this activates
+// both offline caching AND makes push notifications possible for the first time)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[SW] Registered:', reg.scope))
+      .catch(err => console.error('[SW] Registration failed:', err));
+  });
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function subscribeToPush() {
+  const banner = document.getElementById('pushBanner');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Push notifications are not supported on this browser.');
+    if (banner) banner.style.display = 'none';
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      if (banner) banner.style.display = 'none';
+      return; // user said no — respect it, don't ask again this session
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    const keyRes = await fetch('/api/push/vapid-public-key');
+    const { publicKey } = await keyRes.json();
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+
+    // Grab last known GPS if available (best-effort, not required)
+    let lat = null, lng = null;
+    if (navigator.geolocation) {
+      await new Promise(resolve => {
+        navigator.geolocation.getCurrentPosition(
+          pos => { lat = pos.coords.latitude; lng = pos.coords.longitude; resolve(); },
+          () => resolve(),
+          { timeout: 3000 }
+        );
+      });
+    }
+
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(TOKEN ? {'x-auth-token':TOKEN} : {}) },
+      body: JSON.stringify({
+        subscription,
+        fuel_prefs: { petrol:true, diesel:true, cng:true, ev:true }, // default all-on; refined in profile setup later
+        radius_km: 50,
+        lat, lng
+      })
+    });
+
+    if (banner) banner.style.display = 'none';
+    console.log('[PUSH] Subscribed successfully');
+  } catch (e) {
+    console.error('[PUSH] Subscribe error:', e);
+  }
+}
+
+// Show the banner only if push is supported and permission hasn't been decided yet
+(function initPushBanner(){
+  const banner = document.getElementById('pushBanner');
+  if (!banner) return;
+  if ('Notification' in window && Notification.permission === 'default') {
+    banner.style.display = 'flex';
+  }
+})();
 
 </script>
 </body>
