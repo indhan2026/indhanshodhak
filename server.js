@@ -2257,6 +2257,8 @@ app.post('/api/reports/submit', requireAuth(), (req,res) => {
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now','+${hrs} hours'))`,
     [pump_id,req.user.id,req.user.role,src4,petrol?1:0,diesel?1:0,cng?1:0,ev?1:0,queue_length||'none',restock_note||null,
      ev_ports_free||'unknown',ev_working_status||'unknown',ev_wait_time||'unknown',ev_parking||'unknown',ev_food_nearby?1:0,ev_food_name||'']);
+  // Fire-and-forget — never blocks or delays the user's response
+  notifyNearbyForFuelUpdate(pump, reportedFields);
   // Award 1 point to community reporters (not pump owners)
   let pointsAwarded = null;
   if(req.user.role === 'user') {
@@ -2332,6 +2334,8 @@ app.post('/api/reports/submit-external', requireAuth(), async (req,res) => {
       [pump.id, req.user.id, req.user.role,
        petrol?1:0, diesel?1:0, cng?1:0, ev?1:0, queue_length||'none',
        ev_ports_free||'unknown',ev_working_status||'unknown',ev_wait_time||'unknown',ev_parking||'unknown',ev_food_nearby?1:0,ev_food_name||'']);
+    // Fire-and-forget — never blocks or delays the user's response
+    notifyNearbyForFuelUpdate(pump, { petrol: petrol?1:0, diesel: diesel?1:0, cng: cng?1:0, ev: ev?1:0 });
 
     console.log(`[REPORT] External pump ${external_id} → DB id:${pump.id} report saved`);
     res.json({ success:true, message:'Report submitted! Thank you.' });
@@ -4049,6 +4053,75 @@ async function sendPushToAll(payload) {
   }
   console.log(`[PUSH] Broadcast done — sent:${sent} failed/removed:${failed} total:${rows.length}`);
   return { sent, failed, total: rows.length };
+}
+
+// ── Step 6: Real fuel-update trigger — "fuel available nearby" ─────────
+// Straight-line distance in km between two lat/lng points.
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Per-pump cooldown so rapid repeat reports on the same pump (e.g. two
+// people reporting within a minute) don't fire duplicate notifications.
+// In-memory is fine — worst case on restart is one extra notification.
+const pumpNotifyCooldown = new Map(); // pump_id -> last notified timestamp (ms)
+const NOTIFY_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes, matches our batching design
+
+// Called after a genuine fuel report (community/owner) succeeds. Only
+// notifies about fuels that are newly AVAILABLE (true) — no point alerting
+// people about a fuel that just went to "not available". Fire-and-forget
+// from route handlers; never blocks the user's response.
+async function notifyNearbyForFuelUpdate(pump, reportedFields) {
+  try {
+    if (!VAPID_PUBLIC || !VAPID_PRIVATE) return; // push not configured, skip quietly
+    if (!pump?.lat || !pump?.lng) return;        // can't compute distance without pump location
+
+    const availableFuels = Object.keys(reportedFields).filter(k => reportedFields[k]);
+    if (availableFuels.length === 0) return; // nothing newly available — don't notify
+
+    const last = pumpNotifyCooldown.get(pump.id);
+    if (last && (Date.now() - last) < NOTIFY_COOLDOWN_MS) {
+      console.log(`[PUSH] Skipped — pump ${pump.id} notified within last 5 min (cooldown)`);
+      return;
+    }
+
+    const subs = dbAll(`SELECT * FROM push_subscriptions WHERE lat IS NOT NULL AND lng IS NOT NULL`);
+    if (subs.length === 0) return;
+
+    const matched = subs.filter(sub => {
+      let prefs;
+      try { prefs = JSON.parse(sub.fuel_prefs || '{}'); } catch(e) { prefs = {}; }
+      const fuelMatches = availableFuels.some(f => prefs[f]);
+      if (!fuelMatches) return false;
+      const dist = haversineKm(pump.lat, pump.lng, sub.lat, sub.lng);
+      return dist <= (sub.radius_km || 50);
+    });
+
+    if (matched.length === 0) return;
+
+    const fuelLabel = availableFuels.map(f => ({petrol:'Petrol',diesel:'Diesel',cng:'CNG',ev:'EV'}[f] || f)).join(' + ');
+    const payload = {
+      title: '⛽ Fuel Available Nearby',
+      body: `${fuelLabel} now available at ${pump.name || 'a nearby pump'}`,
+      url: '/app',
+      tag: 'fuel-nearby-' + pump.id // same pump replaces its own earlier notification
+    };
+
+    let sent = 0, failed = 0;
+    for (const sub of matched) {
+      const ok = await sendPushToRow(sub, payload);
+      ok ? sent++ : failed++;
+    }
+    pumpNotifyCooldown.set(pump.id, Date.now());
+    console.log(`[PUSH] Fuel-nearby alert — pump:${pump.id} (${pump.name}) matched:${matched.length} sent:${sent} failed:${failed}`);
+  } catch(e) {
+    console.error('[PUSH] notifyNearbyForFuelUpdate error:', e.message);
+  }
 }
 
 // Admin-only test trigger — confirms delivery actually works end-to-end
@@ -6065,6 +6138,8 @@ app.post('/api/pump-owner/update-fuel', requireAuth(['pump_owner','super_admin']
          VALUES (?,?,?,'owner',?,?,?,?,?,?,datetime('now','+12 hours'))`,
     [pump.id, req.user.id, 'pump_owner', petrol?1:0, diesel?1:0, cng?1:0, ev?1:0,
      queue_length||'none', restock_note||null]);
+  // Fire-and-forget — never blocks or delays the user's response
+  notifyNearbyForFuelUpdate(pump, { petrol: petrol?1:0, diesel: diesel?1:0, cng: cng?1:0, ev: ev?1:0 });
 
   // ── False Report Detection ───────────────────────────────────────────
   // Find any community report in last 4 hours that contradicts owner's data
