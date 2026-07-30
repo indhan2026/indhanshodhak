@@ -15,6 +15,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .header-text p{color:rgba(255,255,255,.8);font-size:11px}
 .live-dot{width:8px;height:8px;border-radius:50%;background:#69f0ae;animation:pulse 2s infinite;margin-left:4px;display:inline-block}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.live-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:1.2px;margin-left:6px;vertical-align:middle;display:inline-block;animation:livePulse 1.8s infinite;cursor:default;user-select:none}
+@keyframes livePulse{0%,100%{background:#fff;color:#e65c00;box-shadow:0 0 0 1.5px #e65c00}33%{background:#ffd700;color:#7a4a00;box-shadow:0 0 0 1.5px #ffd700}66%{background:#ff8c00;color:#fff;box-shadow:0 0 0 1.5px #ff8c00}}
+.banner-slide{overflow:hidden;transition:max-height .4s ease,opacity .35s ease,margin .4s ease,padding .35s ease;max-height:200px;opacity:1}
+.banner-slide.dismissed{max-height:0!important;opacity:0;margin:0!important;padding:0!important}
 .header-right{margin-left:auto;display:flex;gap:6px;align-items:center}
 .hbtn{background:rgba(255,255,255,.15);border:none;color:white;font-size:13px;padding:8px 14px;border-radius:20px;cursor:pointer;min-height:44px;min-width:44px;font-weight:600;letter-spacing:0.3px}
 .notif-bar{background:#155724;padding:8px 14px;display:flex;align-items:center;gap:8px}
@@ -162,7 +166,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="header">
   <div class="header-icon">⛽</div>
   <div class="header-text">
-    <h1>IndhanShodhak <span class="live-dot"></span></h1>
+    <h1>IndhanShodhak <span class="live-badge">LIVE</span></h1>
     <p id="header-sub">जनतेसाठी, जनतेकडून · By the people, for the people</p>
   </div>
   <div class="header-right">
@@ -222,12 +226,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <!-- ══ TEMPTATION PLATE ══════════════════════════════════════════════ -->
-  <div id="temptPlate" style="margin:10px 12px 6px;border-radius:14px;overflow:hidden;display:none">
+  <div id="temptPlate" style="margin:10px 12px 6px;border-radius:14px;overflow:hidden;display:none;position:relative">
+    <button onclick="(function(p){p.style.opacity='0';p.style.maxHeight='0';p.style.margin='0';p.style.padding='0';p.style.overflow='hidden';p.style.transition='all .4s ease';setTimeout(()=>p.style.display='none',420)})(document.getElementById('temptPlate'))" style="position:absolute;top:8px;right:10px;z-index:10;background:rgba(0,0,0,.25);border:none;color:#fff;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
     <!-- State 1: New (0 pts) -->
     <div id="tp-new" class="tp-state" style="background:linear-gradient(135deg,#1a6b2e,#2e7d32);padding:14px 16px;display:none">
       <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:4px">🎁 Report Fuel = Earn ₹5/month!</div>
-      <div style="color:rgba(255,255,255,.85);font-size:12px;margin-bottom:10px">See a petrol pump near you? Tap Report → Get 1 point · 100 pts = ₹5 off your subscription!</div>
-      <button onclick="document.getElementById('gpsBtn')?.click()" style="background:#ffd700;color:#333;border:none;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%">📍 Find Nearby Pumps to Report →</button>
+      <div style="color:rgba(255,255,255,.85);font-size:12px">See a petrol pump near you? Tap Report → Get 1 point · 100 pts = ₹5 off your subscription!</div>
     </div>
     <!-- State 2: Progressing -->
     <div id="tp-progress" class="tp-state" style="background:linear-gradient(135deg,#1a6b2e,#2e7d32);padding:14px 16px;display:none">
@@ -799,7 +803,8 @@ async function checkApplicantFlagStatus() {
     el.style.background = s.bg;
     el.style.border = `1.5px solid ${s.border}`;
     el.style.color = s.color;
-    el.innerHTML = `${s.icon} ${msgs[d.status] || ''}`;
+    el.classList.add('banner-slide');
+    el.innerHTML = `<div style="display:flex;align-items:flex-start;gap:8px"><span style="flex-shrink:0">${s.icon}</span><span style="flex:1">${msgs[d.status] || ''}</span><button onclick="(function(b){b.classList.add('dismissed');setTimeout(()=>b.style.display='none',420)})(this.closest('#applicantWarningBanner'))" style="background:none;border:none;cursor:pointer;font-size:16px;color:${s.color};opacity:.7;padding:0;flex-shrink:0;line-height:1">✕</button></div>`;
     el.style.display = 'block';
   } catch(e) { /* silent fail */ }
 }
