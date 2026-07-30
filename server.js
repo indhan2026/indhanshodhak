@@ -4070,6 +4070,28 @@ app.post('/api/admin/push/test', requireAuth(['super_admin']), async (req, res) 
   }
 });
 
+// Update fuel-alert preferences (vehicle preset + radius) for the logged-in
+// user's push subscription(s). Kept separate from the existing p-fuel
+// dropdown (used for QR/rationing tier) — this is purely for which fuel
+// types trigger a nearby-pump push notification.
+app.post('/api/push/update-prefs', requireAuth(), (req, res) => {
+  try {
+    const { fuel_prefs, radius_km } = req.body;
+    if (!fuel_prefs || typeof fuel_prefs !== 'object')
+      return res.status(400).json({ error: 'fuel_prefs object required' });
+
+    dbRun(
+      `UPDATE push_subscriptions SET fuel_prefs=?, radius_km=? WHERE user_id=?`,
+      [JSON.stringify(fuel_prefs), radius_km || 50, req.user.id]
+    );
+    console.log(`[PUSH] Preferences updated for user ${req.user.id}`);
+    res.json({ success: true });
+  } catch(e) {
+    console.error('[PUSH] Update-prefs error:', e.message);
+    res.status(500).json({ error: 'Could not update preferences' });
+  }
+});
+
 app.get('/api/verify/fuel-applications', requireAuth(['doc_verifier','super_admin']), (req,res) => {
   const { status='pending', category } = req.query;
   let sql = `SELECT a.*, u.mobile, q.score as ai_score, q.verdict as ai_verdict, q.status as ai_status, q.reason as ai_reason
