@@ -306,6 +306,7 @@ async function initDB() {
     `ALTER TABLE users ADD COLUMN qr_image_b64 TEXT`,
     `ALTER TABLE users ADD COLUMN user_code TEXT`,
     `ALTER TABLE users ADD COLUMN fuel_type TEXT DEFAULT 'petrol'`,
+    `ALTER TABLE users ADD COLUMN fuel_alert_pref TEXT`,
     `ALTER TABLE fuel_reports ADD COLUMN report_source TEXT DEFAULT 'user'`,
     `ALTER TABLE fuel_reports ADD COLUMN ev_ports_free TEXT DEFAULT 'unknown'`,
     `ALTER TABLE fuel_reports ADD COLUMN ev_working_status TEXT DEFAULT 'unknown'`,
@@ -3988,7 +3989,18 @@ app.post('/api/push/subscribe', (req, res) => {
     // just without blocking the request if no/invalid token is present.
     const authedUser = getUser(req.headers['x-auth-token']);
     const userId = authedUser?.id || null;
-    const prefsJson = JSON.stringify(fuel_prefs || {});
+
+    // If this user already picked a Fuel Type in Profile Setup, use that
+    // saved preference instead of the generic all-on default — keeps the
+    // single Fuel Type choice as the one source of truth for alerts.
+    let effectivePrefs = fuel_prefs || {};
+    if (userId) {
+      const userRow = dbGet(`SELECT fuel_alert_pref FROM users WHERE id=?`, [userId]);
+      if (userRow?.fuel_alert_pref) {
+        try { effectivePrefs = JSON.parse(userRow.fuel_alert_pref); } catch(e) { /* fall back to default */ }
+      }
+    }
+    const prefsJson = JSON.stringify(effectivePrefs);
 
     dbRun(
       `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, fuel_prefs, radius_km, lat, lng)
@@ -5717,6 +5729,24 @@ app.post('/api/user/complete-profile', requireAuth(), async (req, res) => {
   if (name) dbRun(`UPDATE users SET name=? WHERE id=?`, [name, req.user.id]);
   dbRun(`UPDATE users SET vehicle_number=?, fuel_type=?, profile_complete=1 WHERE id=?`,
     [vehicle_number.toUpperCase(), fuel_type || 'petrol', req.user.id]);
+
+  // ── Derive fuel-alert preference from the single Fuel Type dropdown ──
+  // (no separate preset picker — one choice drives both the QR fuel
+  // category AND which push alerts this user receives). CNG pairs with
+  // Petrol since Indian CNG vehicles are bi-fuel; radius fixed at 50km.
+  const FUEL_ALERT_MAP = {
+    petrol: { petrol:true,  diesel:false, cng:false, ev:false },
+    diesel: { petrol:false, diesel:true,  cng:false, ev:false },
+    cng:    { petrol:true,  diesel:false, cng:true,  ev:false },
+    ev:     { petrol:false, diesel:false, cng:false, ev:true  },
+  };
+  const derivedPrefs = FUEL_ALERT_MAP[fuel_type] || FUEL_ALERT_MAP.petrol;
+  const prefsJson = JSON.stringify(derivedPrefs);
+  dbRun(`UPDATE users SET fuel_alert_pref=? WHERE id=?`, [prefsJson, req.user.id]);
+  // If this user already has an active push subscription (from an earlier
+  // "Enable" tap), update it immediately too — no need to re-subscribe.
+  dbRun(`UPDATE push_subscriptions SET fuel_prefs=?, radius_km=50 WHERE user_id=?`,
+    [prefsJson, req.user.id]);
 
   // Save aadhaar only if provided and valid
   if (aadhaar_number && aadhaar_number.length === 12) {

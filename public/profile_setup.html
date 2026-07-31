@@ -145,41 +145,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </select>
       </div>
     </div>
-    <button class="save-btn" onclick="saveBasic()">🎫 Save & Generate P5 QR Code</button>
+    <button class="save-btn" onclick="saveBasic()">🎫 Save Info & Generate QR</button>
+    <div style="font-size:11px;color:#666;margin-top:6px;text-align:center">
+      🔔 We'll also alert you about matching fuel nearby, based on the Fuel Type above.
+    </div>
     <button class="save-btn" id="findPumpsBtn" onclick="window.location.href='/app'"
       disabled
       style="margin-top:8px;background:#aaa;cursor:not-allowed;opacity:0.55;">
       📍 Find Nearby Pumps
     </button>
-  </div>
-
-  <!-- 🔔 FUEL ALERT PREFERENCES — separate from QR/rationing fuel type above -->
-  <div class="card" id="alert-prefs" style="scroll-margin-top:20px">
-    <div class="card-title">🔔 Fuel Alert Preferences</div>
-    <div style="font-size:12px;color:#666;margin-bottom:10px">
-      Choose your vehicle type — we'll notify you only about matching fuel.
-    </div>
-    <div class="field">
-      <label>Vehicle Preset</label>
-      <select id="alert-preset" onchange="onPresetChange()">
-        <option value="petrol">⛽ Petrol</option>
-        <option value="diesel">🛢️ Diesel</option>
-        <option value="cng">💨 CNG (+ Petrol)</option>
-        <option value="ev">⚡ EV Only</option>
-        <option value="hybrid">🔋 Hybrid (EV + Petrol)</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Alert Radius</label>
-      <select id="alert-radius">
-        <option value="10">10 km</option>
-        <option value="25">25 km</option>
-        <option value="50" selected>50 km (default)</option>
-        <option value="100">100 km</option>
-      </select>
-    </div>
-    <button class="save-btn" onclick="saveAlertPrefs()">💾 Save Alert Preferences</button>
-    <div class="msg-ok" id="ok-alert-prefs" style="display:none">✅ Preferences saved!</div>
   </div>
 
   <!-- ③ AADHAAR — Optional -->
@@ -861,67 +835,6 @@ async function loadProfilePoints() {
   } catch(e) { console.log('Profile points error:', e.message); }
 }
 loadProfilePoints();
-
-// If arriving fresh from tapping "Enable" on the main app page, scroll to
-// and briefly highlight the Fuel Alert Preferences card so it's obvious
-// this is the very next step — keeps subscribe + preferences in sync.
-if (window.location.hash === '#alert-prefs') {
-  window.addEventListener('load', () => {
-    const card = document.getElementById('alert-prefs');
-    if (card) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const originalBg = card.style.background || '';
-      card.style.transition = 'background 0.4s ease';
-      card.style.background = '#fff3cd';
-      setTimeout(() => { card.style.background = originalBg; }, 2200);
-    }
-  });
-}
-
-// ── Fuel Alert Preferences (Step 5) ─────────────────────────────
-// Preset → fuel_prefs mapping, matching the finalized vehicle logic:
-// CNG always paired with Petrol (bi-fuel), Diesel/Petrol/EV standalone,
-// Hybrid = EV+Petrol.
-const ALERT_PRESET_MAP = {
-  petrol: { petrol:true,  diesel:false, cng:false, ev:false },
-  diesel: { petrol:false, diesel:true,  cng:false, ev:false },
-  cng:    { petrol:true,  diesel:false, cng:true,  ev:false },
-  ev:     { petrol:false, diesel:false, cng:false, ev:true  },
-  hybrid: { petrol:true,  diesel:false, cng:false, ev:true  },
-};
-
-function onPresetChange(){
-  // Placeholder for any live preview UI later — mapping applied on save
-}
-
-async function saveAlertPrefs(){
-  if(!TOKEN){
-    alert('Please log in first to save alert preferences.');
-    return;
-  }
-  const preset   = document.getElementById('alert-preset').value;
-  const radiusKm = parseInt(document.getElementById('alert-radius').value) || 50;
-  const fuelPrefs = ALERT_PRESET_MAP[preset] || ALERT_PRESET_MAP.petrol;
-
-  try {
-    const r = await fetch('/api/push/update-prefs', {
-      method: 'POST',
-      headers: { 'x-auth-token': TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fuel_prefs: fuelPrefs, radius_km: radiusKm })
-    });
-    const d = await r.json();
-    const okMsg = document.getElementById('ok-alert-prefs');
-    if(d.success){
-      okMsg.style.display = 'block';
-      setTimeout(()=>{ okMsg.style.display = 'none'; }, 2500);
-    } else {
-      alert(d.error || 'Could not save preferences. Try enabling notifications first from the main app page.');
-    }
-  } catch(e){
-    console.error('[PUSH] Save prefs error:', e.message);
-    alert('Could not save preferences. Check your connection and try again.');
-  }
-}
 </script>
 </body>
 </html>
