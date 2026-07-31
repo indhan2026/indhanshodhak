@@ -715,6 +715,23 @@ function getGridStep(lat, lng) {
   return 0.05; // 5×5km grid for everything else
 }
 
+// ── City-Aware Search Radius ────────────────────────────────────────────
+// Reuses the SAME dense-city bounding boxes as getGridStep() above, but for
+// a different, independent decision: how far to search for pumps at all
+// (not how finely to cache results). Dense cities already have plenty of
+// pumps close by, so keep that search tight; rural/sparse areas need a
+// wider net to return a useful number of results.
+function getSearchRadiusKm(lat, lng) {
+  const activeZones = (getSetting('dense_city_zones') || '').split(',').map(s=>s.trim()).filter(Boolean);
+  for(const cityName of activeZones) {
+    const z = DENSE_ZONES_REF[cityName];
+    if(z && lat >= z.minLat && lat <= z.maxLat && lng >= z.minLng && lng <= z.maxLng) {
+      return 8; // dense city — plenty of pumps already within 8km
+    }
+  }
+  return 25; // rural/sparse area — widen the net (Google Places API max is 50km)
+}
+
 function roundToGrid(val, step) {
   return (Math.round(parseFloat(val) / step) * step).toFixed(2);
 }
@@ -1349,7 +1366,8 @@ async function buildLocationsResult(pin, lat, lng, cacheKey, cacheHours) {
   // STEP 3: Google Places / OSM pump fetch
   let mmiPumps = [];
   if(useLat && useLng) {
-    mmiPumps = await fetchMapMyIndiaPumps(useLat, useLng, 8);
+    const searchRadiusKm = getSearchRadiusKm(useLat, useLng);
+    mmiPumps = await fetchMapMyIndiaPumps(useLat, useLng, searchRadiusKm);
     const dbNames = new Set(dbPumps.map(p => p.name.toLowerCase().replace(/\s+/g,'')));
     mmiPumps = mmiPumps.filter(p => !dbNames.has(p.name.toLowerCase().replace(/\s+/g,'')));
   }
