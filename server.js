@@ -3980,7 +3980,14 @@ app.post('/api/push/subscribe', (req, res) => {
     if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth)
       return res.status(400).json({ error: 'Invalid subscription object' });
 
-    const userId = req.user?.id || null;
+    // FIX: this route has no requireAuth() middleware (intentionally — it
+    // must work whether logged in or not), so req.user was never populated.
+    // Every subscription was silently saved with user_id=NULL, which broke
+    // /api/push/update-prefs later (its UPDATE ... WHERE user_id=? matched
+    // nothing). getUser() does the same token lookup requireAuth() uses,
+    // just without blocking the request if no/invalid token is present.
+    const authedUser = getUser(req.headers['x-auth-token']);
+    const userId = authedUser?.id || null;
     const prefsJson = JSON.stringify(fuel_prefs || {});
 
     dbRun(
@@ -4157,7 +4164,17 @@ app.post('/api/push/update-prefs', requireAuth(), (req, res) => {
       `UPDATE push_subscriptions SET fuel_prefs=?, radius_km=? WHERE user_id=?`,
       [JSON.stringify(fuel_prefs), radius_km || 50, req.user.id]
     );
-    console.log(`[PUSH] Preferences updated for user ${req.user.id}`);
+    // FIX: previously always returned success:true even if zero rows were
+    // affected (e.g. user never actually subscribed, or subscribed before
+    // the user_id-linking fix above). getRowsModified() tells us the truth.
+    const changed = db.getRowsModified();
+    if (changed === 0) {
+      console.log(`[PUSH] Update-prefs: no subscription row found for user ${req.user.id} — nothing changed`);
+      return res.status(404).json({
+        error: 'No active notification subscription found. Please tap "Enable" on the main app page first, then save preferences again.'
+      });
+    }
+    console.log(`[PUSH] Preferences updated for user ${req.user.id} (${changed} row${changed>1?'s':''})`);
     res.json({ success: true });
   } catch(e) {
     console.error('[PUSH] Update-prefs error:', e.message);
