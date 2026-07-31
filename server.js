@@ -4033,6 +4033,34 @@ app.post('/api/push/unsubscribe', (req, res) => {
   }
 });
 
+// ── Diagnostic (admin-only, read-only) ──────────────────────────────────
+// Lists every current push subscription so we can see, at a glance, which
+// rows are missing GPS, have an unexpected fuel_prefs value, or haven't
+// been used recently — instead of guessing blind from device settings.
+// Endpoint truncated for readability/privacy; nothing here can send push.
+app.get('/api/admin/push/diagnostics', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const rows = dbAll(`SELECT id, user_id, endpoint, fuel_prefs, radius_km, lat, lng, created_at, last_used_at
+                        FROM push_subscriptions ORDER BY last_used_at DESC`);
+    const out = rows.map(r => ({
+      id: r.id,
+      user_id: r.user_id,
+      endpoint_short: r.endpoint ? r.endpoint.slice(0, 60) + '...' : null,
+      fuel_prefs: (() => { try { return JSON.parse(r.fuel_prefs || '{}'); } catch(e) { return r.fuel_prefs; } })(),
+      radius_km: r.radius_km,
+      lat: r.lat,
+      lng: r.lng,
+      has_gps: (r.lat !== null && r.lng !== null),
+      created_at: r.created_at,
+      last_used_at: r.last_used_at
+    }));
+    res.json({ total: out.length, subscriptions: out });
+  } catch(e) {
+    console.error('[PUSH] Diagnostics error:', e.message);
+    res.status(500).json({ error: 'Could not fetch diagnostics' });
+  }
+});
+
 // ── Send-side push helpers ─────────────────────────────────────────────
 // sendPushToRow: sends one notification to one subscription row.
 // Auto-cleanup: if the push service confirms the subscription is dead
