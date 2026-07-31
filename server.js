@@ -4072,7 +4072,15 @@ async function sendPushToRow(row, payload) {
     keys: { p256dh: row.p256dh, auth: row.auth }
   };
   try {
-    await webpush.sendNotification(sub, JSON.stringify(payload));
+    // urgency:'high' + TTL asks FCM/the OS to prioritize and wake the
+    // device sooner instead of batching this as low-priority background
+    // traffic — helps with delayed delivery on aggressive battery-saving
+    // OEMs. Does not override a hard OS-level block (denied permission,
+    // "restricted" battery mode), only delivery timing/priority.
+    await webpush.sendNotification(sub, JSON.stringify(payload), {
+      urgency: 'high',
+      TTL: 3600 // give up after 1 hour if device is fully offline
+    });
     return true;
   } catch(e) {
     if (e.statusCode === 410 || e.statusCode === 404) {
