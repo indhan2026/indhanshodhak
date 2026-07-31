@@ -154,7 +154,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <!-- 🔔 FUEL ALERT PREFERENCES — separate from QR/rationing fuel type above -->
-  <div class="card">
+  <div class="card" id="alert-prefs" style="scroll-margin-top:20px">
     <div class="card-title">🔔 Fuel Alert Preferences</div>
     <div style="font-size:12px;color:#666;margin-bottom:10px">
       Choose your vehicle type — we'll notify you only about matching fuel.
@@ -861,6 +861,22 @@ async function loadProfilePoints() {
   } catch(e) { console.log('Profile points error:', e.message); }
 }
 loadProfilePoints();
+
+// If arriving fresh from tapping "Enable" on the main app page, scroll to
+// and briefly highlight the Fuel Alert Preferences card so it's obvious
+// this is the very next step — keeps subscribe + preferences in sync.
+if (window.location.hash === '#alert-prefs') {
+  window.addEventListener('load', () => {
+    const card = document.getElementById('alert-prefs');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const originalBg = card.style.background || '';
+      card.style.transition = 'background 0.4s ease';
+      card.style.background = '#fff3cd';
+      setTimeout(() => { card.style.background = originalBg; }, 2200);
+    }
+  });
+}
 
 // ── Fuel Alert Preferences (Step 5) ─────────────────────────────
 // Preset → fuel_prefs mapping, matching the finalized vehicle logic:

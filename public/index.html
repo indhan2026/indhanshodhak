@@ -2201,6 +2201,11 @@ async function subscribeToPush() {
 
     if (banner) banner.style.display = 'none';
     console.log('[PUSH] Subscribed successfully');
+
+    // Redirect straight to Fuel Alert Preferences so the user picks their
+    // real vehicle type immediately — avoids the mismatch where someone
+    // subscribes with the "all fuels on" default and never configures it.
+    window.location.href = '/profile_setup#alert-prefs';
   } catch (e) {
     console.error('[PUSH] Subscribe error:', e);
   }
