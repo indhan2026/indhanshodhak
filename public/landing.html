@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+  // Installed-app users (TWA/PWA standalone mode) should never see this
+  // marketing landing page — they already know the product. Redirect
+  // straight to /app before anything renders. Regular browser tabs
+  // (display-mode: browser) are unaffected — new visitors still see
+  // the full landing page as intended.
+  if (window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true) {
+    window.location.replace('/app');
+  }
+</script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#138808">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
