@@ -13,7 +13,8 @@ const multer     = require('multer');
 const fs         = require('fs');
 const nodemailer = require('nodemailer');
 const webpush    = require('web-push');
-const admin      = require('firebase-admin');
+const { initializeApp: initFirebaseApp, cert } = require('firebase-admin/app');
+const { getMessaging } = require('firebase-admin/messaging');
 
 // ── Push Notifications (VAPID) ────────────────────────────────
 // Keys generated once via `npx web-push generate-vapid-keys`, stored as
@@ -37,7 +38,7 @@ try {
     ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
     : null;
   if (svcAccount && svcAccount.project_id) {
-    admin.initializeApp({ credential: admin.credential.cert(svcAccount) });
+    initFirebaseApp({ credential: cert(svcAccount) });
     firebaseReady = true;
     console.log('[FCM] Firebase Admin SDK initialized ✅');
   } else {
@@ -4165,7 +4166,7 @@ async function sendPushToAll(payload) {
 async function sendFCMToToken(row, payload) {
   if (!firebaseReady) return false;
   try {
-    await admin.messaging().send({
+    await getMessaging().send({
       token: row.fcm_token,
       notification: { title: payload.title, body: payload.body },
       data: { url: payload.url || '/app', tag: payload.tag || 'fuel-alert' },
