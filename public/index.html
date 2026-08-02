@@ -2220,6 +2220,93 @@ async function subscribeToPush() {
   }
 })();
 
+// ── Capacitor Native Push Notifications (FCM) ────────────────────────────
+// Runs ONLY when app is inside Capacitor wrapper (native Android APK).
+// When running in browser or TWA → Capacitor is absent → this block is
+// silently skipped and the existing web-push (VAPID) path above handles push.
+window.addEventListener('load', function() {
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    initCapacitorPush();
+  }
+});
+
+async function initCapacitorPush() {
+  try {
+    const PushNotifications = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+    if (!PushNotifications) {
+      console.log('[CAP-PUSH] Plugin not available');
+      return;
+    }
+
+    // Request permission from OS
+    const permResult = await PushNotifications.requestPermissions();
+    if (permResult.receive !== 'granted') {
+      console.log('[CAP-PUSH] Permission denied by user');
+      return;
+    }
+
+    // Register with FCM — triggers 'registration' event with token
+    await PushNotifications.register();
+
+    // FCM token received — send to IndhanShodhak server
+    PushNotifications.addListener('registration', async (token) => {
+      console.log('[CAP-PUSH] FCM token received ✅');
+
+      // Get GPS location best-effort (3s timeout, non-blocking)
+      let lat = null, lng = null;
+      if (navigator.geolocation) {
+        await new Promise(resolve => {
+          navigator.geolocation.getCurrentPosition(
+            pos => { lat = pos.coords.latitude; lng = pos.coords.longitude; resolve(); },
+            () => resolve(),
+            { timeout: 3000 }
+          );
+        });
+      }
+
+      // Register token with server
+      try {
+        await fetch('/api/push/fcm-subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(typeof TOKEN !== 'undefined' && TOKEN ? { 'x-auth-token': TOKEN } : {})
+          },
+          body: JSON.stringify({
+            fcm_token: token.value,
+            fuel_prefs: { petrol: true, diesel: true, cng: true, ev: true },
+            radius_km: 50,
+            lat, lng
+          })
+        });
+        console.log('[CAP-PUSH] Token registered with server ✅');
+      } catch(e) {
+        console.error('[CAP-PUSH] Token registration error:', e);
+      }
+    });
+
+    // Registration failure — log only, no crash
+    PushNotifications.addListener('registrationError', (err) => {
+      console.error('[CAP-PUSH] FCM registration error:', JSON.stringify(err));
+    });
+
+    // Notification received while app is open (foreground)
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      console.log('[CAP-PUSH] Notification received:', notification.title);
+    });
+
+    // Notification tapped — navigate to URL if provided
+    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      const url = action.notification && action.notification.data && action.notification.data.url;
+      if (url) window.location.href = url;
+    });
+
+  } catch(e) {
+    console.error('[CAP-PUSH] Init error:', e);
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────
+
 </script>
 </body>
 </html>

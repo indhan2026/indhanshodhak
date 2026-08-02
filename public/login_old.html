@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Login</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#1a6b2e,#0d3d1a);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:white;border-radius:20px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.logo-bar{background:#1a6b2e;padding:20px;text-align:center}
+.logo-icon{font-size:40px;margin-bottom:6px}
+.logo-title{color:white;font-size:20px;font-weight:700}
+.logo-sub{color:rgba(255,255,255,.8);font-size:12px;margin-top:2px}
+.form-area{padding:24px 20px 28px}
+.step-title{font-size:16px;font-weight:600;color:#333;margin-bottom:4px}
+.form-label{font-size:12px;font-weight:600;color:#555;margin-bottom:5px;display:block}
+.form-input{width:100%;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:12px;font-size:15px;background:#f9f9f9;outline:none;transition:border-color .2s;margin-bottom:14px}
+.form-input:focus{border-color:#1a6b2e;background:white}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;background:#1a6b2e;color:white}
+.btn:disabled{background:#aaa;cursor:not-allowed}
+.err{background:#ffebee;color:#b71c1c;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none}
+.user-link{text-align:center;font-size:12px;color:#888;margin-top:8px}
+.user-link a{color:#1a6b2e;font-weight:600;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo-bar">
+    <div class="logo-icon">⛽</div>
+    <div class="logo-title">IndhanShodhak</div>
+    <div class="logo-sub">इंधन उपलब्धता शोधा · India's Fuel Finder</div>
+  </div>
+  <div class="form-area">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:22px;font-weight:700;color:#1a6b2e">Login</div>
+      <div style="font-size:12px;color:#aaa;margin-top:4px">Select your role below</div>
+    </div>
+    <!-- Role Cards with inline login dropdowns -->
+    <div>
+      <div style="font-size:11px;color:#aaa;text-align:center;margin-bottom:10px;font-weight:600;letter-spacing:.5px">SELECT YOUR ROLE</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+
+        <!-- Regular User — direct redirect -->
+        <div onclick="window.location.href='/otp_login.html'"
+          style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+          background:#e8f5e9;border-radius:12px;cursor:pointer;color:#1b5e20;transition:opacity .2s"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          <span style="font-size:20px">👤</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">Regular User</div>
+            <div style="font-size:11px;opacity:.7">Login with mobile OTP · Search pumps · Get QR</div>
+          </div>
+          <span style="font-size:14px">→</span>
+        </div>
+
+        <!-- Pump Owner — inline dropdown login -->
+        <div>
+          <div onclick="toggleCard('pump')"
+            style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+            background:#fff3e0;border-radius:12px;cursor:pointer;color:#e65100;transition:opacity .2s"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <span style="font-size:20px">⛽</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">Pump Owner</div>
+              <div style="font-size:11px;opacity:.7">Update fuel stock · Manage your pump</div>
+            </div>
+            <span id="arr-pump" style="font-size:14px;transition:transform .2s">▼</span>
+          </div>
+          <div id="card-pump" style="display:none;background:#fff8f0;border-radius:0 0 12px 12px;
+            padding:12px 14px;border:1.5px solid #ffe0b2;border-top:none;margin-top:-4px">
+            <input id="pump-id" type="text" placeholder="Login ID"
+              style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+              font-size:13px;margin-bottom:8px;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#e65100'" onblur="this.style.borderColor='#e0e0e0'">
+            <input id="pump-pwd" type="password" placeholder="Password"
+              style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+              font-size:13px;margin-bottom:10px;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#e65100'" onblur="this.style.borderColor='#e0e0e0'"
+              onkeypress="if(event.key==='Enter')roleLogin('pump')">
+            <button onclick="roleLogin('pump')"
+              style="width:100%;padding:9px;background:#e65100;color:white;border:none;
+              border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">
+              ⛽ Login as Pump Owner
+            </button>
+            <div id="pump-err" style="color:#b71c1c;font-size:12px;margin-top:6px;display:none"></div>
+            <div style="text-align:center;margin-top:8px;">
+              <a href="#" onclick="showForgotPwd();return false;"
+                 style="font-size:11px;color:#e65100;text-decoration:none;border-bottom:1px dashed #e65100;">
+                🔑 Forgot Password?
+              </a>
+            </div>
+            <div style="text-align:center;margin-top:10px;padding-top:10px;border-top:1px solid #ffe0b2">
+              <span style="font-size:12px;color:#888">New pump owner? </span>
+              <a href="/pump-signup" style="font-size:12px;font-weight:700;color:#e65100;text-decoration:none">
+                📝 Register Your Pump →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Govt Official — inline dropdown login -->
+        <div>
+          <div onclick="toggleCard('govt')"
+            style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+            background:#e3f2fd;border-radius:12px;cursor:pointer;color:#1565c0;transition:opacity .2s"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <span style="font-size:20px">🏛️</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">Govt Official</div>
+              <div style="font-size:11px;opacity:.7">View district dashboard · Export reports</div>
+            </div>
+            <span id="arr-govt" style="font-size:14px;transition:transform .2s">▼</span>
+          </div>
+          <div id="card-govt" style="display:none;background:#f0f7ff;border-radius:0 0 12px 12px;
+            padding:12px 14px;border:1.5px solid #bbdefb;border-top:none;margin-top:-4px">
+            <input id="govt-id" type="text" placeholder="Govt Login ID"
+              style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+              font-size:13px;margin-bottom:8px;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#1565c0'" onblur="this.style.borderColor='#e0e0e0'">
+            <input id="govt-pwd" type="password" placeholder="Password"
+              style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+              font-size:13px;margin-bottom:10px;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#1565c0'" onblur="this.style.borderColor='#e0e0e0'"
+              onkeypress="if(event.key==='Enter')roleLogin('govt')">
+            <button onclick="roleLogin('govt')"
+              style="width:100%;padding:9px;background:#1565c0;color:white;border:none;
+              border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">
+              🏛️ Login as Govt Official
+            </button>
+            <div id="govt-err" style="color:#b71c1c;font-size:12px;margin-top:6px;display:none"></div>
+          </div>
+        </div>
+
+        <!-- Document Verifier — inline dropdown login -->
+        <div>
+          <div onclick="toggleCard('verify')"
+            style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+            background:#f3e5f5;border-radius:12px;cursor:pointer;color:#6a1b9a;transition:opacity .2s"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <span style="font-size:20px">🔍</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">Document Verifier</div>
+              <div style="font-size:11px;opacity:.7">Verify pump & user documents</div>
+            </div>
+            <span id="arr-verify" style="font-size:14px;transition:transform .2s">▼</span>
+          </div>
+          <div id="card-verify" style="display:none;background:#fdf5ff;border-radius:0 0 12px 12px;
+            padding:12px 14px;border:1.5px solid #e1bee7;border-top:none;margin-top:-4px">
+            <input id="verify-id" type="text" placeholder="Verifier Login ID"
+              style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+              font-size:13px;margin-bottom:8px;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#6a1b9a'" onblur="this.style.borderColor='#e0e0e0'">
+            <input id="verify-pwd" type="password" placeholder="Password"
+              style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+              font-size:13px;margin-bottom:10px;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#6a1b9a'" onblur="this.style.borderColor='#e0e0e0'"
+              onkeypress="if(event.key==='Enter')roleLogin('verify')">
+            <button onclick="roleLogin('verify')"
+              style="width:100%;padding:9px;background:#6a1b9a;color:white;border:none;
+              border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">
+              🔍 Login as Verifier
+            </button>
+            <div id="verify-err" style="color:#b71c1c;font-size:12px;margin-top:6px;display:none"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Check if already logged in
+const existingToken = localStorage.getItem('indhan_token');
+const existingRole  = localStorage.getItem('indhan_role');
+if(existingToken && existingRole === 'super_admin') window.location.replace('/admin');
+else if(existingToken && existingRole === 'doc_verifier') window.location.replace('/verify');
+else if(existingToken && existingRole === 'pump_owner') window.location.replace('/pump-owner');
+
+const params = new URLSearchParams(window.location.search);
+const redirect = params.get('redirect') || null;
+
+// Toggle role card dropdown
+function toggleCard(role){
+  const roles = ['pump','govt','verify'];
+  roles.forEach(r => {
+    const card = document.getElementById('card-'+r);
+    const arr  = document.getElementById('arr-'+r);
+    if(r === role){
+      const isOpen = card.style.display !== 'none';
+      card.style.display = isOpen ? 'none' : 'block';
+      arr.style.transform = isOpen ? '' : 'rotate(180deg)';
+      if(!isOpen) document.getElementById(r+'-id').focus();
+    } else {
+      card.style.display = 'none';
+      arr.style.transform = '';
+    }
+  });
+}
+
+// Role-specific login
+async function roleLogin(role){
+  const loginId = document.getElementById(role+'-id').value.trim();
+  const pwd     = document.getElementById(role+'-pwd').value.trim();
+  const errEl   = document.getElementById(role+'-err');
+  errEl.style.display = 'none';
+  if(!loginId||!pwd){ errEl.textContent='Enter Login ID and password'; errEl.style.display='block'; return; }
+  try {
+    const r = await fetch('/api/auth/login',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mobile:loginId, password:pwd})
+    });
+    const d = await r.json();
+    if(d.token){
+      localStorage.setItem('indhan_token', d.token);
+      localStorage.setItem('indhan_role',  d.role);
+      localStorage.setItem('indhan_name',  d.name||'');
+      localStorage.setItem('indhan_admin_id', loginId);
+      // Redirect based on role
+      if(d.role==='pump_owner')   window.location.replace('/pump-owner');
+      else if(d.role==='govt_official') window.location.replace('/govt');
+      else if(d.role==='doc_verifier')  window.location.replace('/verify');
+      else if(d.role==='super_admin')   window.location.replace('/admin');
+      else window.location.replace('/');
+    } else {
+      errEl.textContent = d.error||'Wrong credentials. Try again.';
+      errEl.style.display='block';
+    }
+  } catch(e){
+    errEl.textContent='Server error. Try again.';
+    errEl.style.display='block';
+  }
+}
+
+// doLogin removed — using roleLogin() for all roles
+</script>
+
+<!-- FORGOT PASSWORD POPUP -->
+<div id="fp-overlay" onclick="hideForgotPwd(event)" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;position:relative;box-shadow:0 24px 60px rgba(0,0,0,0.3);animation:fpPop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;">
+    <button onclick="hideForgotPwd()" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.1rem;cursor:pointer;color:#aaa;">✕</button>
+    <div style="font-size:2rem;margin-bottom:12px;">🔑</div>
+    <div style="font-size:1rem;font-weight:700;color:#1a6b2e;margin-bottom:8px;">Forgot Your Password?</div>
+    <div style="font-size:0.82rem;color:#555;line-height:1.7;margin-bottom:14px;">
+      No worries! When you registered your pump on IndhanShodhak, we sent your
+      <strong>Login ID and Password</strong> to your registered email address.
+    </div>
+    <div style="background:#fff8f0;border:1px solid #ffe0b2;border-radius:10px;padding:12px 14px;font-size:0.78rem;color:#555;margin-bottom:18px;line-height:1.7;">
+      📧 Please check your <strong>email inbox</strong> including <strong>Spam / Junk</strong> folder
+      for an email from <strong>noreply@indhanshodhak.in</strong><br><br>
+      💡 <strong>Tip:</strong> Never delete that email — it contains your login credentials for future reference.
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="hideForgotPwd()" style="flex:1;padding:11px;background:#1a6b2e;color:#fff;font-weight:700;font-size:0.85rem;border:none;border-radius:10px;cursor:pointer;">✅ Got It!</button>
+      <a href="mailto:indhanshodhak@gmail.com?subject=Password%20Help%20-%20IndhanShodhak&body=Hi%2C%20I%20need%20help%20accessing%20my%20pump%20owner%20account.%0A%0ARegistered%20Email%3A%20%0APump%20Name%3A%20%0ACity%3A%20"
+         style="flex:1;padding:11px;background:#f5f5f5;color:#333;font-weight:600;font-size:0.85rem;border:1px solid #ddd;border-radius:10px;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px;">
+        📧 Need Help?
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes fpPop {
+  from { transform:scale(0.85);opacity:0; }
+  to   { transform:scale(1);opacity:1; }
+}
+</style>
+
+<script>
+function showForgotPwd() {
+  const el = document.getElementById('fp-overlay');
+  el.style.display = 'flex';
+}
+function hideForgotPwd(e) {
+  if (!e || e.target === document.getElementById('fp-overlay')) {
+    document.getElementById('fp-overlay').style.display = 'none';
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideForgotPwd();
+});
+</script>
+
+</body>
+</html>

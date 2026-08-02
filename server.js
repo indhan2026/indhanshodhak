@@ -13,6 +13,7 @@ const multer     = require('multer');
 const fs         = require('fs');
 const nodemailer = require('nodemailer');
 const webpush    = require('web-push');
+const admin      = require('firebase-admin');
 
 // ── Push Notifications (VAPID) ────────────────────────────────
 // Keys generated once via `npx web-push generate-vapid-keys`, stored as
@@ -25,6 +26,25 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
   console.log('[PUSH] VAPID configured ✅');
 } else {
   console.log('[PUSH] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — push sending disabled until added to env vars');
+}
+
+// ── Firebase Admin SDK (FCM for Capacitor native push) ────────────────────
+// FIREBASE_SERVICE_ACCOUNT env var = full JSON content of service account key
+// If not set → FCM sending skipped safely, web-push still works normally
+let firebaseReady = false;
+try {
+  const svcAccount = process.env.FIREBASE_SERVICE_ACCOUNT
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+    : null;
+  if (svcAccount && svcAccount.project_id) {
+    admin.initializeApp({ credential: admin.credential.cert(svcAccount) });
+    firebaseReady = true;
+    console.log('[FCM] Firebase Admin SDK initialized ✅');
+  } else {
+    console.log('[FCM] FIREBASE_SERVICE_ACCOUNT not set — FCM sending disabled until added to Render env vars');
+  }
+} catch(e) {
+  console.error('[FCM] Firebase Admin init error:', e.message);
 }
 
 const app  = express();
@@ -476,6 +496,18 @@ async function initDB() {
       p256dh       TEXT NOT NULL,
       auth         TEXT NOT NULL,
       fuel_prefs   TEXT DEFAULT '{}',
+      radius_km    INTEGER DEFAULT 50,
+      lat          REAL,
+      lng          REAL,
+      created_at   TEXT DEFAULT (datetime('now')),
+      last_used_at TEXT DEFAULT (datetime('now'))
+    )`,
+    // ── FCM tokens for Capacitor native Android push ──────────────────────
+    `CREATE TABLE IF NOT EXISTS fcm_tokens (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER,
+      fcm_token    TEXT UNIQUE NOT NULL,
+      fuel_prefs   TEXT DEFAULT '{"petrol":true,"diesel":true,"cng":true,"ev":true}',
       radius_km    INTEGER DEFAULT 50,
       lat          REAL,
       lng          REAL,
@@ -4128,6 +4160,77 @@ async function sendPushToAll(payload) {
   return { sent, failed, total: rows.length };
 }
 
+// ── FCM: send one notification to one Capacitor native device ────────────
+// Auto-cleanup: invalid/unregistered tokens are deleted on first failure.
+async function sendFCMToToken(row, payload) {
+  if (!firebaseReady) return false;
+  try {
+    await admin.messaging().send({
+      token: row.fcm_token,
+      notification: { title: payload.title, body: payload.body },
+      data: { url: payload.url || '/app', tag: payload.tag || 'fuel-alert' },
+      android: {
+        priority: 'high',
+        notification: { tag: payload.tag || 'fuel-alert', channelId: 'fuel_alerts' }
+      }
+    });
+    return true;
+  } catch(e) {
+    // Token no longer valid — remove it
+    if (
+      e.code === 'messaging/registration-token-not-registered' ||
+      e.code === 'messaging/invalid-registration-token'
+    ) {
+      dbRun(`DELETE FROM fcm_tokens WHERE fcm_token=?`, [row.fcm_token]);
+      console.log('[FCM] Dead token removed');
+    } else {
+      console.error('[FCM] Send error:', e.code || '', e.message);
+    }
+    return false;
+  }
+}
+
+// Register or refresh an FCM token from the Capacitor native app.
+// Called once on app launch after FCM registration succeeds.
+app.post('/api/push/fcm-subscribe', async (req, res) => {
+  try {
+    const { fcm_token, fuel_prefs, radius_km, lat, lng } = req.body;
+    if (!fcm_token) return res.status(400).json({ error: 'fcm_token required' });
+
+    // Identify user if logged in (optional — anonymous tokens also stored)
+    let user_id = null;
+    const authHeader = req.headers['x-auth-token'];
+    if (authHeader) {
+      try {
+        const sess = dbGet(`SELECT user_id FROM sessions WHERE token=? AND expires_at > datetime('now')`, [authHeader]);
+        if (sess) user_id = sess.user_id;
+      } catch(e) {}
+    }
+
+    const prefsStr = fuel_prefs ? JSON.stringify(fuel_prefs) : '{"petrol":true,"diesel":true,"cng":true,"ev":true}';
+    const radiusVal = parseInt(radius_km) || 50;
+
+    // Upsert: insert or update existing token row
+    dbRun(`
+      INSERT INTO fcm_tokens (user_id, fcm_token, fuel_prefs, radius_km, lat, lng, last_used_at)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(fcm_token) DO UPDATE SET
+        user_id      = excluded.user_id,
+        fuel_prefs   = excluded.fuel_prefs,
+        radius_km    = excluded.radius_km,
+        lat          = excluded.lat,
+        lng          = excluded.lng,
+        last_used_at = datetime('now')
+    `, [user_id, fcm_token, prefsStr, radiusVal, lat || null, lng || null]);
+
+    console.log(`[FCM] Token registered — user:${user_id || 'anon'} lat:${lat} lng:${lng}`);
+    res.json({ success: true });
+  } catch(e) {
+    console.error('[FCM] Subscribe error:', e.message);
+    res.status(500).json({ error: 'FCM subscribe failed: ' + e.message });
+  }
+});
+
 // ── Step 6: Real fuel-update trigger — "fuel available nearby" ─────────
 // Straight-line distance in km between two lat/lng points.
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -4192,6 +4295,28 @@ async function notifyNearbyForFuelUpdate(pump, reportedFields) {
     }
     pumpNotifyCooldown.set(pump.id, Date.now());
     console.log(`[PUSH] Fuel-nearby alert — pump:${pump.id} (${pump.name}) matched:${matched.length} sent:${sent} failed:${failed}`);
+
+    // ── FCM: also notify Capacitor native app users ──────────────────────
+    if (firebaseReady) {
+      const fcmRows = dbAll(`SELECT * FROM fcm_tokens WHERE lat IS NOT NULL AND lng IS NOT NULL`);
+      const fcmMatched = fcmRows.filter(row => {
+        let prefs;
+        try { prefs = JSON.parse(row.fuel_prefs || '{}'); } catch(e) { prefs = {}; }
+        const fuelMatches = availableFuels.some(f => prefs[f]);
+        if (!fuelMatches) return false;
+        const dist = haversineKm(pump.lat, pump.lng, row.lat, row.lng);
+        return dist <= (row.radius_km || 50);
+      });
+      let fcmSent = 0, fcmFailed = 0;
+      for (const row of fcmMatched) {
+        const ok = await sendFCMToToken(row, payload);
+        ok ? fcmSent++ : fcmFailed++;
+      }
+      if (fcmMatched.length > 0) {
+        console.log(`[FCM] Fuel-nearby alert — matched:${fcmMatched.length} sent:${fcmSent} failed:${fcmFailed}`);
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
   } catch(e) {
     console.error('[PUSH] notifyNearbyForFuelUpdate error:', e.message);
   }

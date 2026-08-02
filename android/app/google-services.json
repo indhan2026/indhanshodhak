@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "10410470693",
+    "project_id": "indhanshodhak-3794e",
+    "storage_bucket": "indhanshodhak-3794e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:10410470693:android:7180c533e9deae96b83ecc",
+        "android_client_info": {
+          "package_name": "in.indhanshodhak.twa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpDzkijNH5VLdgB6j53wBv3DPSDC24uao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

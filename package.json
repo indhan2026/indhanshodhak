@@ -7,8 +7,13 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/push-notifications": "^8.1.2",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
+    "firebase-admin": "^14.2.0",
     "multer": "^2.0.0",
     "nodemailer": "^6.9.13",
     "qrcode": "^1.5.3",

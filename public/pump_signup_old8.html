@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>IndhanShodhak — Register Your Pump</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,#1a3a1a,#0d2d0d);min-height:100vh;padding:16px}
+.card{background:white;border-radius:20px;width:100%;max-width:480px;
+  margin:0 auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.top-bar{background:#e65100;padding:20px;text-align:center}
+.logo{font-size:36px;margin-bottom:6px}
+.title{color:white;font-size:18px;font-weight:700}
+.sub{color:rgba(255,255,255,.85);font-size:12px;margin-top:4px}
+.body{padding:20px}
+.section{margin-bottom:20px}
+.section-title{font-size:13px;font-weight:700;color:#e65100;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;
+  padding-bottom:6px;border-bottom:2px solid #fff3e0}
+.form-label{font-size:12px;font-weight:600;color:#555;margin-bottom:4px;display:block}
+.form-input{width:100%;padding:11px 13px;border:1.5px solid #e0e0e0;
+  border-radius:10px;font-size:14px;background:#f9f9f9;outline:none;
+  transition:border-color .2s;margin-bottom:10px}
+.form-input:focus{border-color:#e65100;background:white}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Map search */
+.map-search-box{background:#fff8f0;border:2px solid #e65100;border-radius:14px;
+  padding:14px;margin-bottom:16px}
+.map-search-title{font-size:13px;font-weight:700;color:#e65100;margin-bottom:8px}
+.search-input-wrap{display:flex;gap:8px}
+.map-search-input{flex:1;padding:10px 12px;border:1.5px solid #e0e0e0;
+  border-radius:10px;font-size:14px;outline:none}
+.map-search-input:focus{border-color:#e65100}
+.search-btn{padding:10px 14px;background:#e65100;color:white;border:none;
+  border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pump-results{margin-top:10px;max-height:220px;overflow-y:auto}
+.pump-result-item{padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;
+  margin-bottom:6px;cursor:pointer;transition:all .2s}
+.pump-result-item:hover{border-color:#e65100;background:#fff3e0}
+.pump-result-item.selected{border-color:#1a6b2e;background:#e8f5e9}
+.result-name{font-size:13px;font-weight:600;color:#333}
+.result-addr{font-size:11px;color:#888;margin-top:2px}
+.manual-link{text-align:center;margin-top:8px}
+.manual-link button{background:none;border:none;color:#e65100;font-size:12px;
+  font-weight:600;cursor:pointer;text-decoration:underline}
+.selected-pump-badge{background:#e8f5e9;border:1.5px solid #1a6b2e;border-radius:10px;
+  padding:10px 12px;margin-bottom:12px;font-size:12px;color:#1b5e20}
+
+/* Doc cards */
+.doc-card{background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:12px;
+  padding:12px;margin-bottom:10px;transition:border-color .2s}
+.doc-card.uploaded{border-color:#1a6b2e;background:#f0f9f0}
+.doc-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.doc-icon{font-size:22px}
+.doc-name{font-size:13px;font-weight:600;color:#333}
+.doc-hint{font-size:11px;color:#888;margin-top:2px}
+.doc-badge{font-size:10px;color:#e65100;font-weight:600;margin-top:2px}
+.choose-btn{display:inline-block;padding:7px 14px;background:#e65100;
+  color:white;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+.file-name{font-size:12px;color:#888;margin-top:6px}
+.file-name.ok{color:#1a6b2e;font-weight:600}
+.submit-btn{width:100%;padding:14px;background:#e65100;color:white;
+  border:none;border-radius:12px;font-size:15px;font-weight:700;
+  cursor:pointer;margin-top:4px}
+.submit-btn:disabled{background:#aaa;cursor:not-allowed}
+.err{background:#ffebee;color:#b71c1c;padding:10px 12px;border-radius:10px;
+  font-size:13px;margin-bottom:12px;display:none}
+.ok-msg{background:#e8f5e9;color:#1b5e20;padding:12px;border-radius:10px;
+  font-size:13px;margin-bottom:12px;display:none;line-height:1.6}
+.info-box{background:#fff3e0;border-radius:10px;padding:12px;
+  margin-bottom:16px;font-size:12px;color:#e65100;line-height:1.7}
+.back-link{text-align:center;margin-top:14px}
+.back-link a{color:#e65100;font-size:13px;font-weight:600;text-decoration:none}
+.coords-badge{font-size:11px;color:#1b5e20;background:#e8f5e9;
+  padding:4px 8px;border-radius:6px;display:inline-block;margin-bottom:8px}
+
+/* Station type toggle */
+.type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border:2px solid #e65100;border-radius:14px;overflow:hidden;margin-bottom:20px}
+.type-btn{padding:13px;text-align:center;font-size:14px;font-weight:700;
+  cursor:pointer;border:none;background:#fff3e0;color:#e65100;transition:all .2s}
+.type-btn.active{background:#e65100;color:white}
+
+/* EV proof toggle */
+.ev-proof-toggle{display:grid;grid-template-columns:1fr 1fr;gap:0;border:2px solid #1565c0;border-radius:10px;overflow:hidden;margin-bottom:10px}
+.ev-proof-btn{padding:10px;text-align:center;font-size:12px;font-weight:700;cursor:pointer;border:none;background:#e3f2fd;color:#1565c0;transition:all .2s}
+.ev-proof-btn.active{background:#1565c0;color:white}
+
+/* EV section */
+.ev-section{display:none}
+.ev-section.visible{display:block}
+.fuel-section{display:block}
+.fuel-section.hidden{display:none}
+.ev-info-box{background:#e8f5e9;border:1.5px solid #1a6b2e;border-radius:10px;
+  padding:12px;margin-bottom:16px;font-size:12px;color:#1b5e20;line-height:1.7}
+.checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.checkbox-item{display:flex;align-items:center;gap:6px;font-size:13px;color:#333;
+  background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:8px;padding:8px 10px;
+  cursor:pointer;transition:all .2s}
+.checkbox-item input[type=checkbox]{width:16px;height:16px;accent-color:#1a6b2e}
+.checkbox-item:has(input:checked){background:#e8f5e9;border-color:#1a6b2e;color:#1b5e20}
+.radio-group{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.radio-item{display:flex;align-items:center;gap:5px;font-size:13px;color:#333;
+  background:#f9f9f9;border:1.5px solid #e0e0e0;border-radius:8px;padding:8px 12px;
+  cursor:pointer;transition:all .2s}
+.radio-item input[type=radio]{accent-color:#1a6b2e}
+.radio-item:has(input:checked){background:#e8f5e9;border-color:#1a6b2e;color:#1b5e20}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top-bar">
+    <div class="logo" id="topLogo">⛽</div>
+    <div class="title" id="topTitle">Register Your Petrol Pump</div>
+    <div class="sub">IndhanShodhak · Document Verification Required</div>
+  </div>
+  <div class="body">
+
+    <!-- STATION TYPE TOGGLE -->
+    <div class="type-toggle">
+      <button class="type-btn active" id="btnFuel" onclick="switchType('fuel')">⛽ CNG / Petrol / Diesel</button>
+      <button class="type-btn" id="btnEV" onclick="switchType('ev')">⚡ EV Charging Station</button>
+    </div>
+
+    <div class="info-box" id="fuelInfoBox">
+      📋 <b>How it works:</b><br>
+      1️⃣ Search your pump on map OR enter manually<br>
+      2️⃣ Upload documents · Verifier reviews in 48hrs<br>
+      3️⃣ Approval → Login ID + Password sent to email<br>
+      4️⃣ Login → Update fuel stock → Green tick on map!
+    </div>
+
+    <div class="ev-info-box ev-section" id="evInfoBox">
+      ⚡ <b>EV Charging Station Registration:</b><br>
+      1️⃣ Find your station on map<br>
+      2️⃣ Fill charger details + upload ID proof<br>
+      3️⃣ Verified within 48hrs → appear on IndhanShodhak map<br>
+      4️⃣ Login anytime to update port availability
+    </div>
+
+    <div class="err" id="errMsg"></div>
+    <div class="ok-msg" id="okMsg"></div>
+
+    <!-- STEP 1: Find pump via GPS map -->
+    <div class="map-search-box">
+      <div class="map-search-title">🗺️ Step 1: Find Your Pump on Map</div>
+      <div style="font-size:11px;color:#888;margin-bottom:8px">
+        Tap "📍 Find Nearby Pumps" to auto-detect your location and show pumps near you.
+        Select your pump from the list, or search by name.
+      </div>
+
+      <!-- GPS + Search toggle -->
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button class="search-btn" style="flex:1" onclick="findNearbyPumps()">📍 Find Nearby Pumps</button>
+        <button class="search-btn" style="flex:1;background:#555" onclick="toggleTextSearch()">🔍 Search by Name</button>
+      </div>
+
+      <!-- Text search (hidden by default, shown on toggle) -->
+      <div id="textSearchWrap" style="display:none;margin-bottom:10px">
+        <div class="search-input-wrap">
+          <input class="map-search-input" type="text" id="mapSearch"
+            placeholder="Search: HP Pump Newasa / IOC Shrirampur..."
+            onkeypress="if(event.key==='Enter')searchPumpsOnMap()">
+          <button class="search-btn" onclick="searchPumpsOnMap()">🔍</button>
+        </div>
+      </div>
+
+      <!-- Leaflet Map -->
+      <div id="signup-map" style="height:200px;width:100%;border-radius:10px;margin-bottom:10px;background:#e0e0e0;display:none"></div>
+
+      <div id="searchStatus" style="font-size:11px;color:#888;margin-top:6px"></div>
+
+      <!-- Pump list (from GPS or search) -->
+      <div class="pump-results" id="pumpResults"></div>
+
+      <div class="manual-link">
+        <button onclick="enablePinDrop()">📌 My pump not in list — Drop pin on map</button>
+      </div>
+      <div class="manual-link" style="margin-top:4px">
+        <button onclick="showManualEntry()">✏️ Enter pump details manually (no map)</button>
+      </div>
+    </div>
+
+    <!-- Selected pump badge -->
+    <div id="selectedBadge" style="display:none" class="selected-pump-badge">
+      ✅ <span id="selectedName">—</span><br>
+      📍 <span id="selectedAddr">—</span><br>
+      <span id="coordsBadge" class="coords-badge"></span>
+    </div>
+
+    <!-- Hidden lat/lng fields -->
+    <input type="hidden" id="pumpLat" value="0">
+    <input type="hidden" id="pumpLng" value="0">
+    <input type="hidden" id="googlePlaceId" value="">
+
+    <!-- SECTION 1: Owner Details -->
+    <div class="section">
+      <div class="section-title">👤 Owner Details</div>
+      <label class="form-label">Full Name *</label>
+      <input class="form-input" type="text" id="name" placeholder="Owner's full name">
+      <div class="form-row">
+        <div>
+          <label class="form-label">Mobile Number *</label>
+          <input class="form-input" type="tel" id="mobile" placeholder="10-digit mobile"
+            maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div>
+          <label class="form-label">Email Address *</label>
+          <input class="form-input" type="email" id="email" placeholder="yourname@email.com">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Pump Details (FUEL only) -->
+    <div class="section fuel-section" id="fuelDetailsSection">
+      <div class="section-title">⛽ Pump Details</div>
+      <label class="form-label">Pump Name *</label>
+      <input class="form-input" type="text" id="pumpName" placeholder="e.g. HP Petrol Pump, Newasa">
+      <div class="form-row">
+        <div>
+          <label class="form-label">Oil Company *</label>
+          <select class="form-input" id="oilCompany">
+            <option value="">Select...</option>
+            <option>HP</option><option>BPCL</option><option>IOC</option>
+            <option>Reliance</option><option>Shell</option><option>Nayara</option><option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">PIN Code *</label>
+          <input class="form-input" type="tel" id="pinCode" placeholder="6-digit PIN"
+            maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+      </div>
+      <label class="form-label">Full Address *</label>
+      <input class="form-input" type="text" id="address" placeholder="Village/Town, Taluka, District">
+      <div class="form-row">
+        <div>
+          <label class="form-label">District *</label>
+          <input class="form-input" type="text" id="district" placeholder="e.g. Ahilyanagar">
+        </div>
+        <div>
+          <label class="form-label">State *</label>
+          <input class="form-input" type="text" id="state" value="Maharashtra" placeholder="e.g. Maharashtra">
+        </div>
+      </div>
+      <label class="form-label">Pump License Number *</label>
+      <input class="form-input" type="text" id="licenseNo"
+        placeholder="e.g. MH-HP-2019-00123"
+        oninput="this.value=this.value.toUpperCase()">
+      <div style="font-size:11px;color:#888;margin-top:-6px;margin-bottom:10px">
+        This becomes your Login ID after approval
+      </div>
+    </div>
+
+    <!-- SECTION 2-EV: EV Station Details (EV only) -->
+    <div class="section ev-section" id="evDetailsSection">
+      <div class="section-title">⚡ EV Station Details</div>
+
+      <label class="form-label">Station Name *</label>
+      <input class="form-input" type="text" id="evStationName" placeholder="e.g. Tata Power EV Station, Nashik">
+
+      <div class="form-row">
+        <div>
+          <label class="form-label">PIN Code *</label>
+          <input class="form-input" type="tel" id="evPinCode" placeholder="6-digit PIN"
+            maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div>
+          <label class="form-label">District *</label>
+          <input class="form-input" type="text" id="evDistrict" placeholder="e.g. Pune">
+        </div>
+      </div>
+      <label class="form-label">Full Address *</label>
+      <input class="form-input" type="text" id="evAddress" placeholder="Street, Area, City">
+      <div class="form-row">
+        <div>
+          <label class="form-label">State *</label>
+          <input class="form-input" type="text" id="evState" value="Maharashtra">
+        </div>
+        <div>
+          <label class="form-label">No. of Charging Ports *</label>
+          <input class="form-input" type="number" id="evNumPorts" placeholder="e.g. 2" min="1" max="50">
+        </div>
+      </div>
+
+      <label class="form-label">Charger Types Available *</label>
+      <div class="checkbox-grid">
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="CCS2"> CCS2 (DC Fast)</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="CHAdeMO"> CHAdeMO</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="Type 2 AC"> Type 2 (AC)</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="Bharat AC-001"> Bharat AC-001</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="GB/T"> GB/T (Chinese EV)</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="CCS2+Type2"> CCS2 + Type 2</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="Bharat DC-001"> Bharat DC-001</label>
+        <label class="checkbox-item"><input type="checkbox" name="evChargerType" value="Other"> Other</label>
+      </div>
+
+      <label class="form-label">Charging Speed</label>
+      <div class="radio-group">
+        <label class="radio-item"><input type="radio" name="evSpeed" value="slow_ac"> 🐢 Slow AC</label>
+        <label class="radio-item"><input type="radio" name="evSpeed" value="fast_dc"> ⚡ Fast DC</label>
+        <label class="radio-item"><input type="radio" name="evSpeed" value="both" checked> ✅ Both</label>
+      </div>
+
+      <label class="form-label">Network / Operator</label>
+      <select class="form-input" id="evOperator">
+        <option value="">Select operator...</option>
+        <optgroup label="Oil Company Networks">
+          <option>Tata Power EZ Charge</option>
+          <option>BPCL Pulse</option>
+          <option>HPCL</option>
+          <option>Indian Oil (IOCL)</option>
+          <option>Jio-bp Pulse</option>
+        </optgroup>
+        <optgroup label="Independent Networks">
+          <option>Ather Grid</option>
+          <option>ChargeZone</option>
+          <option>Statiq</option>
+          <option>KAZAM</option>
+          <option>EVRE</option>
+          <option>Glida</option>
+          <option>Fortum (Everon)</option>
+          <option>Zeon Charging</option>
+          <option>EESL</option>
+          <option>MG Motor ZS</option>
+          <option>Exicom</option>
+          <option>BOLT.Earth</option>
+          <option>Volttic</option>
+          <option>ElectricPe</option>
+          <option>Independent / No Network</option>
+          <option>Other</option>
+        </optgroup>
+      </select>
+
+      <label class="form-label">Timing</label>
+      <div class="radio-group">
+        <label class="radio-item"><input type="radio" name="evTiming" value="24x7" checked> 🕐 24x7</label>
+        <label class="radio-item"><input type="radio" name="evTiming" value="limited"> ⏰ Limited Hours</label>
+      </div>
+      <input class="form-input" type="text" id="evTimingHours" placeholder="e.g. 6AM–10PM"
+        style="display:none" oninput="">
+
+      <label class="form-label">Parking While Charging</label>
+      <div class="radio-group">
+        <label class="radio-item"><input type="radio" name="evParking" value="free" checked> 🅿️ Free</label>
+        <label class="radio-item"><input type="radio" name="evParking" value="paid"> 💰 Paid</label>
+        <label class="radio-item"><input type="radio" name="evParking" value="none"> ❌ None</label>
+      </div>
+
+      <label class="form-label">Food Nearby?</label>
+      <div class="radio-group" style="margin-bottom:8px">
+        <label class="radio-item"><input type="radio" name="evFood" value="no" checked onclick="toggleFoodFields(false)"> ❌ No</label>
+        <label class="radio-item"><input type="radio" name="evFood" value="yes" onclick="toggleFoodFields(true)"> 🍽️ Yes</label>
+      </div>
+      <div id="evFoodFields" style="display:none">
+        <input class="form-input" type="text" id="evFoodName" placeholder="e.g. Hotel Sai Darbar">
+        <input class="form-input" type="text" id="evFoodDistance" placeholder="Distance e.g. 50m / 200m">
+      </div>
+    </div>
+
+    <!-- SECTION 3: Documents -->
+    <div class="section">
+      <div class="section-title">📄 Documents (JPG · PNG · PDF accepted)</div>
+
+      <!-- Fuel: license doc (hidden for EV) -->
+      <div class="doc-card fuel-section" id="wrap-license">
+        <div class="doc-top">
+          <span class="doc-icon">📄</span>
+          <div>
+            <div class="doc-name">Pump License Certificate <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">Petroleum Retail License — District Collector issued</div>
+            <div class="doc-badge">📸 JPG · PNG · PDF accepted</div>
+          </div>
+        </div>
+        <label class="choose-btn">📎 Choose File
+          <input type="file" id="doc-license" accept="image/jpeg,image/jpg,image/png,application/pdf" style="display:none"
+            onchange="handleFile(this,'wrap-license','license-name')">
+        </label>
+        <div class="file-name" id="license-name">No file chosen</div>
+      </div>
+
+      <!-- EV: GPS selfie OR electricity bill (replaces ID proof for EV path) -->
+      <div class="doc-card ev-section" id="wrap-ev-proof" style="border-color:#1565c0">
+        <div class="doc-top">
+          <span class="doc-icon">📍</span>
+          <div>
+            <div class="doc-name" style="color:#1565c0">Location Proof <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">Upload <b>ANY ONE</b> — GPS Selfie at station OR Electricity Bill</div>
+          </div>
+        </div>
+        <!-- Proof type toggle -->
+        <div class="ev-proof-toggle" style="margin:10px 0">
+          <button class="ev-proof-btn active" id="proofBtnSelfie" onclick="switchProofType('selfie')">📸 GPS Selfie at Station</button>
+          <button class="ev-proof-btn" id="proofBtnBill" onclick="switchProofType('bill')">📄 Electricity Bill</button>
+        </div>
+        <div id="selfie-proof-section">
+          <div style="font-size:11px;color:#555;margin-bottom:8px">📍 Take selfie standing at the charging station — GPS location auto-captured by your phone</div>
+          <label class="choose-btn">📸 Choose Selfie
+            <input type="file" id="doc-selfie" accept="image/jpeg,image/jpg" style="display:none"
+              onchange="handleFile(this,'wrap-ev-proof','ev-proof-name')">
+          </label>
+        </div>
+        <div id="bill-proof-section" style="display:none">
+          <div style="font-size:11px;color:#555;margin-bottom:8px">📄 Upload electricity bill of this EV station location — AI verifies address match</div>
+          <label class="choose-btn">📄 Choose Bill
+            <input type="file" id="doc-bill" accept="image/jpeg,image/jpg,image/png,application/pdf" style="display:none"
+              onchange="handleFile(this,'wrap-ev-proof','ev-proof-name')">
+          </label>
+        </div>
+        <div class="file-name" id="ev-proof-name">No file chosen</div>
+      </div>
+
+      <!-- Fuel: ID proof (hidden for EV) -->
+      <div class="doc-card fuel-section" id="wrap-idproof">
+        <div class="doc-top">
+          <span class="doc-icon">🪪</span>
+          <div>
+            <div class="doc-name">Owner ID Proof <span style="color:#b71c1c">*</span></div>
+            <div class="doc-hint">Front side — Name + ID number visible</div>
+            <div class="doc-badge">📸 JPG · PNG · PDF accepted</div>
+          </div>
+        </div>
+        <label class="form-label" style="margin-top:8px">ID Type</label>
+        <select class="form-input" id="idProofType" style="margin-bottom:10px">
+          <option value="aadhaar">Aadhaar Card</option>
+          <option value="driving_licence">Driving Licence</option>
+          <option value="voter_id">Voter ID (EPIC)</option>
+          <option value="pan_card">PAN Card</option>
+        </select>
+        <label class="choose-btn">📎 Choose File
+          <input type="file" id="doc-idproof" accept="image/jpeg,image/jpg,image/png,application/pdf" style="display:none"
+            onchange="handleFile(this,'wrap-idproof','idproof-name')">
+        </label>
+        <div class="file-name" id="idproof-name">No file chosen</div>
+      </div>
+    </div>
+
+    <!-- REFERRAL CODE -->
+    <div style="background:#fff3e0;border-radius:12px;padding:14px;margin-bottom:14px;border:1.5px dashed #e65100">
+      <div class="section-title" style="color:#e65100">🛵 MR Referral Code (Optional)</div>
+      <div style="font-size:12px;color:#888;margin-bottom:10px">
+        If an IndhanShodhak field agent gave you a code, enter it below.
+      </div>
+      <label class="form-label">Referral Code</label>
+      <input class="form-input" type="text" id="referralCode"
+             placeholder="e.g. MR001"
+             maxlength="10"
+             oninput="this.value=this.value.toUpperCase().replace(/\s/g,'')">
+      <div style="font-size:11px;color:#aaa;margin-top:6px">Leave blank if not given by an MR agent.</div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitApplication()">
+      📤 Submit for Verification
+    </button>
+    <div class="back-link"><a href="/login">← Back to Login</a></div>
+  </div>
+</div>
+
+<script>
+let selectedPump = null;
+let currentType  = 'fuel'; // 'fuel' or 'ev'
+
+function switchType(type) {
+  currentType = type;
+  const isFuel = type === 'fuel';
+  // Toggle buttons
+  document.getElementById('btnFuel').classList.toggle('active', isFuel);
+  document.getElementById('btnEV').classList.toggle('active', !isFuel);
+  // Toggle sections
+  document.querySelectorAll('.fuel-section').forEach(el => el.classList.toggle('hidden', !isFuel));
+  document.querySelectorAll('.ev-section').forEach(el => el.classList.toggle('visible', !isFuel));
+  // Top bar
+  document.getElementById('topLogo').textContent = isFuel ? '⛽' : '⚡';
+  document.getElementById('topTitle').textContent = isFuel ? 'Register Your Petrol Pump' : 'Register EV Charging Station';
+  // Info boxes
+  document.getElementById('fuelInfoBox').style.display = isFuel ? '' : 'none';
+}
+
+function switchProofType(type){
+  document.getElementById('proofBtnSelfie').classList.toggle('active', type==='selfie');
+  document.getElementById('proofBtnBill').classList.toggle('active', type==='bill');
+  document.getElementById('selfie-proof-section').style.display = type==='selfie' ? '' : 'none';
+  document.getElementById('bill-proof-section').style.display   = type==='bill'   ? '' : 'none';
+  // Clear other proof file when switching
+  if(type==='selfie') { document.getElementById('doc-bill').value=''; }
+  else                { document.getElementById('doc-selfie').value=''; }
+  document.getElementById('ev-proof-name').textContent = 'No file chosen';
+}
+
+function toggleFoodFields(show) {
+  document.getElementById('evFoodFields').style.display = show ? '' : 'none';
+}
+
+// Show/hide timing hours input when "Limited" selected
+document.addEventListener('change', function(e) {
+  if(e.target.name === 'evTiming') {
+    document.getElementById('evTimingHours').style.display =
+      e.target.value === 'limited' ? '' : 'none';
+  }
+});
+let signupMap = null;
+let pinDropMarker = null;
+let pinDropMode = false;
+
+// ── GPS-based nearby pump finder ──────────────────────────────
+async function findNearbyPumps(){
+  const statusEl = document.getElementById('searchStatus');
+  const resultsEl = document.getElementById('pumpResults');
+  statusEl.textContent = '📍 Detecting your location...';
+  resultsEl.innerHTML = '';
+
+  if(!navigator.geolocation){
+    statusEl.textContent = '❌ GPS not available — use Search by Name instead';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    statusEl.textContent = '🔍 Finding pumps near you...';
+
+    // Show map
+    initMap(lat, lng);
+
+    try {
+      const r = await fetch(`/api/pumps/locations?lat=${lat}&lng=${lng}`);
+      const d = await r.json();
+      if(!d.pumps || d.pumps.length === 0){
+        statusEl.textContent = 'No pumps found near your location. Use Search by Name or Drop Pin.';
+        return;
+      }
+
+      window._searchResults = d.pumps;
+      statusEl.textContent = `Found ${d.pumps.length} pumps near you — select yours:`;
+
+      // Add markers to map
+      d.pumps.forEach((p,i) => {
+        if(!p.lat || !p.lng) return;
+        const color = p.is_verified ? '#1a6b2e' : '#e65100';
+        L.circleMarker([p.lat,p.lng],{radius:7,fillColor:color,color:'#fff',weight:2,fillOpacity:1})
+          .addTo(signupMap)
+          .bindPopup(`<b>${p.name}</b><br><small>${p.address||''}</small><br><button onclick="selectPump(${i})" style="margin-top:4px;padding:4px 10px;background:#e65100;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer">Select this pump</button>`)
+          .on('click', function(){ this.openPopup(); });
+      });
+
+      // Render list
+      resultsEl.innerHTML = d.pumps.map((p,i) => `
+        <div class="pump-result-item" id="result-${i}" onclick="selectPump(${i})">
+          <div class="result-name">${p.is_verified?'✅':'⛽'} ${p.name}</div>
+          <div class="result-addr">📍 ${p.address||''} ${p.district?'· '+p.district:''}</div>
+        </div>
+      `).join('');
+
+    } catch(e){
+      statusEl.textContent = 'Search failed — try Search by Name.';
+    }
+  }, err => {
+    statusEl.textContent = '❌ GPS denied or unavailable — use Search by Name.';
+  }, { enableHighAccuracy:true, timeout:15000 });
+}
+
+function initMap(lat, lng){
+  const mapEl = document.getElementById('signup-map');
+  mapEl.style.display = 'block';
+  if(signupMap){
+    signupMap.setView([lat,lng], 13);
+    return;
+  }
+  signupMap = L.map('signup-map',{zoomControl:true,attributionControl:false}).setView([lat,lng],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(signupMap);
+  // User location marker
+  L.circleMarker([lat,lng],{radius:8,fillColor:'#2196F3',color:'#fff',weight:2,fillOpacity:1})
+    .addTo(signupMap).bindPopup('📍 You are here');
+
+  // Pin-drop on map click (only when pinDropMode is on)
+  signupMap.on('click', function(e){
+    if(!pinDropMode) return;
+    const plat = e.latlng.lat.toFixed(6);
+    const plng = e.latlng.lng.toFixed(6);
+    if(pinDropMarker) signupMap.removeLayer(pinDropMarker);
+    pinDropMarker = L.marker([plat,plng],{draggable:true}).addTo(signupMap)
+      .bindPopup('📌 Pump location — drag to adjust').openPopup();
+    // Update hidden fields
+    document.getElementById('pumpLat').value = plat;
+    document.getElementById('pumpLng').value = plng;
+    document.getElementById('coordsBadge').textContent = `📡 GPS: ${plat}, ${plng}`;
+    document.getElementById('selectedBadge').style.display = 'block';
+    document.getElementById('selectedName').textContent = 'Pin-dropped location';
+    document.getElementById('selectedAddr').textContent = `Lat: ${plat}, Lng: ${plng}`;
+    // Update on drag
+    pinDropMarker.on('dragend', function(){
+      const pos = pinDropMarker.getLatLng();
+      document.getElementById('pumpLat').value = pos.lat.toFixed(6);
+      document.getElementById('pumpLng').value = pos.lng.toFixed(6);
+      document.getElementById('coordsBadge').textContent = `📡 GPS: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+      document.getElementById('selectedAddr').textContent = `Lat: ${pos.lat.toFixed(6)}, Lng: ${pos.lng.toFixed(6)}`;
+    });
+    document.getElementById('searchStatus').textContent = '📌 Pin dropped! Drag to adjust if needed, then fill pump details below.';
+    pinDropMode = false;
+    // Focus pump name
+    document.getElementById('pumpName').focus();
+  });
+}
+
+function enablePinDrop(){
+  if(!signupMap){
+    // No map yet — try GPS first to show the map
+    document.getElementById('searchStatus').textContent = '📍 Detecting location for map...';
+    navigator.geolocation.getCurrentPosition(pos => {
+      initMap(pos.coords.latitude, pos.coords.longitude);
+      pinDropMode = true;
+      document.getElementById('searchStatus').textContent = '📌 Tap on the map where your pump is located';
+    }, () => {
+      // Fallback — show map centered on India
+      initMap(20.5937, 78.9629);
+      signupMap.setZoom(5);
+      pinDropMode = true;
+      document.getElementById('searchStatus').textContent = '📌 Zoom into your area, then tap where your pump is located';
+    });
+  } else {
+    pinDropMode = true;
+    document.getElementById('searchStatus').textContent = '📌 Tap on the map where your pump is located';
+  }
+}
+
+function toggleTextSearch(){
+  const wrap = document.getElementById('textSearchWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  if(wrap.style.display==='block') document.getElementById('mapSearch').focus();
+}
+
+// ── Text-based search (kept as secondary option) ──────────────
+async function searchPumpsOnMap(){
+  const query = document.getElementById('mapSearch').value.trim();
+  if(!query){ alert('Enter pump name or location to search'); return; }
+
+  const statusEl = document.getElementById('searchStatus');
+  const resultsEl = document.getElementById('pumpResults');
+  statusEl.textContent = '🔍 Searching...';
+  resultsEl.innerHTML = '';
+
+  try {
+    const r = await fetch(`/api/pumps/search-place?q=${encodeURIComponent(query)}`);
+    const d = await r.json();
+
+    if(!d.places || d.places.length === 0){
+      statusEl.textContent = 'No pumps found. Try different search or drop pin on map.';
+      return;
+    }
+
+    statusEl.textContent = `Found ${d.places.length} pumps — select yours:`;
+    window._searchResults = d.places;
+
+    // Show on map if available
+    if(d.places[0]?.lat && d.places[0]?.lng){
+      initMap(d.places[0].lat, d.places[0].lng);
+      d.places.forEach((p,i) => {
+        if(!p.lat || !p.lng) return;
+        L.circleMarker([p.lat,p.lng],{radius:7,fillColor:'#e65100',color:'#fff',weight:2,fillOpacity:1})
+          .addTo(signupMap)
+          .bindPopup(`<b>${p.name}</b><br><button onclick="selectPump(${i})" style="margin-top:4px;padding:4px 10px;background:#e65100;color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer">Select</button>`);
+      });
+    }
+
+    resultsEl.innerHTML = d.places.map((p,i) => `
+      <div class="pump-result-item" id="result-${i}" onclick="selectPump(${i})">
+        <div class="result-name">⛽ ${p.name}</div>
+        <div class="result-addr">📍 ${p.address}</div>
+      </div>
+    `).join('');
+
+  } catch(e){
+    statusEl.textContent = 'Search failed. Try pin-drop or enter manually.';
+  }
+}
+
+function selectPump(idx){
+  const p = window._searchResults[idx];
+  selectedPump = p;
+  pinDropMode = false;
+
+  // Highlight selected
+  document.querySelectorAll('.pump-result-item').forEach((el,i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+
+  // Show badge
+  document.getElementById('selectedBadge').style.display = 'block';
+  document.getElementById('selectedName').textContent = p.name;
+  document.getElementById('selectedAddr').textContent = p.address;
+  document.getElementById('coordsBadge').textContent =
+    `📡 GPS: ${parseFloat(p.lat).toFixed(4)}, ${parseFloat(p.lng).toFixed(4)}`;
+
+  // Store lat/lng (shared for both fuel and EV)
+  document.getElementById('pumpLat').value = p.lat;
+  document.getElementById('pumpLng').value = p.lng;
+  document.getElementById('googlePlaceId').value = p.place_id || '';
+
+  if(currentType === 'ev') {
+    // Auto-fill EV fields
+    document.getElementById('evStationName').value = p.name || '';
+    document.getElementById('evAddress').value     = p.address || '';
+    document.getElementById('evPinCode').value     = p.pin_code || '';
+    document.getElementById('evDistrict').value    = p.district || '';
+    // Auto-detect network from name
+    const nm = p.name.toUpperCase();
+    const opSel = document.getElementById('evOperator');
+    if(nm.includes('TATA POWER') || nm.includes('EZ CHARGE'))       opSel.value = 'Tata Power EZ Charge';
+    else if(nm.includes('BPCL') || nm.includes('PULSE'))             opSel.value = 'BPCL Pulse';
+    else if(nm.includes('ATHER'))                                     opSel.value = 'Ather Grid';
+    else if(nm.includes('CHARGEZONE'))                                opSel.value = 'ChargeZone';
+    else if(nm.includes('STATIQ'))                                    opSel.value = 'Statiq';
+    else if(nm.includes('KAZAM'))                                     opSel.value = 'KAZAM';
+    else if(nm.includes('JIO') || nm.includes('JIO-BP'))             opSel.value = 'Jio-bp Pulse';
+    else if(nm.includes('HPCL') || nm.includes('HINDUSTAN'))         opSel.value = 'HPCL';
+    else if(nm.includes('INDIAN OIL') || nm.includes('IOC') || nm.includes('IOCL')) opSel.value = 'Indian Oil (IOCL)';
+    else if(nm.includes('BOLT'))                                      opSel.value = 'BOLT.Earth';
+    else if(nm.includes('MAHANAGAR') || nm.includes('MGL'))          opSel.value = 'Independent / No Network';
+    else opSel.value = '';
+  } else {
+    // Auto-fill FUEL fields (existing logic unchanged)
+    document.getElementById('pumpName').value  = p.name || '';
+    document.getElementById('address').value   = p.address || '';
+    document.getElementById('pinCode').value   = p.pin_code || '';
+    document.getElementById('district').value  = p.district || '';
+
+    const name = p.name.toUpperCase();
+    const sel = document.getElementById('oilCompany');
+    if(name.includes('HP') || name.includes('HINDUSTAN')) sel.value = 'HP';
+    else if(name.includes('BPCL') || name.includes('BHARAT')) sel.value = 'BPCL';
+    else if(name.includes('IOC') || name.includes('INDIAN OIL') || name.includes('INDANE')) sel.value = 'IOC';
+    else if(name.includes('SHELL')) sel.value = 'Shell';
+    else if(name.includes('RELIANCE')) sel.value = 'Reliance';
+    else if(name.includes('NAYARA') || name.includes('ESSAR')) sel.value = 'Nayara';
+    else sel.value = '';
+  }
+
+  // Pan map to selected station
+  if(signupMap && p.lat && p.lng) signupMap.setView([p.lat, p.lng], 15);
+}
+
+function showManualEntry(){
+  selectedPump = null;
+  pinDropMode = false;
+  document.getElementById('pumpResults').innerHTML = '';
+  document.getElementById('searchStatus').textContent = '✏️ Enter pump details manually below';
+  document.getElementById('selectedBadge').style.display = 'none';
+  document.getElementById('pumpLat').value = '0';
+  document.getElementById('pumpLng').value = '0';
+  document.getElementById('pumpName').focus();
+}
+
+// ── Canvas API image compression — runs entirely in browser, zero cost ──
+// Only applies to JPG/PNG photos (camera shots are typically 2-8MB).
+// PDFs are passed through unchanged since Canvas can't render them,
+// and PDFs people save are usually already compact.
+function compressImage(file, maxSizeKB = 300, maxDimension = 1600){
+  return new Promise((resolve) => {
+    if(!file.type.startsWith('image/')){ resolve(file); return; } // PDF — skip
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxDimension || height > maxDimension){
+          const scale = maxDimension / Math.max(width, height);
+          width  = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let quality = 0.9;
+        const tryCompress = () => {
+          canvas.toBlob((blob) => {
+            if(!blob){ resolve(file); return; }
+            if(blob.size <= maxSizeKB*1024 || quality <= 0.3){
+              resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {type:'image/jpeg'}));
+            } else {
+              quality -= 0.1;
+              tryCompress();
+            }
+          }, 'image/jpeg', quality);
+        };
+        tryCompress();
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+// Compressed files stored here, keyed by input id — submitApplication() reads from this
+window._compressedFiles = {};
+
+async function handleFile(input, wrapId, nameId){
+  const wrap = document.getElementById(wrapId);
+  const nameEl = document.getElementById(nameId);
+  delete window._compressedFiles[input.id];
+
+  if(!input.files || !input.files[0]){
+    nameEl.textContent = 'No file chosen'; nameEl.className = 'file-name';
+    wrap.classList.remove('uploaded'); return;
+  }
+  const file = input.files[0];
+  const allowed = ['image/jpeg','image/jpg','image/png','application/pdf'];
+  if(!allowed.includes(file.type)){
+    nameEl.textContent = '❌ Only JPG, PNG or PDF allowed!';
+    nameEl.style.color = '#b71c1c'; input.value = ''; wrap.classList.remove('uploaded'); return;
+  }
+
+  // Images get auto-compressed — no manual resizing needed from the user
+  if(file.type.startsWith('image/')){
+    nameEl.textContent = '⏳ Optimizing image...';
+    nameEl.style.color = '#888';
+    const compressed = await compressImage(file, 300);
+    if(compressed.size > 500*1024){
+      nameEl.textContent = `❌ Still too large after compression (${Math.round(compressed.size/1024)}KB) — try a different photo`;
+      nameEl.style.color = '#b71c1c'; input.value = ''; wrap.classList.remove('uploaded'); return;
+    }
+    window._compressedFiles[input.id] = compressed;
+    const savedPct = Math.round((1 - compressed.size/file.size) * 100);
+    nameEl.textContent = `✅ ${file.name} (${Math.round(compressed.size/1024)}KB${savedPct>0?' · optimized from '+Math.round(file.size/1024)+'KB':''})`;
+    nameEl.className = 'file-name ok'; wrap.classList.add('uploaded');
+    return;
+  }
+
+  // PDFs — no compression possible, keep hard size check
+  if(file.size > 500*1024){
+    nameEl.textContent = `❌ Too large (${Math.round(file.size/1024)}KB) — Max 500KB`;
+    nameEl.style.color = '#b71c1c'; input.value = ''; wrap.classList.remove('uploaded'); return;
+  }
+  nameEl.textContent = `✅ ${file.name} (${Math.round(file.size/1024)}KB)`;
+  nameEl.className = 'file-name ok'; wrap.classList.add('uploaded');
+}
+
+async function submitApplication(){
+  const errEl = document.getElementById('errMsg');
+  const okEl  = document.getElementById('okMsg');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+
+  const show = (msg) => { errEl.textContent=msg; errEl.style.display='block';
+    errEl.scrollIntoView({behavior:'smooth'}); };
+
+  const name   = document.getElementById('name').value.trim();
+  const mobile = document.getElementById('mobile').value.trim();
+  const email  = document.getElementById('email').value.trim();
+  const lat    = document.getElementById('pumpLat').value;
+  const lng    = document.getElementById('pumpLng').value;
+
+  if(!name)               return show('Enter owner full name');
+  if(mobile.length!==10)  return show('Enter valid 10-digit mobile');
+  if(!email||!email.includes('@')) return show('Enter valid email address');
+
+  const idProofFile = window._compressedFiles['doc-idproof'] || document.getElementById('doc-idproof').files[0];
+  const idProofType = document.getElementById('idProofType').value;
+  if(!idProofFile) return show('Upload ID Proof document');
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '⏳ Submitting...';
+
+  // ── EV path ──────────────────────────────────────────────────────────────
+  if(currentType === 'ev') {
+    const stationName = document.getElementById('evStationName').value.trim();
+    const pinCode     = document.getElementById('evPinCode').value.trim();
+    const address     = document.getElementById('evAddress').value.trim();
+    const district    = document.getElementById('evDistrict').value.trim();
+    const state       = document.getElementById('evState').value.trim();
+    const numPorts    = document.getElementById('evNumPorts').value.trim();
+    const operator    = document.getElementById('evOperator').value;
+    const speedEl     = document.querySelector('input[name="evSpeed"]:checked');
+    const timingEl    = document.querySelector('input[name="evTiming"]:checked');
+    const parkingEl   = document.querySelector('input[name="evParking"]:checked');
+    const foodEl      = document.querySelector('input[name="evFood"]:checked');
+    const chargerTypes = [...document.querySelectorAll('input[name="evChargerType"]:checked')]
+                           .map(c => c.value);
+
+    // Location proof — selfie OR bill
+    const selfieFile = document.getElementById('doc-selfie').files[0];
+    const billFile   = document.getElementById('doc-bill').files[0];
+
+    if(!stationName)        return show('Enter EV station name') || (btn.disabled=false);
+    if(pinCode.length!==6)  return show('Enter valid 6-digit PIN') || (btn.disabled=false);
+    if(!address)            return show('Enter station address') || (btn.disabled=false);
+    if(!district)           return show('Enter district') || (btn.disabled=false);
+    if(chargerTypes.length===0) return show('Select at least one charger type') || (btn.disabled=false);
+    if(!numPorts||numPorts<1)   return show('Enter number of charging ports') || (btn.disabled=false);
+    if(!selfieFile && !billFile) return show('Upload GPS Selfie at station OR Electricity Bill') || (btn.disabled=false);
+
+    // Use license_number field as a unique ID for EV stations (EV- prefix)
+    const evLicenseId = `EV-${mobile}-${Date.now()}`;
+
+    const fd = new FormData();
+    fd.append('owner_name',    name);
+    fd.append('mobile',        mobile);
+    fd.append('email',         email);
+    fd.append('pump_name',     stationName);
+    fd.append('oil_company',   operator || 'EV Station');
+    fd.append('pin_code',      pinCode);
+    fd.append('address',       address);
+    fd.append('district',      district);
+    fd.append('state',         state);
+    fd.append('license_number', evLicenseId);
+    fd.append('station_type',  'ev');
+    fd.append('lat',           lat);
+    fd.append('lng',           lng);
+    if(selfieFile) fd.append('ev_selfie', selfieFile);
+    if(billFile)   fd.append('ev_bill',   billFile);
+    const locationProofFile = selfieFile || billFile;
+    fd.append('id_proof',      locationProofFile);
+    fd.append('id_proof_type', selfieFile ? 'ev_gps_selfie' : 'ev_electricity_bill');
+    // EV details as JSON
+    fd.append('ev_charger_types',    JSON.stringify(chargerTypes));
+    fd.append('ev_network_operator', operator);
+    fd.append('ev_num_ports',        numPorts);
+    fd.append('ev_speed_type',       speedEl?.value || 'both');
+    fd.append('ev_timing',           timingEl?.value || '24x7');
+    fd.append('ev_timing_hours',     document.getElementById('evTimingHours').value);
+    fd.append('ev_parking',          parkingEl?.value || 'free');
+    fd.append('ev_food_nearby',      foodEl?.value === 'yes' ? '1' : '0');
+    fd.append('ev_food_name',        document.getElementById('evFoodName').value);
+    fd.append('ev_food_distance',    document.getElementById('evFoodDistance').value);
+    const refCode = document.getElementById('referralCode')?.value?.trim() || '';
+    if(refCode) fd.append('referral_code', refCode);
+    // EV stations don't have petroleum license — send a blank placeholder
+    fd.append('license', locationProofFile); // EV: use selfie/bill as license placeholder
+
+    try {
+      const r = await fetch('/api/pump-owner/register', { method:'POST', body:fd });
+      const d = await r.json();
+      if(d.success){
+        // Also save EV details
+        if(d.pump_id) {
+          await fetch('/api/ev-details/save', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              pump_id: d.pump_id,
+              charger_types: chargerTypes,
+              network_operator: operator,
+              num_ports: parseInt(numPorts),
+              speed_type: speedEl?.value || 'both',
+              timing: timingEl?.value || '24x7',
+              timing_hours: document.getElementById('evTimingHours').value,
+              working_status: 'functional',
+              parking: parkingEl?.value || 'free',
+              food_nearby: foodEl?.value === 'yes',
+              food_name: document.getElementById('evFoodName').value,
+              food_distance: document.getElementById('evFoodDistance').value,
+              updated_by: 'owner'
+            })
+          });
+        }
+        okEl.innerHTML = `✅ <b>EV Station Registered!</b><br><br>
+          📋 App ID: <b>${d.app_id||'—'}</b><br>
+          ⏳ Verification within <b>48 hours</b><br>
+          📧 Login details to: <b>${email}</b><br><br>
+          ${lat!=='0' ? '📡 <b>GPS location saved!</b> Station appears on map after approval.<br>' : ''}
+          → <a href="/login" style="color:#1a6b2e">Back to Login</a>`;
+        okEl.style.display = 'block';
+        btn.textContent = '✅ Submitted!';
+      } else {
+        show('❌ '+(d.error||'Submission failed. Try again.'));
+        btn.disabled=false; btn.textContent='📤 Submit for Verification';
+      }
+    } catch(e){
+      show('❌ Network error. Try again.');
+      btn.disabled=false; btn.textContent='📤 Submit for Verification';
+    }
+    return;
+  }
+
+  // ── FUEL path (existing logic unchanged) ─────────────────────────────────
+  const pumpName  = document.getElementById('pumpName').value.trim();
+  const oilCo     = document.getElementById('oilCompany').value;
+  const pinCode   = document.getElementById('pinCode').value.trim();
+  const address   = document.getElementById('address').value.trim();
+  const district  = document.getElementById('district').value.trim();
+  const state     = document.getElementById('state').value.trim();
+  const licenseNo = document.getElementById('licenseNo').value.trim();
+
+  if(!pumpName)  return show('Enter pump name') || (btn.disabled=false);
+  if(!oilCo)    return show('Select oil company') || (btn.disabled=false);
+  if(pinCode.length!==6) return show('Enter valid 6-digit PIN') || (btn.disabled=false);
+  if(!address)   return show('Enter pump address') || (btn.disabled=false);
+  if(!district)  return show('Enter district name') || (btn.disabled=false);
+  if(!licenseNo) return show('Enter pump license number') || (btn.disabled=false);
+
+  const licFile = window._compressedFiles['doc-license'] || document.getElementById('doc-license').files[0];
+  if(!licFile)  return show('Upload Pump License Certificate') || (btn.disabled=false);
+
+  const fd = new FormData();
+  fd.append('owner_name',    name);
+  fd.append('mobile',        mobile);
+  fd.append('email',         email);
+  fd.append('pump_name',     pumpName);
+  fd.append('oil_company',   oilCo);
+  fd.append('pin_code',      pinCode);
+  fd.append('address',       address);
+  fd.append('district',      district);
+  fd.append('state',         state);
+  fd.append('license_number',licenseNo);
+  fd.append('lat',           lat);
+  fd.append('lng',           lng);
+  const refCode = document.getElementById('referralCode')?.value?.trim() || '';
+  if(refCode) fd.append('referral_code', refCode);
+  fd.append('license',       licFile);
+  fd.append('id_proof',      idProofFile);
+  fd.append('id_proof_type', idProofType);
+
+  try {
+    const r = await fetch('/api/pump-owner/register', { method:'POST', body:fd });
+    const d = await r.json();
+    if(d.success){
+      okEl.innerHTML = `✅ <b>Application Submitted!</b><br><br>
+        📋 App ID: <b>${d.app_id||'—'}</b><br>
+        ⏳ Review within <b>48 hours</b><br>
+        📧 Login details to: <b>${email}</b><br><br>
+        ${lat!=='0' ? '📡 <b>GPS location saved!</b> Your pump will appear on map after approval.<br>' : ''}
+        → <a href="/login" style="color:#1a6b2e">Back to Login</a>`;
+      okEl.style.display = 'block';
+      btn.textContent = '✅ Submitted!';
+    } else {
+      show('❌ '+(d.error||'Submission failed. Try again.'));
+      btn.disabled=false; btn.textContent='📤 Submit for Verification';
+    }
+  } catch(e){
+    show('❌ Network error. Try again.');
+    btn.disabled=false; btn.textContent='📤 Submit for Verification';
+  }
+}
+</script>
+</body>
+</html>
