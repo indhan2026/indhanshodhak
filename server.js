@@ -1105,6 +1105,18 @@ function detectCategory(name, isGoogleEV) {
 // Actually writes ONE seeded fuel_report row for ONE pump — the carry-forward
 // / owner-guard / 72hr-decay decision logic, unchanged from before. Called
 // either instantly (first pump of a search) or later by the queue poller
+// Shared category-based default — what a pump "probably" has when no real
+// report exists yet. Used by the seeder (writes a timestamped fake row)
+// AND by the live fuel-data endpoint's on-the-fly fallback below (computes
+// the same default without needing any DB row at all — this is what makes
+// the guarantee work for every pump in India, not just ones the seeder
+// has already reached).
+function getCategoryDefaultFuel(category) {
+  if      (category === 'ev')  return { petrol:0, diesel:0, cng:0, ev:1 };
+  else if (category === 'cng') return { petrol:1, diesel:0, cng:1, ev:0 };
+  else                          return { petrol:1, diesel:1, cng:0, ev:0 };
+}
+
 // (rest of the pumps, at their randomly-assigned time).
 function insertSeedReport(pump) {
   const expiryHrs = parseInt(getSetting('report_expiry_user')) || 4;
@@ -1132,15 +1144,11 @@ function insertSeedReport(pump) {
       cng    = last.cng;    ev     = last.ev;
     } else {
       // Beyond 72hrs — nuisance data expired, reset to category default
-      if      (pump.category === 'ev')  { ev=1; }
-      else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
-      else                              { petrol=1; diesel=1; }
+      ({ petrol, diesel, cng, ev } = getCategoryDefaultFuel(pump.category));
     }
   } else {
     // No previous report — seed fresh category-smart default
-    if      (pump.category === 'ev')  { ev=1; }
-    else if (pump.category === 'cng') { cng=1; petrol=1; diesel=1; }
-    else                              { petrol=1; diesel=1; }
+    ({ petrol, diesel, cng, ev } = getCategoryDefaultFuel(pump.category));
   }
 
   // Random 0–120 min offset so pumps don't all expire at same moment
@@ -1552,16 +1560,25 @@ app.get('/api/pumps/fuel-data', (req, res) => {
   const fuelData = {};
   dbIds.forEach(id => {
     const report = latestReport(id);
-    const pump   = dbGet('SELECT is_verified, scan_count_free FROM petrol_pumps WHERE id=?', [id]);
+    const pump   = dbGet('SELECT is_verified, scan_count_free, category FROM petrol_pumps WHERE id=?', [id]);
+
+    // Structural guarantee: if no real/seed report exists yet for this pump
+    // (seeder hasn't reached it, stuck, delayed, or genuinely brand new),
+    // compute a sensible category default RIGHT NOW instead of showing
+    // blank/unavailable. This works for every pump in India immediately —
+    // it never depends on a background job having already succeeded.
+    const fallback = report ? null : getCategoryDefaultFuel(pump?.category);
+
     fuelData[id] = {
-      petrol:           report?.petrol  || false,
-      diesel:           report?.diesel  || false,
-      cng:              report?.cng     || false,
-      ev:               report?.ev      || false,
+      petrol:           report?.petrol  ?? fallback?.petrol  ?? false,
+      diesel:           report?.diesel  ?? fallback?.diesel  ?? false,
+      cng:              report?.cng     ?? fallback?.cng     ?? false,
+      ev:               report?.ev      ?? fallback?.ev      ?? false,
       queue:            report?.queue_length || 'none',
       updated_at:       report?.created_at || null,
       reporter:         report?.reporter_role || null,
       is_verified:      pump?.is_verified || false,
+      is_estimated:     !report, // true = shown value is a computed default, not a real/seed report
       expires_at:       report?.expires_at || null,
       ev_ports_free:    report?.ev_ports_free    || null,
       ev_working_status:report?.ev_working_status|| null,
@@ -4109,6 +4126,80 @@ app.get('/api/admin/push/diagnostics', requireAuth(['super_admin']), (req, res) 
   } catch(e) {
     console.error('[PUSH] Diagnostics error:', e.message);
     res.status(500).json({ error: 'Could not fetch diagnostics' });
+  }
+});
+
+// ── Seed diagnostics (admin-only, read-only) ────────────────────────────
+// Search pumps by name substring, show exactly why they might not be
+// getting seeded: is_active/category values, their LATEST report even if
+// expired (so we can see it's simply old, not missing), and whether
+// they're currently sitting in the pending_seeds queue waiting to fire.
+app.get('/api/admin/seed/diagnostics', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const { name } = req.query;
+    if (!name) return res.status(400).json({ error: 'name query param required (substring match)' });
+
+    const pumps = dbAll(
+      `SELECT id, name, category, is_active, license_number, lat, lng
+       FROM petrol_pumps WHERE name LIKE ? LIMIT 20`,
+      [`%${name}%`]
+    );
+
+    const out = pumps.map(p => {
+      const latestAny = dbGet(
+        `SELECT reporter_role, report_source, petrol, diesel, cng, ev,
+                created_at, expires_at,
+                (expires_at > datetime('now')) AS is_active_report
+         FROM fuel_reports WHERE pump_id=? ORDER BY created_at DESC LIMIT 1`,
+        [p.id]
+      );
+      const pending = dbGet(`SELECT run_at FROM pending_seeds WHERE pump_id=?`, [p.id]);
+      return {
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        is_active: p.is_active,
+        has_gps: (p.lat !== null && p.lat !== 0 && p.lng !== null && p.lng !== 0),
+        latest_report: latestAny || null,
+        pending_seed_run_at: pending?.run_at || null
+      };
+    });
+    res.json({ total: out.length, pumps: out });
+  } catch(e) {
+    console.error('[SEED] Diagnostics error:', e.message);
+    res.status(500).json({ error: 'Could not fetch seed diagnostics' });
+  }
+});
+
+// ── CNG combo vs standalone breakdown (admin-only, read-only) ──────────
+// Heuristic based on pump name text: if it mentions a petrol/diesel brand
+// alongside CNG, it's very likely a combo forecourt; otherwise likely a
+// standalone CNG-only outlet. Name-based, so treat as directional evidence
+// from OUR actual data — not a guess, not a national average.
+app.get('/api/admin/pumps/cng-breakdown', requireAuth(['super_admin']), (req, res) => {
+  try {
+    const comboKeywords = ['petrol','diesel','hpcl','hindustan petroleum','bharat petroleum',
+                            'indian oil','iocl','bpcl','hp petrol','bp petrol'];
+    const rows = dbAll(`SELECT id, name FROM petrol_pumps WHERE category='cng' AND is_active=1`);
+    let combo = 0, standalone = 0;
+    const comboExamples = [], standaloneExamples = [];
+    rows.forEach(p => {
+      const n = (p.name || '').toLowerCase();
+      const isCombo = comboKeywords.some(k => n.includes(k));
+      if (isCombo) { combo++; if (comboExamples.length < 10) comboExamples.push(p.name); }
+      else         { standalone++; if (standaloneExamples.length < 10) standaloneExamples.push(p.name); }
+    });
+    res.json({
+      total_cng_category_pumps: rows.length,
+      likely_combo_petrol_diesel_cng: combo,
+      likely_standalone_cng_only: standalone,
+      combo_examples: comboExamples,
+      standalone_examples: standaloneExamples,
+      note: 'Name-text heuristic on our own DB — directional, not exact. Standalone examples worth spot-checking manually.'
+    });
+  } catch(e) {
+    console.error('[SEED] CNG breakdown error:', e.message);
+    res.status(500).json({ error: 'Could not compute breakdown' });
   }
 });
 
