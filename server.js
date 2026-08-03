@@ -1131,10 +1131,23 @@ function detectCategory(name, isGoogleEV) {
 // the same default without needing any DB row at all — this is what makes
 // the guarantee work for every pump in India, not just ones the seeder
 // has already reached).
-function getCategoryDefaultFuel(category) {
-  if      (category === 'ev')  return { petrol:0, diesel:0, cng:0, ev:1 };
-  else if (category === 'cng') return { petrol:1, diesel:0, cng:1, ev:0 };
-  else                          return { petrol:1, diesel:1, cng:0, ev:0 };
+// Combo-detection keywords — same list used by the admin CNG breakdown
+// diagnostic. If a CNG pump's name also mentions a petrol/diesel brand,
+// it's a combo forecourt; otherwise treat it as CNG-only. Real data check
+// (Aug 2026) showed 73% of CNG-category pumps are standalone — a single
+// blanket "CNG pumps also have Petrol" assumption was wrong for most of
+// them, so this now decides per-pump from the actual name.
+const COMBO_FUEL_KEYWORDS = /petrol|diesel|hpcl|hindustan petroleum|bharat petroleum|indian oil|iocl|bpcl|hp petrol|bp petrol/i;
+
+function getCategoryDefaultFuel(category, name) {
+  if (category === 'ev') return { petrol:0, diesel:0, cng:0, ev:1 };
+  if (category === 'cng') {
+    const isCombo = COMBO_FUEL_KEYWORDS.test(name || '');
+    return isCombo
+      ? { petrol:1, diesel:0, cng:1, ev:0 }   // combo forecourt — has Petrol too
+      : { petrol:0, diesel:0, cng:1, ev:0 };  // standalone — CNG only
+  }
+  return { petrol:1, diesel:1, cng:0, ev:0 };
 }
 
 // (rest of the pumps, at their randomly-assigned time).
@@ -1142,6 +1155,11 @@ function insertSeedReport(pump) {
   const expiryHrs = parseInt(getSetting('report_expiry_user')) || 4;
   const decayHrs  = parseInt(getSetting('seed_decay_hours'))   || 72;
   const now       = new Date();
+
+  // The queued/deferred seeding path only has {id, category} available
+  // (pending_seeds doesn't store name) — fetch it here so per-pump combo
+  // detection below always has what it needs, regardless of caller.
+  const pumpName = pump.name || dbGet(`SELECT name FROM petrol_pumps WHERE id=?`, [pump.id])?.name || '';
 
   const last = dbGet(
     `SELECT report_source, petrol, diesel, cng, ev, created_at
@@ -1164,11 +1182,11 @@ function insertSeedReport(pump) {
       cng    = last.cng;    ev     = last.ev;
     } else {
       // Beyond 72hrs — nuisance data expired, reset to category default
-      ({ petrol, diesel, cng, ev } = getCategoryDefaultFuel(pump.category));
+      ({ petrol, diesel, cng, ev } = getCategoryDefaultFuel(pump.category, pumpName));
     }
   } else {
     // No previous report — seed fresh category-smart default
-    ({ petrol, diesel, cng, ev } = getCategoryDefaultFuel(pump.category));
+    ({ petrol, diesel, cng, ev } = getCategoryDefaultFuel(pump.category, pumpName));
   }
 
   // Random 0–120 min offset so pumps don't all expire at same moment
@@ -1580,14 +1598,14 @@ app.get('/api/pumps/fuel-data', (req, res) => {
   const fuelData = {};
   dbIds.forEach(id => {
     const report = latestReport(id);
-    const pump   = dbGet('SELECT is_verified, scan_count_free, category FROM petrol_pumps WHERE id=?', [id]);
+    const pump   = dbGet('SELECT is_verified, scan_count_free, category, name FROM petrol_pumps WHERE id=?', [id]);
 
     // Structural guarantee: if no real/seed report exists yet for this pump
     // (seeder hasn't reached it, stuck, delayed, or genuinely brand new),
     // compute a sensible category default RIGHT NOW instead of showing
     // blank/unavailable. This works for every pump in India immediately —
     // it never depends on a background job having already succeeded.
-    const fallback = report ? null : getCategoryDefaultFuel(pump?.category);
+    const fallback = report ? null : getCategoryDefaultFuel(pump?.category, pump?.name);
 
     fuelData[id] = {
       petrol:           report?.petrol  ?? fallback?.petrol  ?? false,
