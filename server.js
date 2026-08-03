@@ -521,6 +521,26 @@ async function initDB() {
     catch(e) { /* column already exists — ignore */ }
   });
 
+  // ── One-time backfill: fix pumps with category=NULL ────────────────────
+  // Root cause (fixed above): the external-pump auto-register path never
+  // set `category`, so any CNG/EV pump created that way got NULL — which
+  // then wrongly defaulted to plain petrol+diesel everywhere fuel status
+  // is computed. This recomputes category from the name for every such
+  // pump, nationwide, in one pass. Idempotent: only touches NULL rows, so
+  // it's a no-op on every boot after the first.
+  try {
+    const uncategorized = dbAll(`SELECT id, name FROM petrol_pumps WHERE category IS NULL`);
+    if (uncategorized.length > 0) {
+      uncategorized.forEach(p => {
+        const fixedCategory = detectCategory(p.name);
+        dbRun(`UPDATE petrol_pumps SET category=? WHERE id=?`, [fixedCategory, p.id]);
+      });
+      console.log(`[BACKFILL] Fixed category for ${uncategorized.length} pump(s) that had NULL category`);
+    }
+  } catch(e) {
+    console.error('[BACKFILL] Category backfill error:', e.message);
+  }
+
   // ── User Code Generator (4 letters A-Z no I/O + 4 digits 1-9 no 0) ──
   function generateUserCode() {
     const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // 24 letters, no I, no O
@@ -1089,7 +1109,7 @@ app.get('/api/pumps/search', (req,res) => {
 // Google's own `types` array (isGoogleEV) is authoritative when available;
 // name-keyword matching is the fallback for DB-only pumps.
 const EV_NAME_KEYWORDS = /CHARGING\s*STATION|EV\s*CHARG|ELECTRIC\s*VEHICLE|\b(ATHER|CHARGEZONE|STATIQ|KAZAM|EVRE|GLIDA|FORTUM|ZEON|EESL|JIO-?BP\s*PULSE)\b/i;
-const CNG_NAME_KEYWORDS = /\bCNG\b|NATURAL\s*GAS|\b(GAIL|IGL|MGL)\b|(ADANI|MAHANAGAR|BENGAL|GUJARAT|SABARMATI|GREEN|TORRENT|VADODARA|UNISON)\s+GAS/i;
+const CNG_NAME_KEYWORDS = /\bCNG\b|NATURAL\s*GAS|\b(GAIL|IGL|MGL|MNGL|GGL|CUGL|TNGCL|AGCL)\b|(ADANI|MAHANAGAR|MAHARASHTRA|BENGAL|GUJARAT|SABARMATI|GREEN|TORRENT|VADODARA|UNISON|CHAROTAR)\s+GAS/i;
 
 function detectCategory(name, isGoogleEV) {
   if (isGoogleEV) return 'ev';
@@ -2382,15 +2402,19 @@ app.post('/api/reports/submit-external', requireAuth(), async (req,res) => {
         const saveState = pump_state       || 'Maharashtra';
         const saveOil   = pump_oil_company || 'Other';
         const savePin   = pump_pin         || '';
+        // FIX: category was never being set here (defaulted to NULL),
+        // so CNG-named pumps auto-created via this path never got the
+        // CNG-aware fuel default — computing it from the name now.
+        const saveCategory = detectCategory(saveName);
         dbRun(`INSERT INTO petrol_pumps
                (name, address, district, pin_code, lat, lng, oil_company,
-                is_verified, is_active, license_number, state)
-               VALUES (?,?,?,?,?,?,?,0,1,?,?)`,
+                is_verified, is_active, license_number, state, category)
+               VALUES (?,?,?,?,?,?,?,0,1,?,?,?)`,
           [saveName, saveAddr, saveDist, savePin, saveLat, saveLng,
-           saveOil, external_id, saveState]);
+           saveOil, external_id, saveState, saveCategory]);
         pump = dbGet(`SELECT * FROM petrol_pumps WHERE license_number=?`, [external_id]);
         cacheClear('gps:'); cacheClear('pin:');
-        console.log(`[NEW PUMP] Auto-registered: ${saveName} | lat:${saveLat},${saveLng}`);
+        console.log(`[NEW PUMP] Auto-registered: ${saveName} | lat:${saveLat},${saveLng} | category:${saveCategory}`);
       }
     }
 
