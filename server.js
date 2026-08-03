@@ -1585,13 +1585,23 @@ app.get('/api/pumps/locations', async (req, res) => {
 // ROUTE 2: /api/pumps/fuel-data — NEVER CACHED
 // ══════════════════════════════════════════════════════════════
 app.get('/api/pumps/fuel-data', (req, res) => {
+  // Never let this be cached anywhere (browser, CDN, or otherwise) — fuel
+  // status must always be live. Belt-and-suspenders alongside the fix below.
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+
   const { ids } = req.query;
   if(!ids) return res.json({ fuel: {} });
 
+  // FIX: was capped at 50 — since widening rural search radius to 25km,
+  // combined DB+Google result lists routinely exceed that, silently
+  // excluding farther pumps from ever getting live fuel data at all
+  // (not a caching issue — they were never even queried). 200 comfortably
+  // covers realistic combined result sizes even in dense city cores.
   const dbIds = ids.split(',')
     .filter(id => /^\d+$/.test(id.trim()))
     .map(Number)
-    .slice(0, 50);
+    .slice(0, 200);
 
   if(dbIds.length === 0) return res.json({ fuel: {}, timestamp: new Date().toISOString() });
 
