@@ -1575,8 +1575,12 @@ app.get('/api/pumps/locations', async (req, res) => {
   // True cache miss — nothing cached yet, must build live, this request waits.
   const result = await buildLocationsResult(pin, lat, lng, cacheKey, cacheHours);
 
-  // Cloudflare cache: s-maxage=1yr (CDN), max-age=2hr (browser)
-  res.setHeader('Cache-Control', 'public, s-maxage=31536000, max-age=7200');
+  // Cloudflare cache: s-maxage=1yr (CDN, actively purged on new pump
+  // registration/approval — safe). max-age=5min (phone's own local cache —
+  // this one CANNOT be remotely purged, so it must stay short; 2hrs was
+  // causing devices to show stale pump lists for up to 2hrs after a new
+  // pump was registered nearby, even after a successful server-side purge).
+  res.setHeader('Cache-Control', 'public, s-maxage=31536000, max-age=300');
   res.setHeader('Vary', 'Accept-Encoding');
   res.json({ ...result, from_cache: false });
 });
