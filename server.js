@@ -2442,6 +2442,11 @@ app.post('/api/reports/submit-external', requireAuth(), async (req,res) => {
            saveOil, external_id, saveState, saveCategory]);
         pump = dbGet(`SELECT * FROM petrol_pumps WHERE license_number=?`, [external_id]);
         cacheClear('gps:'); cacheClear('pin:');
+        // FIX: purge Cloudflare CDN so every device's cached pump list is
+        // immediately invalidated — without this, other devices continue
+        // getting the old list (up to 1yr cached) and never see this new pump,
+        // causing the "No recent data" symptom even when the DB is correct.
+        purgeCloudflareCache();
         console.log(`[NEW PUMP] Auto-registered: ${saveName} | lat:${saveLat},${saveLng} | category:${saveCategory}`);
       }
     }
@@ -4252,6 +4257,23 @@ app.get('/api/admin/pumps/cng-breakdown', requireAuth(['super_admin']), (req, re
   } catch(e) {
     console.error('[SEED] CNG breakdown error:', e.message);
     res.status(500).json({ error: 'Could not compute breakdown' });
+  }
+});
+
+// ── Manual cache purge (admin-only) ─────────────────────────────────────
+// For situations like: a pump was auto-registered, its Cloudflare-cached
+// grid cell is stale on some devices, but no NEW registration is happening
+// to naturally trigger the purge. Call this directly instead of waiting.
+app.post('/api/admin/cache/purge', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    cacheClear('gps:');
+    cacheClear('pin:');
+    await purgeCloudflareCache();
+    console.log('[ADMIN] Manual cache purge triggered');
+    res.json({ success: true, message: 'In-memory + Cloudflare cache purged' });
+  } catch(e) {
+    console.error('[ADMIN] Manual purge error:', e.message);
+    res.status(500).json({ error: 'Purge failed: ' + e.message });
   }
 });
 
