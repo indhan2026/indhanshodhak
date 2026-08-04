@@ -1662,7 +1662,7 @@ app.get('/api/pumps/fuel-data', (req, res) => {
   res.json({
     fuel: fuelData,
     timestamp: new Date().toISOString(),
-    count: dbIds.length,
+    count: idMap.size,
   });
 });
 
