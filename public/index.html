@@ -1510,9 +1510,14 @@ async function loadAndRender(pumps, userLat, userLng) {
     }
   } catch(e){}
 
-  // Get DB pump IDs only (MMI pumps have 'mmi_' prefix)
+  // Send BOTH numeric DB ids and external ids (gpl_/osm_/mmi_).
+  // External ids are resolved server-side via license_number — a pump first seen
+  // via Google Places keeps its 'gpl_...' id in this device's cached list even
+  // after it gets auto-registered as a real DB row. Previously those were filtered
+  // out here, so such pumps showed "No recent data" forever on that device.
   const dbIds = pumps
-    .filter(p => String(p.id).match(/^\d+$/))
+    .filter(p => p.id !== undefined && p.id !== null)
+    .filter(p => String(p.id).match(/^(\d+|gpl_|osm_|mmi_)/))
     .map(p => p.id);
 
   // Fetch LIVE fuel data from our DB

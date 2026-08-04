@@ -1597,20 +1597,35 @@ app.get('/api/pumps/fuel-data', (req, res) => {
   const { ids } = req.query;
   if(!ids) return res.json({ fuel: {} });
 
-  // FIX: was capped at 50 — since widening rural search radius to 25km,
-  // combined DB+Google result lists routinely exceed that, silently
-  // excluding farther pumps from ever getting live fuel data at all
-  // (not a caching issue — they were never even queried). 200 comfortably
-  // covers realistic combined result sizes even in dense city cores.
-  const dbIds = ids.split(',')
-    .filter(id => /^\d+$/.test(id.trim()))
-    .map(Number)
-    .slice(0, 200);
+  // Accept BOTH numeric DB ids and external ids (gpl_/osm_/mmi_ prefixed).
+  //
+  // Why external ids matter: a pump discovered via Google Places is listed as
+  // id='gpl_<placeid>' with fuel=null. Once someone reports fuel there, it gets
+  // auto-registered as a real DB row with license_number='gpl_<placeid>'. But any
+  // device still holding the PRE-registration cached pump list keeps sending the
+  // external id — which used to be filtered out entirely, so that device could
+  // never see fuel data for that pump again (looked like "No recent data" forever,
+  // even though the DB was correct and push notifications worked fine).
+  // Resolving via license_number fixes this regardless of how stale the client's
+  // pump list is. Results are keyed back to whatever id the client asked with.
+  const requested = ids.split(',').map(s => s.trim()).filter(Boolean).slice(0, 200);
 
-  if(dbIds.length === 0) return res.json({ fuel: {}, timestamp: new Date().toISOString() });
+  // requestedId -> numeric DB id
+  const idMap = new Map();
+  for (const rid of requested) {
+    if (/^\d+$/.test(rid)) {
+      idMap.set(rid, Number(rid));
+    } else if (/^(gpl_|osm_|mmi_)/.test(rid)) {
+      const row = dbGet('SELECT id FROM petrol_pumps WHERE license_number=? AND is_active=1', [rid]);
+      if (row) idMap.set(rid, row.id);   // registered since this client cached its list
+    }
+    // anything else: ignored (unknown id format)
+  }
+
+  if(idMap.size === 0) return res.json({ fuel: {}, timestamp: new Date().toISOString() });
 
   const fuelData = {};
-  dbIds.forEach(id => {
+  idMap.forEach((id, requestedId) => {
     const report = latestReport(id);
     const pump   = dbGet('SELECT is_verified, scan_count_free, category, name FROM petrol_pumps WHERE id=?', [id]);
 
@@ -1621,7 +1636,7 @@ app.get('/api/pumps/fuel-data', (req, res) => {
     // it never depends on a background job having already succeeded.
     const fallback = report ? null : getCategoryDefaultFuel(pump?.category, pump?.name);
 
-    fuelData[id] = {
+    fuelData[requestedId] = {
       petrol:           report?.petrol  ?? fallback?.petrol  ?? false,
       diesel:           report?.diesel  ?? fallback?.diesel  ?? false,
       cng:              report?.cng     ?? fallback?.cng     ?? false,
