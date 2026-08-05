@@ -1080,7 +1080,7 @@ function showMiniToast(msg, isError){
 // ── EV/CNG Station rating — always allowed, even if station already has ratings ──
 async function rateStation(placeId, rating, el){
   if(!TOKEN){ window.location.href='/otp_login.html'; return; }
-  const widget = el.closest('.star-rating');
+  const widget = el ? (el.closest('.star-rating') || el.closest('#evr-star-widget')) : null;
   const textEl = widget?.querySelector('.rating-text');
   try{
     const r = await fetch('/api/ratings/submit', {
@@ -1090,9 +1090,22 @@ async function rateStation(placeId, rating, el){
     });
     const d = await r.json();
     if(d.success){
-      // Update stars visually
-      const stars = widget.querySelectorAll('.star');
-      stars.forEach((s,i) => s.classList.toggle('filled', i < Math.round(d.average)));
+      // Update stars visually (widget may be absent when called from the modal)
+      if(widget){
+        const stars = widget.querySelectorAll('.star');
+        stars.forEach((s,i) => s.classList.toggle('filled', i < Math.round(d.average)));
+      }
+      // Always refresh the matching card's star widget too
+      const cardWidget = document.querySelector(`.star-rating[data-place-id="${placeId}"]`);
+      if(cardWidget && cardWidget !== widget){
+        cardWidget.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('filled', i < Math.round(d.average)));
+        const cardTxt = cardWidget.querySelector('.rating-text');
+        if(cardTxt){
+          cardTxt.textContent = `You rated ${rating}★ · just now`;
+          cardTxt.style.color = '#1a6b2e';
+          cardTxt.style.fontWeight = '600';
+        }
+      }
       const now = new Date(d.rated_at).toLocaleString('en-IN', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       if(textEl){
         textEl.textContent = `You rated ${rating}★ · just now (${now})`;
@@ -1302,13 +1315,29 @@ async function submitEVReport() {
         // after a fresh report, making the update look like it didn't apply.
         const unverifiedBlock = evCard.querySelector('.ev-unverified');
         if (unverifiedBlock) unverifiedBlock.remove();
-        // insertAdjacentHTML+remove avoids live-NodeList spread bug
-        const oldSt = evCard.querySelector('.pump-status') || evCard.querySelector('.ev-status-row[style*="margin-top:6px"]');
-        if (oldSt && wsHtml) {
-          oldSt.insertAdjacentHTML('afterend',
-            `<div class="ev-status-row" style="margin-top:6px">${wsHtml}${portsHtml}${waitHtml}</div>${parkHtml}${foodHtml}`
+        // Remove anything a PREVIOUS inline update inserted, plus the original
+        // "● CHARGER AVAILABLE" line, so repeat submits replace rather than stack.
+        evCard.querySelectorAll('.ev-live-update').forEach(n => n.remove());
+        const staleStatus = evCard.querySelector('.pump-status');
+        if (staleStatus) staleStatus.remove();
+        // Server-rendered report block from page load (status row + parking + food)
+        const srvRow = evCard.querySelector('.ev-status-row[style*="margin-top:6px"]');
+        if (srvRow) {
+          let n = srvRow.nextElementSibling;
+          while (n && (n.classList.contains('ev-timing-tag') || n.classList.contains('ev-food'))) {
+            const next = n.nextElementSibling; n.remove(); n = next;
+          }
+          srvRow.remove();
+        }
+        // Anchor on the fuel-tags row — it is always present and never removed.
+        const anchor = evCard.querySelector('.tags');
+        if (anchor && wsHtml) {
+          anchor.insertAdjacentHTML('beforebegin',
+            `<div class="ev-live-update">` +
+              `<div class="ev-status-row" style="margin-top:6px">${wsHtml}${portsHtml}${waitHtml}</div>` +
+              `${parkHtml}${foodHtml}` +
+            `</div>`
           );
-          oldSt.remove();
         }
         // Update EV availability tag
         const evTag = evCard.querySelector('.tag[data-fuel="ev"]');
