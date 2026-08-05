@@ -1263,6 +1263,11 @@ async function submitEVReport() {
         const waitHtml  = wait_time&&wait_time!=='unknown'   ? `<span class="ev-timing-tag">⏱️ ${wait_time==='none'?'No wait':wait_time==='short'?'Short wait':'Long wait'}</span>` : '';
         const parkHtml  = parking&&parking!=='unknown'       ? `<div class="ev-timing-tag" style="margin-bottom:6px">🅿️ Parking: ${parking==='free'?'Free':parking==='paid'?'Paid':'None'}</div>` : '';
         const foodHtml  = food_val==='yes'&&food_name        ? `<div class="ev-food">🍽️ ${food_name}</div>` : '';
+        // Remove the "No charger details available yet" / "help us verify" block —
+        // that's separate from the report-status block, and stayed visible even
+        // after a fresh report, making the update look like it didn't apply.
+        const unverifiedBlock = evCard.querySelector('.ev-unverified');
+        if (unverifiedBlock) unverifiedBlock.remove();
         // insertAdjacentHTML+remove avoids live-NodeList spread bug
         const oldSt = evCard.querySelector('.pump-status') || evCard.querySelector('.ev-status-row[style*="margin-top:6px"]');
         if (oldSt && wsHtml) {
