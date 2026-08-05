@@ -1191,8 +1191,12 @@ async function submitEVReport() {
   const getTogVal = (groupId) => {
     const grp = document.getElementById(groupId);
     if(!grp) return null;
-    const yes = grp.querySelector('.tog.yes');
-    return yes ? (yes.dataset.val || (yes.textContent.includes('Yes') ? 'yes' : 'no')) : null;
+    // setTog() adds class 'yes' OR 'no' depending on the button — a selected
+    // "Partial"/"Down"/"Some Free" button carries .no, so match BOTH classes.
+    const sel = grp.querySelector('.tog.yes, .tog.no');
+    if(!sel) return null;
+    if(sel.dataset.val) return sel.dataset.val;
+    return sel.textContent.includes('Yes') ? 'yes' : 'no';
   };
 
   const available     = getTogVal('evr-available');
