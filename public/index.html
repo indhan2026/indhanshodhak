@@ -1252,24 +1252,34 @@ async function submitEVReport() {
     if(resp && resp.ok){
       document.getElementById('notif-text').textContent = '✅ EV status updated! Nearby users notified.';
       setTimeout(()=>{ document.getElementById('notif-text').textContent=''; }, 4000);
-      // ── Inline-update EV card immediately — no re-fetch needed ──
+      // ── Inline-update EV card immediately ────────────────────────
       const evCard = document.querySelector(`.ev-card[data-place-id="${pid}"]`);
       if (evCard) {
-        const wsHtml = working_status==='ok'?`<span class="ev-status-badge ev-status-functional">✅ All OK</span>`:working_status==='partial'?`<span class="ev-status-badge ev-status-partial">⚠️ Partially Working</span>`:working_status==='down'?`<span class="ev-status-badge ev-status-out">❌ Down</span>`:'';
-        const portsHtml = ports_free&&ports_free!=='unknown'?`<span class="ev-timing-tag">🔌 ${ports_free==='all'?'All ports free':ports_free==='some'?'Some ports free':'No ports free'}</span>`:'';
-        const waitHtml  = wait_time&&wait_time!=='unknown'?`<span class="ev-timing-tag">⏱️ ${wait_time==='none'?'No wait':wait_time==='short'?'Short wait':'Long wait'}</span>`:'';
-        const parkHtml  = parking&&parking!=='unknown'?`<div class="ev-timing-tag" style="margin-bottom:6px">🅿️ Parking: ${parking==='free'?'Free':parking==='paid'?'Paid':'None'}</div>`:'';
-        const foodHtml  = food_val==='yes'&&food_name?`<div class="ev-food">🍽️ ${food_name}</div>`:'';
-        const oldSt = evCard.querySelector('.pump-status')||evCard.querySelector('.ev-status-row[style*="margin-top:6px"]');
+        // Build status HTML from submitted values
+        const wsHtml    = working_status==='ok'      ? `<span class="ev-status-badge ev-status-functional">✅ All OK</span>`
+                        : working_status==='partial'  ? `<span class="ev-status-badge ev-status-partial">⚠️ Partially Working</span>`
+                        : working_status==='down'     ? `<span class="ev-status-badge ev-status-out">❌ Down</span>` : '';
+        const portsHtml = ports_free&&ports_free!=='unknown' ? `<span class="ev-timing-tag">🔌 ${ports_free==='all'?'All ports free':ports_free==='some'?'Some ports free':'No ports free'}</span>` : '';
+        const waitHtml  = wait_time&&wait_time!=='unknown'   ? `<span class="ev-timing-tag">⏱️ ${wait_time==='none'?'No wait':wait_time==='short'?'Short wait':'Long wait'}</span>` : '';
+        const parkHtml  = parking&&parking!=='unknown'       ? `<div class="ev-timing-tag" style="margin-bottom:6px">🅿️ Parking: ${parking==='free'?'Free':parking==='paid'?'Paid':'None'}</div>` : '';
+        const foodHtml  = food_val==='yes'&&food_name        ? `<div class="ev-food">🍽️ ${food_name}</div>` : '';
+        // insertAdjacentHTML+remove avoids live-NodeList spread bug
+        const oldSt = evCard.querySelector('.pump-status') || evCard.querySelector('.ev-status-row[style*="margin-top:6px"]');
         if (oldSt && wsHtml) {
-          const tmp = document.createElement('div');
-          tmp.innerHTML = `<div class="ev-status-row" style="margin-top:6px">${wsHtml}${portsHtml}${waitHtml}</div>${parkHtml}${foodHtml}`;
-          oldSt.replaceWith(...tmp.childNodes);
+          oldSt.insertAdjacentHTML('afterend',
+            `<div class="ev-status-row" style="margin-top:6px">${wsHtml}${portsHtml}${waitHtml}</div>${parkHtml}${foodHtml}`
+          );
+          oldSt.remove();
         }
+        // Update EV availability tag
         const evTag = evCard.querySelector('.tag[data-fuel="ev"]');
-        if (evTag && ev_available) { evTag.className='tag tag-yes'; evTag.textContent='✓ EV Charging'; }
+        if (evTag) {
+          if (ev_available) { evTag.className='tag tag-yes'; evTag.textContent='✓ EV Charging'; }
+          else              { evTag.className='tag tag-no';  evTag.textContent='✗ EV Charging'; }
+        }
+        // Update timestamp
         const timeEl = evCard.querySelector('.pump-time');
-        if (timeEl) timeEl.textContent='Community · Just now';
+        if (timeEl) timeEl.textContent = 'Community · Just now';
       }
       // ─────────────────────────────────────────────────────────────
     } else if(resp && resp.status === 401){
