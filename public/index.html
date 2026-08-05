@@ -83,6 +83,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ev-status-out{background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;font-weight:700}
 .ev-timing-tag{font-size:11px;color:#555;display:inline-flex;align-items:center;gap:4px}
 .ev-food{font-size:11px;color:#555;background:#fafafa;border:1px solid #eee;border-radius:8px;padding:5px 10px;display:inline-flex;align-items:center;gap:5px;margin-bottom:8px}
+.ev-tag-base{font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:3px 10px;border:1.5px solid;margin-bottom:4px;margin-right:4px}
+.ev-tag-green{background:#e8f5e9;color:#1a6b2e;border-color:#a5d6a7}
+.ev-tag-yellow{background:#fff9c4;color:#f57f17;border-color:#ffe082}
+.ev-tag-red{background:#ffebee;color:#c62828;border-color:#ef9a9a}
+.ev-tag-food{background:#fff3e0;color:#e65100;border-color:#ffcc80}
 .ev-unverified{background:#f9f9f9;border:1.5px dashed #ccc;border-radius:10px;padding:10px 12px;font-size:11px;color:#888;margin-bottom:8px;text-align:center;line-height:1.7}
 .ev-footer{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #f0f0f0;flex-wrap:wrap;gap:6px}
 .star-rating{display:flex;align-items:center;gap:2px}
@@ -1306,10 +1311,10 @@ async function submitEVReport() {
         const wsHtml    = working_status==='ok'      ? `<span class="ev-status-badge ev-status-functional">✅ All OK</span>`
                         : working_status==='partial'  ? `<span class="ev-status-badge ev-status-partial">⚠️ Partially Working</span>`
                         : working_status==='down'     ? `<span class="ev-status-badge ev-status-out">❌ Down</span>` : '';
-        const portsHtml = ports_free&&ports_free!=='unknown' ? `<span class="ev-timing-tag">🔌 ${ports_free==='all'?'All ports free':ports_free==='some'?'Some ports free':'No ports free'}</span>` : '';
-        const waitHtml  = wait_time&&wait_time!=='unknown'   ? `<span class="ev-timing-tag">⏱️ ${wait_time==='none'?'No wait':wait_time==='short'?'Short wait':'Long wait'}</span>` : '';
-        const parkHtml  = parking&&parking!=='unknown'       ? `<div class="ev-timing-tag" style="margin-bottom:6px">🅿️ Parking: ${parking==='free'?'Free':parking==='paid'?'Paid':'None'}</div>` : '';
-        const foodHtml  = food_val==='yes'&&food_name        ? `<div class="ev-food">🍽️ ${food_name}</div>` : '';
+        const portsHtml = ports_free&&ports_free!=='unknown' ? `<span class="ev-tag-base ${ports_free==='all'?'ev-tag-green':ports_free==='some'?'ev-tag-yellow':'ev-tag-red'}">🔌 ${ports_free==='all'?'All ports free':ports_free==='some'?'Some ports free':'No ports free'}</span>` : '';
+        const waitHtml  = wait_time&&wait_time!=='unknown'   ? `<span class="ev-tag-base ${wait_time==='none'?'ev-tag-green':wait_time==='short'?'ev-tag-yellow':'ev-tag-red'}">⏱️ ${wait_time==='none'?'No wait':wait_time==='short'?'Short wait':'Long wait'}</span>` : '';
+        const parkHtml  = parking&&parking!=='unknown'       ? `<div class="ev-tag-base ${parking==='free'?'ev-tag-green':parking==='paid'?'ev-tag-yellow':'ev-tag-red'}" style="margin-bottom:6px">🅿️ Parking: ${parking==='free'?'Free':parking==='paid'?'Paid':'None'}</div>` : '';
+        const foodHtml  = food_val==='yes'&&food_name        ? `<div class="ev-tag-base ev-tag-food">Food 🍽️ ${food_name}</div>` : '';
         // Remove the "No charger details available yet" / "help us verify" block —
         // that's separate from the report-status block, and stayed visible even
         // after a fresh report, making the update look like it didn't apply.
@@ -1827,11 +1832,11 @@ function renderPumps(pumpsRaw, isPremium, price){
           ${f.ev_working_status==='ok' ? `<span class="ev-status-badge ev-status-functional">✅ All OK</span>` :
             f.ev_working_status==='partial' ? `<span class="ev-status-badge ev-status-partial">⚠️ Partially Working</span>` :
             f.ev_working_status==='down' ? `<span class="ev-status-badge ev-status-out">❌ Down</span>` : ''}
-          ${f.ev_ports_free && f.ev_ports_free!=='unknown' ? `<span class="ev-timing-tag">🔌 ${f.ev_ports_free==='all'?'All ports free':f.ev_ports_free==='some'?'Some ports free':'No ports free'}</span>` : ''}
-          ${f.ev_wait_time && f.ev_wait_time!=='unknown' ? `<span class="ev-timing-tag">⏱️ ${f.ev_wait_time==='none'?'No wait':f.ev_wait_time==='short'?'Short wait':'Long wait'}</span>` : ''}
+          ${f.ev_ports_free && f.ev_ports_free!=='unknown' ? `<span class="ev-tag-base ${f.ev_ports_free==='all'?'ev-tag-green':f.ev_ports_free==='some'?'ev-tag-yellow':'ev-tag-red'}">🔌 ${f.ev_ports_free==='all'?'All ports free':f.ev_ports_free==='some'?'Some ports free':'No ports free'}</span>` : ''}
+          ${f.ev_wait_time && f.ev_wait_time!=='unknown' ? `<span class="ev-tag-base ${f.ev_wait_time==='none'?'ev-tag-green':f.ev_wait_time==='short'?'ev-tag-yellow':'ev-tag-red'}">⏱️ ${f.ev_wait_time==='none'?'No wait':f.ev_wait_time==='short'?'Short wait':'Long wait'}</span>` : ''}
         </div>
-        ${f.ev_parking && f.ev_parking!=='unknown' ? `<div class="ev-timing-tag" style="margin-bottom:6px">🅿️ Parking: ${f.ev_parking==='free'?'Free':f.ev_parking==='paid'?'Paid':'None'}</div>` : ''}
-        ${f.ev_food_nearby && f.ev_food_name ? `<div class="ev-food">🍽️ ${f.ev_food_name}</div>` : ''}
+        ${f.ev_parking && f.ev_parking!=='unknown' ? `<div class="ev-tag-base ${f.ev_parking==='free'?'ev-tag-green':f.ev_parking==='paid'?'ev-tag-yellow':'ev-tag-red'}" style="margin-bottom:6px">🅿️ Parking: ${f.ev_parking==='free'?'Free':f.ev_parking==='paid'?'Paid':'None'}</div>` : ''}
+        ${f.ev_food_nearby && f.ev_food_name ? `<div class="ev-tag-base ev-tag-food">Food 🍽️ ${f.ev_food_name}</div>` : ''}
         ` : `<div class="pump-status" style="color:${open?'#2e7d32':'#888'};margin-top:6px">${open?'● CHARGER AVAILABLE':'⚫ NOT AVAILABLE'}</div>`}
         <div class="tags" style="cursor:pointer" onclick="openReport('${pName}','${pId}','${pAddr}',${p.lat||0},${p.lng||0},'${(p.oil_company||'Other').replace(/'/g,'')}','${(p.district||'').replace(/'/g,'')}','${(p.state||'Maharashtra').replace(/'/g,'')}','${p.pin_code||''}','ev')">
           <div class="tag ${f.ev?'tag-yes':'tag-no'}" data-fuel="ev">${f.ev?'✓':'✗'} EV Charging</div>
