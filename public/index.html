@@ -1188,7 +1188,7 @@ function openReport(name, pumpId, address, lat, lng, oilCo, district, state, pin
     // Reset star rating widget
     const evrStarW = document.getElementById('evr-star-widget');
     if(evrStarW) {
-      evrStarW.dataset.placeId = placeId;
+      evrStarW.dataset.placeId = pumpId;
       evrStarW.dataset.selected = '0';
       evrStarW.querySelectorAll('.star').forEach(s => s.classList.remove('filled'));
       const evrTxt = document.getElementById('evr-star-text');
