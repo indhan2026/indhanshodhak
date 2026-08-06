@@ -1566,6 +1566,7 @@ async function useGPS(){
     '<div style="padding:16px;text-align:center;color:#888">📡 Getting your location...</div>';
   navigator.geolocation.getCurrentPosition(async pos=>{
     const lat=pos.coords.latitude, lng=pos.coords.longitude;
+    if(window.syncFcmLocation) window.syncFcmLocation(lat,lng);
     document.getElementById('pinInput').value='';
     document.getElementById('pinInput').placeholder='GPS: '+lat.toFixed(4)+', '+lng.toFixed(4);
     document.getElementById('pump-section-lbl').textContent='Pumps near your location 📍';
@@ -2238,6 +2239,7 @@ async function autoLoadPumps(){
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(async pos=>{
       const lat=pos.coords.latitude,lng=pos.coords.longitude;
+      if(window.syncFcmLocation) window.syncFcmLocation(lat,lng);
       try{
         const r=await fetch('/api/pumps/locations?lat='+lat+'&lng='+lng,{
           headers:TOKEN?{'x-auth-token':TOKEN}:{}
@@ -2374,6 +2376,7 @@ async function initCapacitorPush() {
 
     // FCM token received — send to IndhanShodhak server
     PushNotifications.addListener('registration', async (token) => {
+      window.__fcmToken = token.value;
       console.log('[CAP-PUSH] FCM token received ✅');
 
       // Get GPS location best-effort (3s timeout, non-blocking)
@@ -2410,6 +2413,26 @@ async function initCapacitorPush() {
     });
 
     // Registration failure — log only, no crash
+    window.syncFcmLocation = async function(la, ln) {
+      if (!window.__fcmToken || la == null || ln == null) return;
+      try {
+        await fetch('/api/push/fcm-subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(typeof TOKEN !== 'undefined' && TOKEN ? { 'x-auth-token': TOKEN } : {})
+          },
+          body: JSON.stringify({
+            fcm_token: window.__fcmToken,
+            fuel_prefs: { petrol: true, diesel: true, cng: true, ev: true },
+            radius_km: 50,
+            lat: la, lng: ln
+          })
+        });
+        console.log('[CAP-PUSH] Location synced');
+      } catch(e) { console.error('[CAP-PUSH] sync error:', e); }
+    };
+
     PushNotifications.addListener('registrationError', (err) => {
       console.error('[CAP-PUSH] FCM registration error:', JSON.stringify(err));
     });
