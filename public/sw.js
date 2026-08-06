@@ -1,5 +1,5 @@
-// IndhanShodhak Service Worker v1.0
-const CACHE_NAME = 'indhanshodhak-v1';
+// IndhanShodhak Service Worker v2.0
+const CACHE_NAME = 'indhanshodhak-v2';
 const STATIC_ASSETS = [
   '/',
   '/app',
@@ -8,7 +8,6 @@ const STATIC_ASSETS = [
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];
-
 // Install
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -16,7 +15,6 @@ self.addEventListener('install', event => {
   );
   self.skipWaiting();
 });
-
 // Activate
 self.addEventListener('activate', event => {
   event.waitUntil(
@@ -26,7 +24,6 @@ self.addEventListener('activate', event => {
   );
   self.clients.claim();
 });
-
 // Fetch — Network first, cache fallback
 self.addEventListener('fetch', event => {
   if(event.request.url.includes('/api/')) return; // API always network
@@ -40,12 +37,10 @@ self.addEventListener('fetch', event => {
       .catch(() => caches.match(event.request))
   );
 });
-
 // Push — receives the notification sent from server via web-push
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch(e) { data = { title: 'IndhanShodhak', body: event.data?.text() || '' }; }
-
   const title = data.title || 'IndhanShodhak';
   const options = {
     body: data.body || 'Fuel update near you',
@@ -55,15 +50,12 @@ self.addEventListener('push', event => {
     data: { url: data.url || '/app' },   // used on click below
     vibrate: [200, 100, 200]
   };
-
   event.waitUntil(self.registration.showNotification(title, options));
 });
-
 // Notification click — focuses existing tab if open, else opens a new one
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/app';
-
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
       for (const client of clients) {
