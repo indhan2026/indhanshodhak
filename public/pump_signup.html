@@ -198,50 +198,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <input type="hidden" id="pumpLng" value="0">
     <input type="hidden" id="googlePlaceId" value="">
 
-    <!-- SECTION 1: Owner Details -->
-    <div class="section">
-      <div class="section-title">👤 Owner Details</div>
-      <label class="form-label">Full Name *</label>
-      <input class="form-input" type="text" id="name" placeholder="Owner's full name">
-      <div class="form-row">
-        <div>
-          <label class="form-label">Mobile Number *</label>
-          <input class="form-input" type="tel" id="mobile" placeholder="10-digit mobile"
-            maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
-        </div>
-        <div>
-          <label class="form-label">Email Address *</label>
-          <input class="form-input" type="email" id="email" placeholder="yourname@email.com"
-            oninput="resetOTP()">
-        </div>
-      </div>
-      <!-- OTP Verification -->
-      <div id="otpSection" style="margin-top:10px">
-        <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" id="sendOtpBtn" onclick="sendOTP()"
-            style="padding:9px 16px;background:#e65100;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
-            📧 Send OTP
-          </button>
-          <span id="otpStatus" style="font-size:12px;color:#888"></span>
-        </div>
-        <div id="otpInputRow" style="display:none;margin-top:8px;display:none">
-          <div style="display:flex;gap:8px;align-items:center">
-            <input class="form-input" type="text" id="otpInput" placeholder="Enter 6-digit OTP"
-              maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"
-              style="flex:1;margin-bottom:0;letter-spacing:4px;font-size:18px;font-weight:700">
-            <button type="button" id="verifyOtpBtn" onclick="verifyOTP()"
-              style="padding:9px 16px;background:#1a6b2e;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
-              ✓ Verify
-            </button>
-          </div>
-          <div id="otpErr" style="font-size:12px;color:#c62828;margin-top:4px"></div>
-        </div>
-        <div id="otpVerifiedBadge" style="display:none;margin-top:8px;background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:8px;padding:8px 12px;font-size:13px;color:#1a6b2e;font-weight:700">
-          ✅ Email verified
-        </div>
-      </div>
-    </div>
-
     <!-- SECTION 2: Pump Details (FUEL only) -->
     <div class="section fuel-section" id="fuelDetailsSection">
       <div class="section-title">⛽ Pump Details</div>
@@ -463,6 +419,50 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
             onchange="handleFile(this,'wrap-idproof','idproof-name')">
         </label>
         <div class="file-name" id="idproof-name">No file chosen</div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: Owner Details -->
+    <div class="section">
+      <div class="section-title">👤 Owner Details</div>
+      <label class="form-label">Full Name *</label>
+      <input class="form-input" type="text" id="name" placeholder="Owner's full name">
+      <div class="form-row">
+        <div>
+          <label class="form-label">Mobile Number *</label>
+          <input class="form-input" type="tel" id="mobile" placeholder="10-digit mobile"
+            maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div>
+          <label class="form-label">Email Address *</label>
+          <input class="form-input" type="email" id="email" placeholder="yourname@email.com"
+            oninput="resetOTP()">
+        </div>
+      </div>
+      <!-- OTP Verification -->
+      <div id="otpSection" style="margin-top:10px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" id="sendOtpBtn" onclick="sendOTP()"
+            style="padding:9px 16px;background:#e65100;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+            📧 Send OTP
+          </button>
+          <span id="otpStatus" style="font-size:12px;color:#888"></span>
+        </div>
+        <div id="otpInputRow" style="display:none;margin-top:8px;display:none">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" type="text" id="otpInput" placeholder="Enter 6-digit OTP"
+              maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"
+              style="flex:1;margin-bottom:0;letter-spacing:4px;font-size:18px;font-weight:700">
+            <button type="button" id="verifyOtpBtn" onclick="verifyOTP()"
+              style="padding:9px 16px;background:#1a6b2e;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+              ✓ Verify
+            </button>
+          </div>
+          <div id="otpErr" style="font-size:12px;color:#c62828;margin-top:4px"></div>
+        </div>
+        <div id="otpVerifiedBadge" style="display:none;margin-top:8px;background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:8px;padding:8px 12px;font-size:13px;color:#1a6b2e;font-weight:700">
+          ✅ Email verified
+        </div>
       </div>
     </div>
 
