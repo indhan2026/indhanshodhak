@@ -3209,6 +3209,45 @@ app.get('/api/pump-owner/nearby-competitors', requireAuth(['pump_owner','super_a
 });
 
 app.get('/pump-signup', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_signup.html')));
+
+// ── Pump Signup Email OTP ─────────────────────────────────────────────────
+app.post('/api/pump-signup/send-otp', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Valid email required' });
+  const key = 'PUMPOTP_' + email.toLowerCase();
+  // Rate limit: 1 OTP per 60s per email
+  if (otpStore[key] && otpStore[key].expires > Date.now() + 4 * 60 * 1000)
+    return res.status(429).json({ error: 'OTP already sent. Wait 60 seconds before retrying.' });
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore[key] = { otp, expires: Date.now() + 10 * 60 * 1000 }; // 10 min expiry
+  try {
+    await sendEmail(email, '🔐 IndhanShodhak — Pump Registration OTP',
+      `<div style="font-family:sans-serif;font-size:15px;color:#333;line-height:1.8;padding:20px">
+        <h2 style="color:#e65100">IndhanShodhak — Pump Registration</h2>
+        <p>Your OTP for pump/EV station registration is:</p>
+        <div style="font-size:36px;font-weight:900;letter-spacing:10px;color:#e65100;margin:20px 0">${otp}</div>
+        <p style="color:#888;font-size:13px">Valid for 10 minutes. Do not share this OTP with anyone.</p>
+      </div>`
+    );
+    res.json({ ok: true, message: 'OTP sent to ' + email });
+  } catch(e) {
+    console.error('[PUMP OTP] Email failed:', e.message);
+    res.status(500).json({ error: 'Failed to send OTP. Check email address.' });
+  }
+});
+
+app.post('/api/pump-signup/verify-otp', (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ error: 'Email and OTP required' });
+  const key = 'PUMPOTP_' + email.toLowerCase();
+  const stored = otpStore[key];
+  if (!stored)                        return res.status(400).json({ error: 'No OTP sent to this email. Send OTP first.' });
+  if (Date.now() > stored.expires)  { delete otpStore[key]; return res.status(400).json({ error: 'OTP expired. Request a new one.' }); }
+  if (stored.otp !== otp.trim())      return res.status(400).json({ error: 'Incorrect OTP. Try again.' });
+  delete otpStore[key]; // consumed — one-time use
+  res.json({ ok: true, verified: true });
+});
+// ─────────────────────────────────────────────────────────────────────────
 app.get('/careers',    (req,res) => res.sendFile(path.join(PUBLIC_PATH,'careers.html')));
 app.get('/pump-guide', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump_guide.html')));
 app.get('/pump-subscribe.html', (req,res) => res.sendFile(path.join(PUBLIC_PATH,'pump-subscribe.html')));

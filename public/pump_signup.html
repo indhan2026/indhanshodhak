@@ -211,7 +211,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         </div>
         <div>
           <label class="form-label">Email Address *</label>
-          <input class="form-input" type="email" id="email" placeholder="yourname@email.com">
+          <input class="form-input" type="email" id="email" placeholder="yourname@email.com"
+            oninput="resetOTP()">
+        </div>
+      </div>
+      <!-- OTP Verification -->
+      <div id="otpSection" style="margin-top:10px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" id="sendOtpBtn" onclick="sendOTP()"
+            style="padding:9px 16px;background:#e65100;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+            📧 Send OTP
+          </button>
+          <span id="otpStatus" style="font-size:12px;color:#888"></span>
+        </div>
+        <div id="otpInputRow" style="display:none;margin-top:8px;display:none">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" type="text" id="otpInput" placeholder="Enter 6-digit OTP"
+              maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"
+              style="flex:1;margin-bottom:0;letter-spacing:4px;font-size:18px;font-weight:700">
+            <button type="button" id="verifyOtpBtn" onclick="verifyOTP()"
+              style="padding:9px 16px;background:#1a6b2e;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+              ✓ Verify
+            </button>
+          </div>
+          <div id="otpErr" style="font-size:12px;color:#c62828;margin-top:4px"></div>
+        </div>
+        <div id="otpVerifiedBadge" style="display:none;margin-top:8px;background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:8px;padding:8px 12px;font-size:13px;color:#1a6b2e;font-weight:700">
+          ✅ Email verified
         </div>
       </div>
     </div>
@@ -454,7 +480,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
       <div style="font-size:11px;color:#aaa;margin-top:6px">Leave blank if not given by an MR agent.</div>
     </div>
 
-    <button class="submit-btn" id="submitBtn" onclick="submitApplication()">
+    <button class="submit-btn" id="submitBtn" onclick="submitApplication()" disabled>
       📤 Submit for Verification
     </button>
     <div class="back-link"><a href="/login">← Back to Login</a></div>
@@ -464,6 +490,86 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <script>
 let selectedPump = null;
 let currentType  = 'fuel'; // 'fuel' or 'ev'
+let otpVerified  = false;  // gate for submit
+
+// ── OTP functions ────────────────────────────────────────────────────────
+function resetOTP() {
+  otpVerified = false;
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('otpVerifiedBadge').style.display = 'none';
+  document.getElementById('otpInputRow').style.display = 'none';
+  document.getElementById('otpStatus').textContent = '';
+  document.getElementById('otpErr').textContent = '';
+}
+
+async function sendOTP() {
+  const email = document.getElementById('email').value.trim();
+  if (!email || !email.includes('@')) { alert('Enter a valid email first'); return; }
+  const btn = document.getElementById('sendOtpBtn');
+  const status = document.getElementById('otpStatus');
+  btn.disabled = true; btn.textContent = '⏳ Sending...';
+  try {
+    const r = await fetch('/api/pump-signup/send-otp', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      document.getElementById('otpInputRow').style.display = 'block';
+      status.textContent = '✉️ OTP sent! Check your email.';
+      status.style.color = '#1a6b2e';
+      btn.textContent = '🔄 Resend OTP';
+      btn.disabled = false;
+      // countdown 60s before allow resend
+      let secs = 60;
+      btn.disabled = true;
+      const t = setInterval(() => {
+        secs--;
+        btn.textContent = `🔄 Resend (${secs}s)`;
+        if (secs <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = '🔄 Resend OTP'; }
+      }, 1000);
+    } else {
+      status.textContent = d.error || 'Failed to send OTP';
+      status.style.color = '#c62828';
+      btn.disabled = false; btn.textContent = '📧 Send OTP';
+    }
+  } catch(e) {
+    status.textContent = 'Network error. Try again.';
+    status.style.color = '#c62828';
+    btn.disabled = false; btn.textContent = '📧 Send OTP';
+  }
+}
+
+async function verifyOTP() {
+  const email = document.getElementById('email').value.trim();
+  const otp   = document.getElementById('otpInput').value.trim();
+  const errEl = document.getElementById('otpErr');
+  if (otp.length !== 6) { errEl.textContent = 'Enter 6-digit OTP'; return; }
+  const btn = document.getElementById('verifyOtpBtn');
+  btn.disabled = true; btn.textContent = '⏳ Verifying...';
+  try {
+    const r = await fetch('/api/pump-signup/verify-otp', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, otp })
+    });
+    const d = await r.json();
+    if (r.ok && d.verified) {
+      otpVerified = true;
+      document.getElementById('otpInputRow').style.display = 'none';
+      document.getElementById('otpVerifiedBadge').style.display = 'block';
+      document.getElementById('otpStatus').textContent = '';
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('submitBtn').style.background = '#e65100';
+    } else {
+      errEl.textContent = d.error || 'Verification failed';
+      btn.disabled = false; btn.textContent = '✓ Verify';
+    }
+  } catch(e) {
+    errEl.textContent = 'Network error. Try again.';
+    btn.disabled = false; btn.textContent = '✓ Verify';
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────
 
 function switchType(type) {
   currentType = type;
@@ -850,6 +956,9 @@ async function submitApplication(){
 
   const show = (msg) => { errEl.textContent=msg; errEl.style.display='block';
     errEl.scrollIntoView({behavior:'smooth'}); };
+
+  // OTP must be verified before submit
+  if (!otpVerified) return show('Please verify your email OTP before submitting.');
 
   const name   = document.getElementById('name').value.trim();
   const mobile = document.getElementById('mobile').value.trim();
