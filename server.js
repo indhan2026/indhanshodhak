@@ -4237,7 +4237,29 @@ app.get('/api/admin/push/diagnostics', requireAuth(['super_admin']), (req, res) 
       created_at: r.created_at,
       last_used_at: r.last_used_at
     }));
-    res.json({ total: out.length, subscriptions: out });
+    const fcmRows = dbAll(`SELECT id, user_id, fcm_token, fuel_prefs, radius_km, lat, lng, created_at, last_used_at
+                           FROM fcm_tokens ORDER BY last_used_at DESC`);
+    const fcmOut = fcmRows.map(r => ({
+      id: r.id,
+      user_id: r.user_id,
+      token_short: r.fcm_token ? r.fcm_token.slice(0, 24) + '...' : null,
+      fuel_prefs: (() => { try { return JSON.parse(r.fuel_prefs || '{}'); } catch(e) { return r.fuel_prefs; } })(),
+      radius_km: r.radius_km,
+      lat: r.lat,
+      lng: r.lng,
+      has_gps: (r.lat !== null && r.lng !== null),
+      created_at: r.created_at,
+      last_used_at: r.last_used_at
+    }));
+    const fcmWithGps = fcmOut.filter(r => r.has_gps).length;
+    res.json({
+      total: out.length,
+      subscriptions: out,
+      fcm_total: fcmOut.length,
+      fcm_with_gps: fcmWithGps,
+      fcm_null_gps: fcmOut.length - fcmWithGps,
+      fcm_tokens: fcmOut
+    });
   } catch(e) {
     console.error('[PUSH] Diagnostics error:', e.message);
     res.status(500).json({ error: 'Could not fetch diagnostics' });
