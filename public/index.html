@@ -2437,6 +2437,17 @@ async function initCapacitorPush() {
       console.error('[CAP-PUSH] FCM registration error:', JSON.stringify(err));
     });
 
+    // Re-sync GPS location every time app comes to foreground (fixes null lat/lng on first install)
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible' && window.syncFcmLocation && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => { window.syncFcmLocation(pos.coords.latitude, pos.coords.longitude); },
+          () => {},
+          { timeout: 5000, maximumAge: 60000 }
+        );
+      }
+    });
+
     // Notification received while app is open (foreground)
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
       console.log('[CAP-PUSH] Notification received:', notification.title);
